@@ -35,6 +35,7 @@ namespace Engine {
 		const CameraType& GetType() const { return m_Type; }
 		float GetZoomDistance() { return m_Distance; }
 		float GetOrthographicSize() { return m_OrthographicSize; }
+		float GetAspectRatio() { return m_AspectRatio; }
 
 		void SetOrthographicSize(float size);
 		void SetClippingRange(float near, float far);

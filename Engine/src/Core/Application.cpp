@@ -26,6 +26,7 @@ namespace Engine
 	{
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClosed));
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResized));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();)
 		{
@@ -84,5 +85,9 @@ namespace Engine
 	{
 		m_Running = false;
 		return false;
+	}
+	bool Application::OnWindowResized(WindowResizeEvent& e)
+	{
+		return Renderer::Get()->OnWindowResized();
 	}
 }

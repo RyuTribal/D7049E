@@ -31,7 +31,7 @@ namespace TestApp {
 
 			Engine::Ref<Engine::Entity> light_entity = scene->CreateEntity("Sun", nullptr);
 			Engine::Ref<Engine::PointLight> light = Engine::CreateRef<Engine::PointLight>(); // defaults to white
-			Engine::TransformComponent new_transform(glm::vec3(0.f, 0.7f, 0.f));
+			Engine::TransformComponent new_transform(glm::vec3(0.5f, 0.7f, 0.f));
 			Engine::PointLightComponent new_light(light);
 
 			light_entity->AddComponent<Engine::TransformComponent>(new_transform);

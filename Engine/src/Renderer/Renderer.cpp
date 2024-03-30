@@ -23,6 +23,7 @@ namespace Engine
 
     void Renderer::BeginFrame(Camera* camera)
     {
+		auto& app = Application::Get();
 		float r, g, b;
 		r = m_BackgroundColor[0] / 255.0f;
 		g = m_BackgroundColor[1] / 255.0f;
@@ -34,16 +35,15 @@ namespace Engine
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		if (m_CurrentCamera) {
+			camera->SetAspectRatio(m_CurrentCamera->GetAspectRatio());
+		}
         m_CurrentCamera = camera;
         camera->UpdateCamera();
     }
 
 	void Renderer::DepthPrePass()
 	{
-		auto& app = Application::Get();
-		if (app.GetWindow().GetWidth() != current_window_width || app.GetWindow().GetHeight() != current_window_height) {
-			ReCreateFrameBuffers();
-		}
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glUseProgram(m_DepthPrePassProgram.GetProgram());
 		m_DepthPrePassProgram.UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
@@ -74,11 +74,6 @@ namespace Engine
 
 	void Renderer::ShadeAllObjects()
 	{
-		auto& app = Application::Get();
-		if (app.GetWindow().GetWidth() != current_window_width || app.GetWindow().GetHeight() != current_window_height) {
-			ReCreateFrameBuffers();
-		}
-
 		glBindFramebuffer(GL_FRAMEBUFFER, m_HDRFBO);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -264,6 +259,16 @@ namespace Engine
 		glBindVertexArray(m_QuadVAO);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
+	}
+	bool Renderer::OnWindowResized()
+	{
+		auto& app = Application::Get();
+		float height = app.GetWindow().GetHeight();
+		float width = app.GetWindow().GetWidth();
+		m_CurrentCamera->SetAspectRatio(width / height);
+		glViewport(0, 0, width, height);
+		ReCreateFrameBuffers();
+		return true;
 	}
 	void Renderer::ResetStats()
 	{

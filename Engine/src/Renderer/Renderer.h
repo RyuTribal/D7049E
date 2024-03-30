@@ -90,6 +90,8 @@ namespace Engine
 
 		Statistics* GetStats() { return &m_Stats; }
 
+		bool OnWindowResized();
+
 
 	private:
 
@@ -99,7 +101,7 @@ namespace Engine
 		void DrawHDRQuad();
 
 		static Renderer* s_Instance;
-		Camera* m_CurrentCamera;
+		Camera* m_CurrentCamera = nullptr;
 
 		GLuint m_WorkGroupsX;
 		GLuint m_WorkGroupsY;

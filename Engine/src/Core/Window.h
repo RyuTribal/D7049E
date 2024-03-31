@@ -5,16 +5,30 @@
 #include "Events/Event.h"
 
 namespace Engine {
+
+	enum FullscreenType {
+		FULLSCREEN,
+		BORDERLESS
+	};
+
 	struct WindowProps
 	{
 		std::string Title;
 		unsigned int Width;
 		unsigned int Height;
+		bool VSync;
+		bool Fullscreen;
+		bool ScreenMaximized;
+		FullscreenType FullScreenType;
 
 		WindowProps(const std::string& title = "Engine",
 			unsigned int width = 1280,
-			unsigned int height = 720)
-			: Title(title), Width(width), Height(height)
+			unsigned int height = 720,
+			bool vsync = true,
+			bool fullscreen = false,
+			bool maximized = false,
+			FullscreenType fullscreen_type = BORDERLESS)
+			: Title(title), Width(width), Height(height), VSync(vsync), Fullscreen(fullscreen), ScreenMaximized(maximized), FullScreenType(fullscreen_type)
 		{
 		}
 	};
@@ -29,6 +43,13 @@ namespace Engine {
 
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
+		virtual bool GetFullScreen() const = 0;
+		virtual FullscreenType GetFullScreenType() const = 0;
+		virtual bool GetMaximized() const = 0;
+		virtual bool GetVSync() const = 0;
+		virtual std::string& GetTitle() = 0;
+		virtual void SetFullScreen(bool fullscreen, FullscreenType type) = 0;
+		virtual void SetMaximized(bool maximized) = 0;
 
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 

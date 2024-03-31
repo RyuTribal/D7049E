@@ -83,16 +83,15 @@ namespace Engine
 		static Renderer* Get() { return s_Instance; }
 
 		Camera* GetCamera() { return m_CurrentCamera; }
+		void SetCamera(Camera* camera) { m_CurrentCamera = camera; }
 
 		void SetBackgroundColor(int red, int green, int blue) { m_BackgroundColor[0] = red; m_BackgroundColor[1] = green; m_BackgroundColor[2] = blue;}
 
 		TextureInfo UploadImageToGPU(const char* path, bool invert);
 
 		Statistics* GetStats() { return &m_Stats; }
-
 		bool OnWindowResized();
-
-
+		void SetVSync(bool vsync);
 	private:
 
 		void ResetStats();

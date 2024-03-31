@@ -32,11 +32,59 @@ namespace Engine
 		Shutdown();
 	}
 
+	void WindowsWindow::SetFullScreen(bool fullscreen, FullscreenType type)
+	{
+		if (m_Data.Fullscreen == fullscreen) {
+			return;
+		}
+		m_Data.Fullscreen = fullscreen;
+		m_Data.FullscreenType = type;
+		if (!fullscreen) {
+			glfwSetWindowMonitor(m_Window, nullptr, XPos, YPos, PrevWidth, PrevHeight, 0);
+			glfwSetWindowAttrib(m_Window, GLFW_DECORATED, GLFW_TRUE);
+			glfwSetWindowAttrib(m_Window, GLFW_RESIZABLE, GLFW_TRUE);
+		}
+		else {
+			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+			switch (type) {
+			case FullscreenType::FULLSCREEN:
+
+				glfwGetWindowPos(m_Window, &XPos, &YPos);
+				glfwGetWindowSize(m_Window, &PrevWidth, &PrevHeight);
+				glfwSetWindowMonitor(m_Window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+				break;
+			case FullscreenType::BORDERLESS:
+				glfwGetWindowPos(m_Window, &XPos, &YPos);
+				glfwGetWindowSize(m_Window, &PrevWidth, &PrevHeight);
+				monitor = glfwGetPrimaryMonitor();
+				mode = glfwGetVideoMode(monitor);
+				if (!mode) return;
+				glfwSetWindowAttrib(m_Window, GLFW_DECORATED, GLFW_FALSE); // Note to self: Dont be a dumbass and do this after setting window monitor (4 hours wasted you fucking asshole)
+				glfwSetWindowAttrib(m_Window, GLFW_RESIZABLE, GLFW_FALSE);
+				glfwSetWindowMonitor(m_Window, NULL, 0, 0, mode->width, mode->height, 0);
+				break;
+			}
+		}
+	}
+
+	void WindowsWindow::SetMaximized(bool maximized)
+	{
+		if (maximized) {
+			glfwMaximizeWindow(m_Window);
+		}
+	}
+
 	void WindowsWindow::Init(const WindowProps& props)
 	{
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
+		m_Data.VSync = props.VSync;
+		m_Data.Fullscreen = props.Fullscreen;
+		m_Data.FullscreenType = props.FullScreenType;
+		m_Data.ScreenMaximized = props.ScreenMaximized;
 
 		CORE_INFO("Creating window  {0} ({1}, {2})", props.Title, props.Width, props.Height);
 
@@ -52,17 +100,12 @@ namespace Engine
 		m_Context = RenderContext::Create(m_Window);
 		m_Context->Init();
 		glfwSetWindowUserPointer(m_Window, &m_Data);
-		glfwSwapInterval(1);
+		glfwSwapInterval(m_Data.VSync ? 1 : 0);
+		
 
 		// Set GLFW callbacks
-		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
-			{
-				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-				data.Width = width;
-				data.Height = height;
-				WindowResizeEvent event(width, height);
-				data.EventCallback(event);
-			});
+		glfwSetWindowSizeCallback(m_Window, OnSizeChange);
+		glfwSetWindowMaximizeCallback(m_Window, WindowsWindow::OnMaximize);
 		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
 			{
 				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
@@ -143,6 +186,26 @@ namespace Engine
 	void WindowsWindow::Shutdown()
 	{
 		glfwDestroyWindow(m_Window);
+	}
+
+	void WindowsWindow::OnMaximize(GLFWwindow* window, int maximized)
+	{
+		WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		data.ScreenMaximized = maximized;
+	}
+
+	void WindowsWindow::OnSizeChange(GLFWwindow* window, int width, int height)
+	{
+		WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		data.Width = width;
+		data.Height = height;
+		WindowResizeEvent event(width, height);
+		data.EventCallback(event);
+	}
+
+	bool WindowsWindow::IsFullScreen()
+	{
+		return glfwGetWindowMonitor(m_Window) != nullptr;
 	}
 
 	void WindowsWindow::OnUpdate()

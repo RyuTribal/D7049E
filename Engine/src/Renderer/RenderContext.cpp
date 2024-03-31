@@ -24,6 +24,10 @@ namespace Engine
 	{
 		glfwSwapBuffers(m_WindowHandle);
 	}
+	void RenderContext::SetVSync(bool vsync)
+	{
+		glfwSwapInterval(vsync ? 1 : 0);
+	}
 	std::unique_ptr<RenderContext> RenderContext::Create(void* window)
 	{
 		return std::make_unique<RenderContext>(std::forward<GLFWwindow*>(static_cast<GLFWwindow*>(window)));

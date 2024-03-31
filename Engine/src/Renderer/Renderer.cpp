@@ -38,7 +38,7 @@ namespace Engine
 		if (m_CurrentCamera) {
 			camera->SetAspectRatio(m_CurrentCamera->GetAspectRatio());
 		}
-        m_CurrentCamera = camera;
+        SetCamera(camera);
         camera->UpdateCamera();
     }
 
@@ -269,6 +269,11 @@ namespace Engine
 		glViewport(0, 0, width, height);
 		ReCreateFrameBuffers();
 		return true;
+	}
+	void Renderer::SetVSync(bool vsync)
+	{
+		auto& app = Application::Get();
+		app.GetWindow().GetContext()->SetVSync(vsync);
 	}
 	void Renderer::ResetStats()
 	{

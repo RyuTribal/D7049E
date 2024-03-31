@@ -27,5 +27,8 @@ Engine::Application* Engine::CreateApplication()
 	props.Title = "Editor";
 	props.Width = 1280;
 	props.Height = 720;
+	props.Fullscreen = false;
+	props.FullScreenType = BORDERLESS;
+	props.ScreenMaximized = false;
 	return new EditorApp(props);
 }

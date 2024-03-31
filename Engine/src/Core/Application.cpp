@@ -54,6 +54,9 @@ namespace Engine
 
 	void Application::run()
 	{
+		m_Window->SetMaximized(m_Window->GetMaximized());
+		m_Window->SetFullScreen(m_Window->GetFullScreen(), m_Window->GetFullScreenType());
+
 		auto last_frame = std::chrono::high_resolution_clock::now();
 		while (m_Running)
 		{

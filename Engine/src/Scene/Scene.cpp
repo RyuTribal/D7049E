@@ -14,6 +14,7 @@ namespace Engine {
 		scene->SetCurrentCamera(default_camera_entity->GetID());
 		Ref<Camera> camera = CreateRef<Camera>(CameraType::PERSPECTIVE);
 		default_camera_entity->AddComponent<CameraComponent>(CameraComponent(camera));
+		Renderer::Get()->SetCamera(camera.get());
 
 		return {default_camera_entity, scene};
 	}

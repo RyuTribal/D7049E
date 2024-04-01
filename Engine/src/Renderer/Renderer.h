@@ -6,6 +6,10 @@
 #include "Mesh.h"
 #include "Material.h"
 #include <Scene/Components.h>
+#include "RendererAPI.h"
+#include "Texture.h"
+#include "UniformBuffer.h"
+#include "Framebuffer.h"
 
 namespace Engine
 {
@@ -86,11 +90,10 @@ namespace Engine
 		void SetCamera(Camera* camera) { m_CurrentCamera = camera; }
 
 		void SetBackgroundColor(int red, int green, int blue) { m_BackgroundColor[0] = red; m_BackgroundColor[1] = green; m_BackgroundColor[2] = blue;}
-
-		TextureInfo UploadImageToGPU(const char* path, bool invert);
+		uint32_t GetSceneTextureID() { return m_SceneFramebuffer->GetColorAttachmentRendererID(); }
 
 		Statistics* GetStats() { return &m_Stats; }
-		bool OnWindowResized();
+		void ResizeViewport(int width, int height);
 		void SetVSync(bool vsync);
 	private:
 
@@ -105,15 +108,12 @@ namespace Engine
 		GLuint m_WorkGroupsX;
 		GLuint m_WorkGroupsY;
 
-		GLuint m_LightsBuffer;
-		GLuint m_VisibleLightsBuffer;
+		Ref<Framebuffer> m_DepthFramebuffer = nullptr;
+		Ref<ShaderStorageBuffer> m_LightsSSBO = nullptr;
+		Ref<ShaderStorageBuffer> m_VisibleLightsSSBO = nullptr;
+		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
+		Ref<Framebuffer> m_SceneFramebuffer = nullptr;
 
-		GLuint m_DepthTexture;
-		GLuint m_DepthFBO;
-
-		GLuint m_HDRFBO;
-		GLuint m_ColorBuffer;
-		GLuint m_RBODepth;
 		ShaderProgram m_DepthPrePassProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/depth_pre_pass");
 
 		ShaderProgram m_LightCullingProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/light_culling_shader");
@@ -127,13 +127,17 @@ namespace Engine
 		std::vector<Mesh*> m_Meshes{};
 		std::vector<Material*> m_Materials{};
 		std::vector<PointLight*> m_PointLights{};
-
-		GLuint m_QuadVAO = 0;
-		GLuint m_QuadVBO;
+		
+		Ref<VertexArray> m_QuadVertexArray = nullptr;
 
 		ShaderProgram m_QuadProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/hdr_shader");
 
 		const float exposure = 1.0f;
+
+		GLuint m_QuadVAO = 0;
+		GLuint m_QuadVBO;
+
+		RendererAPI m_RendererAPI{};
 	};
 
 	// This is so the spd log library can print this data structure

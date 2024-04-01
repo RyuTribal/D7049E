@@ -10,7 +10,7 @@ namespace Engine
 
 	Application::Application(WindowProps props)
 	{
-		CORE_ASSERT(!s_Instance, "Application already exists!");
+		HVE_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 		m_Window = std::unique_ptr<Window>(Window::Create(props));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
@@ -26,7 +26,6 @@ namespace Engine
 	{
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClosed));
-		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResized));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();)
 		{
@@ -88,9 +87,5 @@ namespace Engine
 	{
 		m_Running = false;
 		return false;
-	}
-	bool Application::OnWindowResized(WindowResizeEvent& e)
-	{
-		return Renderer::Get()->OnWindowResized();
 	}
 }

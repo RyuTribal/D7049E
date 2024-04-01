@@ -47,7 +47,7 @@ namespace Editor {
             vertices[vertices.size() - 1].normal = normals[i];
         }
 
-        std::vector<int> indices = {
+        std::vector<uint32_t> indices = {
             // Front face
             0, 1, 8, 1, 2, 8, 2, 3, 8, 3, 0, 8,
             // Right face
@@ -62,6 +62,6 @@ namespace Editor {
             4, 5, 13, 5, 1, 13, 1, 0, 13, 0, 4, 13
         };
 
-        SetData(vertices, indices);
+        mesh = Engine::CreateRef<Engine::Mesh>(vertices, indices);
 	}
 }

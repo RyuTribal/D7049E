@@ -32,7 +32,7 @@ namespace Engine {
         glGetProgramiv(m_ShaderProgram, GL_LINK_STATUS, &success);
         if (!success) {
             glGetProgramInfoLog(m_ShaderProgram, 512, NULL, infoLog);
-            CORE_ERROR("Shader Linking Error: {0}, Perpetrator: {1}", infoLog, path);
+            HVE_CORE_ERROR("Shader Linking Error: {0}, Perpetrator: {1}", infoLog, path);
             return;
         }
 	}

@@ -53,5 +53,9 @@ namespace Editor {
 
 		glm::vec2 deltaMouseOrientation = { 0.f, 0.f };
 		glm::vec2 currentMouseOrientation = { 0.f, 0.f };
+
+		glm::vec2 m_ViewportSize;
+
+		Engine::Ref<Engine::Texture2D> checkerboard_tex = nullptr;
 	};
 }

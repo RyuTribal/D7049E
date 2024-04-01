@@ -14,7 +14,7 @@ namespace Engine
 
 	static void GLFWErrorCallback(int error, const char* description)
 	{
-		CORE_ERROR("GLFW Error ({0}): {1}", error, description);
+		HVE_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
 
 	Window* Window::Create(const WindowProps& props)
@@ -86,12 +86,12 @@ namespace Engine
 		m_Data.FullscreenType = props.FullScreenType;
 		m_Data.ScreenMaximized = props.ScreenMaximized;
 
-		CORE_INFO("Creating window  {0} ({1}, {2})", props.Title, props.Width, props.Height);
+		HVE_CORE_INFO("Creating window  {0} ({1}, {2})", props.Title, props.Width, props.Height);
 
 		if (!s_GLFWInitialized)
 		{
 			int success = glfwInit();
-			CORE_ASSERT(success, "Could not initialize GLFW!");
+			HVE_CORE_ASSERT(success, "Could not initialize GLFW!");
 			glfwSetErrorCallback(GLFWErrorCallback);
 			s_GLFWInitialized = true;
 		}

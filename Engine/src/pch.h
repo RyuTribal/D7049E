@@ -20,6 +20,7 @@
 #include <string>
 #include <sstream>
 #include <cstring>
+#include <cstdint>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -33,10 +34,7 @@
 #include <glm/glm.hpp>
 
 #include "Utils/Log.h"
-#include "Utils/Sort.h"
 #include "Utils/DataStructures.h"
-#include "Utils/Algorithms.h"
-#include "Utils/Paths.h"
 
 #include "Core/UUID.h"
 

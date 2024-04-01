@@ -13,6 +13,7 @@
 #include "Renderer/Renderer.h"
 #include "Materials/Phong.h"
 #include "Lights/PointLight.h"
+#include "Renderer/Texture.h"
 
 
 // ---------------- Scene ----------------
@@ -22,10 +23,8 @@
 
 // ---------------- Utils ----------------
 #include "Utils/Log.h"
-#include "Utils/Algorithms.h"
 #include "Utils/DataStructures.h"
 #include "Utils/Random.h"
-#include "Utils/Sort.h"
 
 #include "ImGui/ImGuiLayer.h"
 

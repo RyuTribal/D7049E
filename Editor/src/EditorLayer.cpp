@@ -3,14 +3,17 @@
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
-		Engine::Ref<Engine::Mesh> cube = Engine::CreateRef<Cuboid>(1.f, 1.f, 1.f);
+
+		checkerboard_tex = Engine::Texture2D::Create(ROOT_PATH + std::string("/assets/test.png"));
+
+		Cuboid cube{ 1.f, 1.f, 1.f };
 		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
 
 		Engine::Ref<Engine::Entity> cube_entity = scene->CreateEntity("Cube", nullptr);
 		Engine::TransformComponent cube_transform{ glm::vec3(0.f, 0.f, 0.f) };
 		cube_transform.local_transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
 
-		cube_entity->AddComponent<Engine::MeshComponent>(cube);
+		cube_entity->AddComponent<Engine::MeshComponent>(cube.GetMesh());
 		cube_entity->AddComponent<Engine::MaterialComponent>(cube_material);
 		cube_entity->AddComponent<Engine::TransformComponent>(cube_transform);
 
@@ -54,12 +57,25 @@ namespace Editor {
 
 	void EditorLayer::OnImGuiRender()
 	{
+		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 		ImGui::Begin("Settings");
 		if (ImGui::Button("Toggle Fullscreen")) {
 			bool is_fullscreen = Engine::Application::Get().GetWindow().GetFullScreen();
 			Engine::Application::Get().GetWindow().SetFullScreen(!is_fullscreen, Engine::BORDERLESS);
 		}
 		ImGui::End();
+
+		ImGui::Begin("Viewport");
+		uint32_t id = Engine::Renderer::Get()->GetSceneTextureID();
+		ImVec2 windowSize = ImGui::GetContentRegionAvail();
+		if (m_ViewportSize != *((glm::vec2*)&windowSize)) {
+			Engine::Renderer::Get()->ResizeViewport((uint32_t)windowSize.x, (uint32_t)windowSize.y);
+			m_ViewportSize = { windowSize.x, windowSize.y };
+		}
+		ImGui::Image((void*)(intptr_t)(id), ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::End();
+
+		ImGui::ShowMetricsWindow();
 
 	}
 

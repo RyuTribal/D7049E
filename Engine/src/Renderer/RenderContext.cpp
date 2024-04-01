@@ -9,14 +9,14 @@ namespace Engine
 	RenderContext::RenderContext(GLFWwindow* windowHandle)
 		: m_WindowHandle(windowHandle)
 	{
-		CORE_ASSERT(windowHandle, "Window handle is null!")
+		HVE_CORE_ASSERT(windowHandle, "Window handle is null!");
 	}
 	void RenderContext::Init()
 	{
 		glfwMakeContextCurrent(m_WindowHandle);
 
 		int status = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
-		CORE_ASSERT(status, "Failed to initialize Glad!");
+		HVE_CORE_ASSERT(status, "Failed to initialize Glad!");
 
 		glEnable(GL_DEBUG_OUTPUT);
 	}

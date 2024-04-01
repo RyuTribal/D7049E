@@ -16,7 +16,7 @@ namespace Engine
 
     void Shader::CreateShader(GLuint& shader_ref, const std::string& path, GLuint type) {
         std::ifstream shaderFile(path);
-        CORE_ASSERT(shaderFile.is_open(), "Failed to open Shader file");
+        HVE_CORE_ASSERT(shaderFile.is_open(), "Failed to open Shader file");
 
         std::stringstream buffer;
         buffer << shaderFile.rdbuf();
@@ -34,7 +34,7 @@ namespace Engine
             glGetShaderInfoLog(shader_ref, sizeof(infoLog), NULL, infoLog);
             glDeleteShader(shader_ref);
             shader_ref = 0;
-            CORE_ERROR("ERROR::SHADER_COMPILATION_ERROR of type: {} \n{} Perpetrator: {}", type, infoLog, path);
+            HVE_CORE_ERROR("ERROR::SHADER_COMPILATION_ERROR of type: {} \n{} Perpetrator: {}", type, infoLog, path);
         }
     }
 }

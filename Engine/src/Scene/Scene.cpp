@@ -65,7 +65,7 @@ namespace Engine {
 	void Scene::ReparentSceneNode(UUID id, UUID new_parent_id) {
 		m_RootSceneNode.RemoveChild(id, &m_RootSceneNode);
 		m_RootSceneNode.AddChild(new_parent_id, id);
-		CORE_WARN(m_RootSceneNode.GetChildren()->size());
+		HVE_CORE_WARN(m_RootSceneNode.GetChildren()->size());
 	}
 
 

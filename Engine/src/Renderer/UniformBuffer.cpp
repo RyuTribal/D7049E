@@ -45,7 +45,6 @@ namespace Engine {
 	}
 
 
-
 	void ShaderStorageBuffer::Unbind() const
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

@@ -35,3 +35,4 @@ namespace Engine
 #define HVE_WARN(...) ::Engine::Log::GetClientLogger()->warn(__VA_ARGS__)
 #define HVE_INFO(...) ::Engine::Log::GetClientLogger()->info(__VA_ARGS__)
 #define HVE_TRACE(...) :: Engine::Log::GetClientLogger()->trace(__VA_ARGS__)
+

@@ -81,7 +81,7 @@ namespace Engine {
 
 		void SetCurrentCamera(UUID camera_entity_id) { m_CurrentCamera = camera_entity_id; }
 
-		void UpdateScene(int delta_time);
+		void UpdateScene();
 
 		UUID GetId() { return m_ID; }
 

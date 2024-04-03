@@ -95,6 +95,7 @@ namespace Engine
 		Statistics* GetStats() { return &m_Stats; }
 		void ResizeViewport(int width, int height);
 		void SetVSync(bool vsync);
+		void SetViewport(int width, int height);
 	private:
 
 		void ResetStats();

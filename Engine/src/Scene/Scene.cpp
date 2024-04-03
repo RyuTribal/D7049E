@@ -72,7 +72,7 @@ namespace Engine {
 	Camera* Scene::GetCurrentCamera(){
 		return m_Registry.Get<CameraComponent>(m_CurrentCamera)->camera.get();
 	}
-	void Scene::UpdateScene(int delta_time)
+	void Scene::UpdateScene()
 	{
 		UpdateTransforms();
 		DrawSystem();

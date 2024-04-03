@@ -1,8 +1,13 @@
 #include "EditorLayer.h"
+#include "Panels/Viewport.h"
 
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
+		auto [camera_entity, scene] = Engine::Scene::CreateScene("Editor Scene");
+		m_Scene = scene;
+		Engine::Renderer::Get()->SetBackgroundColor(0, 0, 0);
+
 
 		checkerboard_tex = Engine::Texture2D::Create(ROOT_PATH + std::string("/assets/test.png"));
 
@@ -33,14 +38,14 @@ namespace Editor {
 
 	void EditorLayer::OnUpdate(float delta_time)
 	{
-		Engine::Camera* curr_camera = scene->GetCurrentCamera();
+		Engine::Camera* curr_camera = m_Scene->GetCurrentCamera();
 		Engine::Renderer::Get()->BeginFrame(curr_camera);
 		smoothedDeltaTime = smoothingFactor * smoothedDeltaTime + (1.0f - smoothingFactor) * delta_time;
 		UpdateMovement();
 		if (!HasMovement()) {
 			ApplyFriction();
 		}
-		scene->UpdateScene(delta_time);
+		m_Scene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
 	}
 
@@ -64,17 +69,7 @@ namespace Editor {
 			Engine::Application::Get().GetWindow().SetFullScreen(!is_fullscreen, Engine::BORDERLESS);
 		}
 		ImGui::End();
-
-		ImGui::Begin("Viewport");
-		uint32_t id = Engine::Renderer::Get()->GetSceneTextureID();
-		ImVec2 windowSize = ImGui::GetContentRegionAvail();
-		if (m_ViewportSize != *((glm::vec2*)&windowSize)) {
-			Engine::Renderer::Get()->ResizeViewport((uint32_t)windowSize.x, (uint32_t)windowSize.y);
-			m_ViewportSize = { windowSize.x, windowSize.y };
-		}
-		ImGui::Image((void*)(intptr_t)(id), ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2(0, 1), ImVec2(1, 0));
-		ImGui::End();
-
+		EditorPanels::Viewport::Render();
 		ImGui::ShowMetricsWindow();
 
 	}

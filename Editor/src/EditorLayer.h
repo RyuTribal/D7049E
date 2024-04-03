@@ -3,13 +3,14 @@
 #include <imgui/imgui.h>
 #include "Primitives/Cuboid.h"
 #include "Materials/Silver.h"
+#include "EditorCamera.h"
 #include <map>
 
 
 namespace Editor {
 	class EditorLayer : public Engine::Layer {
 	public:
-		EditorLayer(Engine::Ref<Engine::Scene> scene) : Layer("Test"), scene(scene) {
+		EditorLayer() : Layer("Editor") {
 
 		}
 		~EditorLayer() = default;
@@ -31,7 +32,8 @@ namespace Editor {
 		void ApplyFriction();
 
 	private:
-		Engine::Ref<Engine::Scene> scene;
+		Engine::Ref<Engine::Scene> m_Scene;
+		EditorCamera m_Camera{};
 		std::unordered_map <Engine::UUID, Engine::Ref<Engine::Entity>> entities{}; //To make sure the entities are not garbage collected
 
 		const float MAX_FRAME_TIME = 0.01667;
@@ -53,8 +55,6 @@ namespace Editor {
 
 		glm::vec2 deltaMouseOrientation = { 0.f, 0.f };
 		glm::vec2 currentMouseOrientation = { 0.f, 0.f };
-
-		glm::vec2 m_ViewportSize;
 
 		Engine::Ref<Engine::Texture2D> checkerboard_tex = nullptr;
 	};

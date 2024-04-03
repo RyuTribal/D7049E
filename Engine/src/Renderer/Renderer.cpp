@@ -224,6 +224,10 @@ namespace Engine
 		auto& app = Application::Get();
 		app.GetWindow().GetContext()->SetVSync(vsync);
 	}
+	void Renderer::SetViewport(int width, int height)
+	{
+		m_RendererAPI.SetViewport(0, 0, width, height);
+	}
 	void Renderer::ResetStats()
 	{
 		m_Stats = Statistics();

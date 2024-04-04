@@ -29,5 +29,6 @@ namespace Editor {
 		Engine::Ref<Engine::Scene> m_Scene;
 		Engine::Ref<EditorCamera> m_Camera;
 		std::vector<Engine::EntityHandle*> entities{};
+		bool b_EditDockspace = false;
 	};
 }

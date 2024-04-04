@@ -18,6 +18,7 @@ namespace Engine
 		void PushOverlay(Layer* overlay);
 
 		void OnEvent(Event& event);
+		void Close();
 		static Application& Get() { return *s_Instance; }
 		Window& GetWindow() { return *m_Window; }
 

@@ -25,6 +25,6 @@ Engine::Application* Engine::CreateApplication()
 	props.Fullscreen = false;
 	props.FullScreenType = BORDERLESS;
 	props.ScreenMaximized = true;	
-	props.VSync = true; // Keep it for now so we can have faster movement I was too lazy to fix the mouse movement to properly work without vsync
+	props.VSync = false; // Keep it for now so we can have faster movement I was too lazy to fix the mouse movement to properly work without vsync
 	return new EditorApp(props);
 }

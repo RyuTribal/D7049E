@@ -4,17 +4,16 @@
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
-		auto [camera_entity, scene] = Engine::Scene::CreateScene("Editor Scene");
+		auto [scene, camera_entity_handle] = Engine::Scene::CreateScene("Editor Scene");
+		m_Camera = Engine::CreateRef<EditorCamera>(scene->GetCurrentCamera(), camera_entity_handle);
 		m_Scene = scene;
 		Engine::Renderer::Get()->SetBackgroundColor(0, 0, 0);
-
-
-		checkerboard_tex = Engine::Texture2D::Create(ROOT_PATH + std::string("/assets/test.png"));
 
 		Cuboid cube{ 1.f, 1.f, 1.f };
 		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
 
-		Engine::Ref<Engine::Entity> cube_entity = scene->CreateEntity("Cube", nullptr);
+		Engine::EntityHandle* cube_entity_handle = m_Scene->CreateEntity("Cube", nullptr);
+		Engine::Entity* cube_entity = m_Scene->GetEntity(cube_entity_handle);
 		Engine::TransformComponent cube_transform{ glm::vec3(0.f, 0.f, 0.f) };
 		cube_transform.local_transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
 
@@ -22,10 +21,11 @@ namespace Editor {
 		cube_entity->AddComponent<Engine::MaterialComponent>(cube_material);
 		cube_entity->AddComponent<Engine::TransformComponent>(cube_transform);
 
-		entities[cube_entity->GetID()] = cube_entity; // Prevent garbage collection
+		entities.push_back(cube_entity_handle); // Prevent garbage collection
 
 
-		Engine::Ref<Engine::Entity> light_entity = scene->CreateEntity("Sun", nullptr);
+		Engine::EntityHandle* light_entity_handle = m_Scene->CreateEntity("Sun", nullptr);
+		Engine::Entity* light_entity = m_Scene->GetEntity(light_entity_handle);
 		Engine::Ref<Engine::PointLight> light = Engine::CreateRef<Engine::PointLight>(); // defaults to white
 		Engine::TransformComponent new_transform(glm::vec3(0.5f, 0.7f, 0.f));
 		Engine::PointLightComponent new_light(light);
@@ -33,18 +33,14 @@ namespace Editor {
 		light_entity->AddComponent<Engine::TransformComponent>(new_transform);
 		light_entity->AddComponent<Engine::PointLightComponent>(new_light);
 
-		entities[light_entity->GetID()] = light_entity;
+		entities.push_back(light_entity_handle);
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
 	{
 		Engine::Camera* curr_camera = m_Scene->GetCurrentCamera();
 		Engine::Renderer::Get()->BeginFrame(curr_camera);
-		smoothedDeltaTime = smoothingFactor * smoothedDeltaTime + (1.0f - smoothingFactor) * delta_time;
-		UpdateMovement();
-		if (!HasMovement()) {
-			ApplyFriction();
-		}
+		m_Camera->Update(delta_time);
 		m_Scene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
 	}
@@ -74,126 +70,33 @@ namespace Editor {
 
 	}
 
-	void EditorLayer::SetDelta()
-	{
-		if (firstClick) {
-			currentMouseOrientation.x = Engine::Input::GetMouseX();
-			currentMouseOrientation.y = Engine::Input::GetMouseY();
-			firstClick = false;
-		}
-
-		deltaMouseOrientation = glm::vec2(0.f, 0.f);
-		deltaMouseOrientation.x = Engine::Input::GetMouseX();
-		deltaMouseOrientation.y = Engine::Input::GetMouseY();
-		deltaMouseOrientation = currentMouseOrientation - deltaMouseOrientation;
-		currentMouseOrientation = { 0.f, 0.f };
-		currentMouseOrientation.x = Engine::Input::GetMouseX();
-		currentMouseOrientation.y = Engine::Input::GetMouseY();
-	}
-
-	bool EditorLayer::HasMovement()
-	{
-		if (keyStates[KEY_W]) {
-			return true;
-		}
-		else if (keyStates[KEY_S]) {
-			return true;
-		}
-		else if (keyStates[KEY_A]) {
-			return true;
-		}
-		else if (keyStates[KEY_D]) {
-			return true;
-		}
-		return false;
-	}
-
 	bool EditorLayer::OnKeyPress(Engine::KeyPressedEvent& event)
 	{
-		UpdateKeyState(event.GetKeyCode(), true);
-		if (HasMovement()) {
-			BuildVelocityVector();
-		}
+		m_Camera->UpdateKeyState(event.GetKeyCode(), true);
 		return true;
 	}
 
 	bool EditorLayer::OnKeyRelease(Engine::KeyReleasedEvent& event)
 	{
-		UpdateKeyState(event.GetKeyCode(), false);
+		m_Camera->UpdateKeyState(event.GetKeyCode(), false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseButtonReleased(Engine::MouseButtonReleasedEvent& event)
 	{
-		if (event.GetMouseButton() == MOUSE_BUTTON_RIGHT) {
-			mouseIsPressed = false;
-			Engine::Input::SetLockMouseMode(false);
-		}
+		m_Camera->UpdateKeyState(MOUSE_BUTTON_RIGHT, false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseMoved(Engine::MouseMovedEvent& event)
 	{
-		if (mouseIsPressed) {
-			SetDelta();
-		}
+		m_Camera->PanCamera();
 		return true;
-	}
-
-	void EditorLayer::BuildVelocityVector()
-	{
-		auto camera = scene->GetCurrentCamera();
-		velocity = glm::vec3(0.0f);
-
-		if (keyStates[KEY_W]) {
-			velocity += mouseIsPressed ? camera->GetForwardDirection() * speed : glm::vec3(0.0f, speed, 0.0f);
-		}
-		if (keyStates[KEY_S]) {
-			velocity += mouseIsPressed ? -(camera->GetForwardDirection() * speed) : glm::vec3(0.0f, -speed, 0.0f);
-		}
-		if (keyStates[KEY_A]) {
-			velocity += mouseIsPressed ? -(camera->GetRightDirection() * speed) : glm::vec3(-speed, 0.0f, 0.0f);
-		}
-		if (keyStates[KEY_D]) {
-			velocity += mouseIsPressed ? camera->GetRightDirection() * speed : glm::vec3(speed, 0.0f, 0.0f);
-		}
 	}
 
 	bool EditorLayer::OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event)
 	{
-		if (event.GetMouseButton() == MOUSE_BUTTON_RIGHT) {
-			mouseIsPressed = true;
-			firstClick = true;
-			Engine::Input::SetLockMouseMode(true);
-		}
+		m_Camera->UpdateKeyState(MOUSE_BUTTON_RIGHT, true);
 		return true;
-	}
-
-	void EditorLayer::UpdateKeyState(int keyCode, bool isPressed)
-	{
-		keyStates[keyCode] = isPressed;
-	}
-
-	void EditorLayer::UpdateMovement()
-	{
-		auto camera = scene->GetCurrentCamera();
-
-		if (mouseIsPressed) {
-			camera->Rotate(deltaMouseOrientation * smoothedDeltaTime, sensitivity, false);
-			deltaMouseOrientation = { 0.f, 0.f };
-		}
-
-		if (velocity != glm::vec3(0.0f)) {
-			camera->Move(velocity * smoothedDeltaTime);
-		}
-	}
-
-	void EditorLayer::ApplyFriction()
-	{
-		velocity *= 1.0 - air_friction;
-
-		if (glm::length(velocity) < 0.01f) {
-			velocity = glm::vec3(0.0f);
-		}
 	}
 }

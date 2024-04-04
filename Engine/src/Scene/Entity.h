@@ -12,11 +12,7 @@ namespace Engine {
 			m_Handle = EntityHandle(UUID());
 		}
 		Entity(UUID id, std::string& name, Scene* scene_ptr) : m_Handle(EntityHandle(id)), m_Name(name), m_Scene(scene_ptr) {}
-		~Entity() {
-			if (m_Scene != nullptr) {
-				m_Scene->DestroyEntity(m_Handle.GetID());
-			}
-		}
+		~Entity() = default;
 
 
 		template<typename Type>

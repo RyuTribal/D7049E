@@ -42,7 +42,6 @@ namespace Engine {
 		uint32_t Width = 0, Height = 0;
 		FramebufferAttachmentSpecification Attachments;
 		uint32_t Samples = 1;
-
 		bool SwapChainTarget = false;
 	};
 	
@@ -54,7 +53,7 @@ namespace Engine {
 		}
 
 		Framebuffer(const FramebufferSpecification& spec);
-		virtual ~Framebuffer();
+		~Framebuffer();
 
 		void Invalidate();
 

@@ -17,9 +17,12 @@ namespace Engine
 	}
 	void WindowsInput::SetLockMouseModeImpl(bool lock_mouse)
 	{
-		auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-		glfwSetCursorPos(window, Application::Get().GetWindow().GetWidth() / 2, Application::Get().GetWindow().GetHeight() / 2);
-		lock_mouse ? glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED) : glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		if (lock_mouse != b_IsLocked) {
+			auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+			glfwSetCursorPos(window, Application::Get().GetWindow().GetWidth() / 2, Application::Get().GetWindow().GetHeight() / 2);
+			lock_mouse ? glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED) : glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			b_IsLocked = lock_mouse;
+		}
 	}
 	bool WindowsInput::IsMouseButtonPressedImpl(int button)
 	{

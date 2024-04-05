@@ -7,17 +7,23 @@
 
 namespace Engine {
 
-	std::pair<Ref<Entity>, Ref<Scene>> Scene::CreateScene(std::string name)
+	std::pair<Ref<Scene>, EntityHandle*> Scene::CreateScene(std::string name)
 	{
-		Ref<Scene> scene = CreateRef<Scene>(name);
-		Ref<Entity> default_camera_entity = scene->CreateEntity("Default scene camera", nullptr);
-		scene->SetCurrentCamera(default_camera_entity->GetID());
 		Ref<Camera> camera = CreateRef<Camera>(CameraType::PERSPECTIVE);
-		default_camera_entity->AddComponent<CameraComponent>(CameraComponent(camera));
-		Renderer::Get()->SetCamera(camera.get());
+		
 
-		return {default_camera_entity, scene};
+		return CreateScene(camera, name);
 	}
+
+	std::pair<Ref<Scene>, EntityHandle*> Scene::CreateScene(Ref<Camera> starting_camera, std::string name)
+	 {
+		 Ref<Scene> scene = CreateRef<Scene>(name);
+		 EntityHandle* default_camera_entity = scene->CreateEntity("Default scene camera", nullptr);
+		 scene->SetCurrentCamera(default_camera_entity);
+		 scene->GetEntity(default_camera_entity)->AddComponent<CameraComponent>(CameraComponent(starting_camera));
+		 Renderer::Get()->SetCamera(starting_camera.get());
+		 return { scene, default_camera_entity };
+	 }
 
 
 	Scene::Scene(std::string name)
@@ -30,7 +36,7 @@ namespace Engine {
 			m_Registry.RemoveAllFromEntity(key);
 		}
 	}
-	Ref<Entity> Scene::CreateEntity(std::string name, Entity* parent) {
+	EntityHandle* Scene::CreateEntity(std::string name, Entity* parent) {
 		
 		UUID new_id = UUID();
 		m_RootSceneNode.AddChild(parent == nullptr ? m_ID : parent->GetID(), new_id);
@@ -39,16 +45,16 @@ namespace Engine {
 
 		Ref<Entity> new_entity = CreateRef<Entity>(new_id, name, this);
 
-		entities[new_id] = new_entity->GetHandle();
+		entities[new_id] = new_entity;
 
-		return new_entity;
+		return new_entity->GetHandle();
 	}
 
-	void Scene::DestroyEntity(UUID id)
+	void Scene::DestroyEntity(EntityHandle* id)
 	{
-		m_RootSceneNode.RemoveChild(id, &m_RootSceneNode);
-		m_Registry.RemoveAllFromEntity(id);
-		entities.erase(id);
+		m_RootSceneNode.RemoveChild(id->GetID(), &m_RootSceneNode);
+		m_Registry.RemoveAllFromEntity(id->GetID());
+		entities.erase(id->GetID());
 	}
 
 	void Scene::FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent) {
@@ -62,17 +68,17 @@ namespace Engine {
 		}
 	}
 
-	void Scene::ReparentSceneNode(UUID id, UUID new_parent_id) {
-		m_RootSceneNode.RemoveChild(id, &m_RootSceneNode);
-		m_RootSceneNode.AddChild(new_parent_id, id);
+	void Scene::ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id) {
+		m_RootSceneNode.RemoveChild(id->GetID(), &m_RootSceneNode);
+		m_RootSceneNode.AddChild(new_parent_id->GetID(), id->GetID());
 		HVE_CORE_WARN(m_RootSceneNode.GetChildren()->size());
 	}
 
 
 	Camera* Scene::GetCurrentCamera(){
-		return m_Registry.Get<CameraComponent>(m_CurrentCamera)->camera.get();
+		return m_CurrentCamera->GetComponent<CameraComponent>()->camera.get();
 	}
-	void Scene::UpdateScene(int delta_time)
+	void Scene::UpdateScene()
 	{
 		UpdateTransforms();
 		DrawSystem();

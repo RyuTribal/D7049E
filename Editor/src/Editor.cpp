@@ -7,18 +7,13 @@ class EditorApp : public Engine::Application
 public:
 	EditorApp(Engine::WindowProps props) : Application(props)
 	{
-	    auto [camera_entity, scene] = Engine::Scene::CreateScene("Scene1");
-		entities[camera_entity->GetID()] = camera_entity;
-	    Engine::Renderer::Get()->SetBackgroundColor(128, 128, 128); //You can change the color here to see that it updates
-		PushLayer(new Editor::EditorLayer(scene));
+		PushLayer(new Editor::EditorLayer());
 	}
 
 	~EditorApp()
 	{
 
 	}
-
-	std::unordered_map <Engine::UUID, Engine::Ref<Engine::Entity>> entities{}; //To make sure the entities are not garbage collected
 };
 
 Engine::Application* Engine::CreateApplication()
@@ -30,6 +25,6 @@ Engine::Application* Engine::CreateApplication()
 	props.Fullscreen = false;
 	props.FullScreenType = BORDERLESS;
 	props.ScreenMaximized = true;	
-	props.VSync = true; // Keep it for now so we can have faster movement I was too lazy to fix the mouse movement to properly work without vsync
+	props.VSync = false; // Keep it for now so we can have faster movement I was too lazy to fix the mouse movement to properly work without vsync
 	return new EditorApp(props);
 }

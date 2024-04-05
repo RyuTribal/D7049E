@@ -12,5 +12,8 @@ namespace Engine
 		float GetMouseXImpl() override;
 		float GetMouseYImpl() override;
 		std::pair<float, float> GetMousePositionImpl() override;
+
+	private:
+		bool b_IsLocked = false;
 	};
 }

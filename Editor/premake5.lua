@@ -19,6 +19,8 @@ project "Editor"
         "%{wks.location}/Engine/vendor/spdlog/include",
         "%{IncludeDir.glm}",
         "%{IncludeDir.Glad}",
+        "%{IncludeDir.Jolt}",
+        "%{IncludeDir.Jolt}/Jolt",
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
         "vendor/assimp/include"

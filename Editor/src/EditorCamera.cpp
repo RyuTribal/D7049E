@@ -44,10 +44,10 @@ namespace Editor {
 			m_Velocity += m_KeyStates[MOUSE_BUTTON_RIGHT] ? -(m_Camera->GetForwardDirection() * m_Speed * delta_time) : -(m_Camera->GetUpDirection() * m_Speed * delta_time);
 		}
 		if (m_KeyStates[KEY_A]) {
-			m_Velocity += m_KeyStates[MOUSE_BUTTON_RIGHT] ? -(m_Camera->GetRightDirection() * m_Speed * delta_time) : -(m_Camera->GetRightDirection() * m_Speed * delta_time);
+			m_Velocity += -(m_Camera->GetRightDirection() * m_Speed * delta_time);
 		}
 		if (m_KeyStates[KEY_D]) {
-			m_Velocity += m_KeyStates[MOUSE_BUTTON_RIGHT] ? m_Camera->GetRightDirection() * m_Speed * delta_time : m_Camera->GetRightDirection() * m_Speed * delta_time;
+			m_Velocity += m_Camera->GetRightDirection() * m_Speed * delta_time;
 		}
 	}
 	bool EditorCamera::HasMovement()

@@ -34,12 +34,16 @@ project "Engine"
         "GLFW",
         "Glad",
         "ImGui",
+        "JoltPhysics"
     }
 
     defines
     {
         "_CRT_SECURE_NO_WARNINGS",
-        "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\""
+        "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\"",
+        "JPH_USE_LZCNT",
+        "JPH_USE_TZCNT",
+        "JPH_USE_FMADD",
     }
 
     includedirs
@@ -50,7 +54,9 @@ project "Engine"
         "%{IncludeDir.Glad}",
         "%{IncludeDir.ImGui}",
         "%{IncludeDir.glm}",
-        "src",
+        "%{IncludeDir.Jolt}",
+        "%{IncludeDir.Jolt}/Jolt",
+        "src/",
     }
 
     filter "system:windows"

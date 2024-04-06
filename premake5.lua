@@ -17,7 +17,10 @@ group "Dependencies"
     include "Engine/vendor/GLFW"
     include "Engine/vendor/Glad"
     include "Engine/vendor/imgui"
-group ""
+    include "Engine/vendor/JoltPhysics/JoltPhysicsPremake.lua"
+    include "Engine/vendor/JoltPhysics/JoltViewerPremake.lua"
+
+group "Core"
     include "Engine"
 
 group "Tools"
@@ -25,3 +28,5 @@ group "Tools"
 
 group "Misc"
     include "App"
+
+group ""

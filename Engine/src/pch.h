@@ -32,6 +32,7 @@
 #include <future>
 
 #include <glm/glm.hpp>
+#include <Jolt/Jolt.h>
 
 #include "Utils/Log.h"
 #include "Utils/DataStructures.h"

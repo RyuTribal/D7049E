@@ -30,6 +30,8 @@ namespace Engine {
 		auto indexBuffer = IndexBuffer::Create(indices.data(), indices.size());
 		m_VertexArray->AddVertexBuffer(vertexBuffer);
 		m_VertexArray->SetIndexBuffer(indexBuffer);
+
+		m_VertexCount = (int)vertices.size();
 	}
 	Mesh::~Mesh()
 	{

@@ -22,8 +22,6 @@ namespace Editor {
 		cube_entity->AddComponent<Engine::MeshComponent>(cube.GetMesh());
 		cube_entity->AddComponent<Engine::MaterialComponent>(cube_material);
 
-		HVE_INFO("Cube id: {0}", cube_entity->GetID());
-
 		entities.push_back(cube_entity_handle);
 
 		Engine::EntityHandle* light_entity_handle = m_Scene->CreateEntity("Sun", nullptr);
@@ -150,7 +148,15 @@ namespace Editor {
 
 		EditorPanels::Viewport::Render(m_Camera->GetCamera());
 
-		ImGui::ShowMetricsWindow();
+		ImGui::Begin("Stats");
+
+		ImGui::Text("Renderer Stats:");
+		ImGui::Text("FPS: %f", Renderer::Get()->GetStats()->frames_per_second);
+		ImGui::Text("Draw Calls: %d", Renderer::Get()->GetStats()->draw_calls);
+		ImGui::Text("Vertices: %d", Renderer::Get()->GetStats()->vertices_count);
+		ImGui::Text("Indices: %d", Renderer::Get()->GetStats()->index_count);
+
+		ImGui::End();
 
 		ImGui::Begin("Settings");
 

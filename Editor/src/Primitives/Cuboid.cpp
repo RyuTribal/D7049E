@@ -49,7 +49,6 @@ namespace Editor {
 
         for (int i = 0; i < vertices.size(); i++) {
             vertices[i].entity_id = (uint32_t)entity_id;
-            HVE_TRACE(vertices[i].entity_id);
         }
 
         std::vector<uint32_t> indices = {

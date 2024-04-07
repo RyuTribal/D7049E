@@ -29,8 +29,11 @@ namespace Engine {
 
 		Ref<VertexArray> GetVertexArray() { return m_VertexArray; }
 
+		int Size() { return m_VertexCount; }
+
 	private:
 		Ref<VertexArray> m_VertexArray;
 		glm::mat4 m_Transform = glm::mat4(0.f);
+		int m_VertexCount = 0;
 	};
 }

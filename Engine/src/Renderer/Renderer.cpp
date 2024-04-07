@@ -44,6 +44,13 @@ namespace Engine
         
     }
 
+	void Renderer::SubmitObject(Mesh* mesh, Material* material)
+	{
+		m_Meshes.push_back(mesh); m_Materials.push_back(material);
+		m_Stats.vertices_count += mesh->Size();
+		m_Stats.index_count += mesh->GetVertexArray()->GetIndexBuffer()->GetCount();
+	}
+
     void Renderer::BeginFrame(Camera* camera)
     {
 		auto& app = Application::Get();
@@ -61,6 +68,7 @@ namespace Engine
         camera->UpdateCamera();
 
 		m_RendererAPI.UnBindBuffer();
+		ResetStats();
     }
 
 	void Renderer::DepthPrePass()
@@ -140,6 +148,7 @@ namespace Engine
 			material->GetProgram()->UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
 		}
 		m_RendererAPI.DrawIndexed(mesh->GetVertexArray());
+		m_Stats.draw_calls++;
 	}
 
 	void Renderer::BeginDrawing()
@@ -234,6 +243,8 @@ namespace Engine
 	}
 	void Renderer::ResetStats()
 	{
-		m_Stats = Statistics();
+		m_Stats.vertices_count = 0;
+		m_Stats.draw_calls = 0;
+		m_Stats.index_count = 0;
 	}
 }

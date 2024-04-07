@@ -4,6 +4,7 @@ layout (location = 0) in vec3 a_coords;
 layout (location = 1) in vec4 a_colors;
 layout (location = 2) in vec2 a_texture_coords;
 layout (location = 3) in vec3 a_normals;
+layout (location = 4) in int a_entity_id;
 
 uniform mat4 u_CameraView;
 uniform mat4 u_CameraProjection;
@@ -15,6 +16,7 @@ out vec3 normal;
 out vec2 texCoords;
 out vec4 objectColor;
 out vec3 cameraPosition;
+out flat int v_EntityID;
 
 void main() {
     gl_Position = u_CameraProjection * u_CameraView * u_Transform * vec4(a_coords, 1.0);
@@ -22,4 +24,5 @@ void main() {
     normal = mat3(transpose(inverse(u_Transform))) * a_normals;
     cameraPosition = u_CameraPos;
     texCoords = a_texture_coords;
+    v_EntityID = a_entity_id;
 }

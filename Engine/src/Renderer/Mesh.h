@@ -4,6 +4,16 @@
 
 
 namespace Engine {
+
+	struct VertexData
+	{
+		glm::vec3 coordinates = { 0.f, 0.f, 0.f };
+		glm::vec4 color = { 1.f, 1.f, 1.f, 1.f };
+		glm::vec2 texture_coordinates = { 1.f, 1.f };
+		glm::vec3 normal = { 0.0f, 0.0f, 0.0f };
+		uint32_t entity_id = -1;
+	};
+
 	class Mesh {
 	public:
 		Mesh() = default;

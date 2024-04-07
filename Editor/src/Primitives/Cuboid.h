@@ -4,7 +4,7 @@
 namespace Editor {
 	class Cuboid {
 	public:
-		Cuboid(float height, float width, float depth);
+		Cuboid(float height, float width, float depth, Engine::UUID entity_id);
 
 		Engine::Ref <Engine::Mesh> GetMesh() { return mesh; }
 

@@ -23,11 +23,17 @@ namespace EditorPanels {
 			return s_Instance->GetSelectedEntityImpl();
 		}
 
+		static void SetSelectedEntity(int id) {
+			Create();
+			s_Instance->SetSelectedEntityImpl(id);
+		}
+
 	private:
 		void SetActiveScene(Ref<Scene> scene) { m_Scene = scene; }
 		void RenderImpl();
 		void DisplaySceneEntity(SceneNode* node);
 		Entity* GetSelectedEntityImpl() { return m_Scene->GetEntity(m_SelectionContext); }
+		void SetSelectedEntityImpl(int id){ m_SelectionContext = (UUID)id; }
 
 	private:
 		Ref<Scene> m_Scene;

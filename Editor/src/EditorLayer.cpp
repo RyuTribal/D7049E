@@ -11,15 +11,18 @@ namespace Editor {
 		m_Scene = scene;
 		Engine::Renderer::Get()->SetBackgroundColor(0, 0, 0);
 
-		Cuboid cube{ 1.f, 1.f, 1.f };
-		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
-
 		Engine::EntityHandle* cube_entity_handle = m_Scene->CreateEntity("Cube", nullptr);
 		Engine::Entity* cube_entity = m_Scene->GetEntity(cube_entity_handle);
+
+		Cuboid cube{ 1.f, 1.f, 1.f,  cube_entity->GetID()};
+		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
+
 		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
 
 		cube_entity->AddComponent<Engine::MeshComponent>(cube.GetMesh());
 		cube_entity->AddComponent<Engine::MaterialComponent>(cube_material);
+
+		HVE_INFO("Cube id: {0}", cube_entity->GetID());
 
 		entities.push_back(cube_entity_handle);
 
@@ -193,6 +196,14 @@ namespace Editor {
 	bool EditorLayer::OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event)
 	{
 		m_Camera->UpdateKeyState(event.GetMouseButton(), true);
+		if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && EditorPanels::Viewport::IsFocused() && EditorPanels::Viewport::CanReadPixelData()) {
+			auto [x, y] = EditorPanels::Viewport::GetMousePos();
+			int pixelData = Renderer::Get()->GetObjectFrameBuffer()->ReadPixel(1, x, y);
+			if (pixelData != -1 || EditorPanels::SceneGraph::GetSelectedEntity()->GetID() != (UUID)pixelData) {
+				EditorPanels::SceneGraph::SetSelectedEntity(pixelData);
+				EditorPanels::Viewport::ActivateGizmo();
+			}
+		}
 		return true;
 	}
 	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)

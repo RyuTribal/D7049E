@@ -23,6 +23,7 @@ namespace Engine
 		hdrSpec.Height = current_window_height;
 		hdrSpec.Attachments = {
 				FramebufferTextureFormat::RGBA16F,
+				FramebufferTextureFormat::RED_INTEGER,
 				FramebufferTextureFormat::DEPTH24STENCIL8
 		};
 		m_HDRFramebuffer = Engine::Framebuffer::Create(hdrSpec);
@@ -58,13 +59,15 @@ namespace Engine
 		}
         SetCamera(camera);
         camera->UpdateCamera();
+
+		m_RendererAPI.UnBindBuffer();
     }
 
 	void Renderer::DepthPrePass()
 	{
 		m_RendererAPI.ClearDepth();
+		m_DepthFramebuffer->Bind();
 		m_DepthPrePassProgram.Activate();
-
 		m_DepthPrePassProgram.UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
 		m_DepthPrePassProgram.UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
 		for (Mesh* mesh : m_Meshes) {
@@ -99,6 +102,7 @@ namespace Engine
 	void Renderer::ShadeAllObjects()
 	{
 		m_HDRFramebuffer->Bind();
+		m_HDRFramebuffer->ClearAttachment(1, -1);
 		m_RendererAPI.ClearAll();
 
 		for (size_t i = 0; i < m_Meshes.size(); i++) {

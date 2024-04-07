@@ -91,6 +91,7 @@ namespace Engine
 
 		void SetBackgroundColor(int red, int green, int blue) { m_BackgroundColor[0] = red; m_BackgroundColor[1] = green; m_BackgroundColor[2] = blue;}
 		uint32_t GetSceneTextureID() { return m_SceneFramebuffer->GetColorAttachmentRendererID(); }
+		Ref<Framebuffer> GetObjectFrameBuffer() { m_HDRFramebuffer->Bind(); return m_HDRFramebuffer; }
 
 		Statistics* GetStats() { return &m_Stats; }
 		void ResizeViewport(int width, int height);

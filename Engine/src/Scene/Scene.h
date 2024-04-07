@@ -75,8 +75,13 @@ namespace Engine {
 		Registry* GetRegistry() { return &m_Registry; }
 
 		EntityHandle* CreateEntity(std::string name, Entity* parent);
+		EntityHandle* CreateEntity(std::string name, EntityHandle* parent);
+		EntityHandle* CreateEntity(std::string name, UUID* parent);
+		EntityHandle* CreateEntity(std::string name, nullptr_t parent);
 		void DestroyEntity(EntityHandle* id);
+		void DestroyEntity(UUID id);
 		void ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id);
+		void ReparentSceneNode(UUID* id, UUID* new_parent_id);
 
 		Camera* GetCurrentCamera();
 
@@ -91,6 +96,7 @@ namespace Engine {
 		std::string& GetName() { return m_Name; }
 
 		Entity* GetEntity(EntityHandle* id) { return entities[id->GetID()].get(); }
+		Entity* GetEntity(UUID &id) { return entities[id].get(); }
 
 	private:
 

@@ -52,12 +52,16 @@ namespace Engine {
 		void SetFovy(float fovy);
 		void SetAspectRatio(float ratio);
 		void SetZoomDistance(float distance) { m_Distance = distance; }
+		void Zoom(float offset) { m_Distance += offset; }
 
 		std::pair<float, float> GetDeltaOrientation(const glm::vec2& delta, float rotation_speed, bool inverse_controls);
 
 		void ChangeCameraType(CameraType type);
 		void UpdateCamera() { RecalculateViewMatrix(); }
 		glm::vec3 CalculatePosition() const;
+
+		bool IsRotationLocked() { return b_LockedRotation; }
+		void SetIsRotationLocked(bool locked) { b_LockedRotation = locked; }
 
 	private:
 		void RecalculateViewMatrix();
@@ -82,6 +86,8 @@ namespace Engine {
 		float m_PerspectiveFOVY = glm::radians(45.f);
 
 		float m_AspectRatio = 1280.f / 720.f;
+
+		bool b_LockedRotation = false;
 
 
 		CameraType m_Type;

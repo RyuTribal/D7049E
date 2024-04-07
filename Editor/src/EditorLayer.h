@@ -7,8 +7,11 @@
 #include <map>
 
 
+using namespace Engine;
+
+
 namespace Editor {
-	class EditorLayer : public Engine::Layer {
+	class EditorLayer : public Layer {
 	public:
 		EditorLayer() : Layer("Editor") {
 
@@ -17,18 +20,20 @@ namespace Editor {
 
 		void OnAttach() override;
 		void OnUpdate(float delta_time) override;
-		void OnEvent(Engine::Event& event) override;
+		void OnEvent(Event& event) override;
 		void OnImGuiRender() override;
-		bool OnKeyPress(Engine::KeyPressedEvent& event);
-		bool OnKeyRelease(Engine::KeyReleasedEvent& event);
-		bool OnMouseButtonReleased(Engine::MouseButtonReleasedEvent& event);
-		bool OnMouseMoved(Engine::MouseMovedEvent& event);
-		bool OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event);
+		bool OnKeyPress(KeyPressedEvent& event);
+		bool OnKeyRelease(KeyReleasedEvent& event);
+		bool OnMouseButtonReleased(MouseButtonReleasedEvent& event);
+		bool OnMouseMoved(MouseMovedEvent& event);
+		bool OnMouseButtonPressed(MouseButtonPressedEvent& event);
+		bool OnScrolled(MouseScrolledEvent& event);
 
 	private:
-		Engine::Ref<Engine::Scene> m_Scene;
-		Engine::Ref<EditorCamera> m_Camera;
-		std::vector<Engine::EntityHandle*> entities{};
+		Ref<Scene> m_Scene;
+		Ref<EditorCamera> m_Camera;
+		std::vector<EntityHandle*> entities{};
 		bool b_EditDockspace = false;
+		Ref<Framebuffer> m_SceneBuffer;
 	};
 }

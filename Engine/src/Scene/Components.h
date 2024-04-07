@@ -11,6 +11,7 @@ namespace Engine {
 	enum ComponentType {
 		ID,
 		ParentID,
+		Tag,
 		LocalTransform,
 		WorldTransform,
 		Transform,
@@ -45,6 +46,18 @@ namespace Engine {
 
 		const ComponentType Type() const override {
 			return ComponentType::ParentID;
+		}
+	};
+
+	struct TagComponent : public Component {
+		std::string name = "Entity";
+
+		TagComponent() = default;
+		TagComponent(const TagComponent&) = default;
+		TagComponent(const std::string& name) : name(name) {}
+
+		const ComponentType Type() const override {
+			return ComponentType::Tag;
 		}
 	};
 
@@ -132,8 +145,6 @@ namespace Engine {
 
 	struct CameraComponent : public Component {
 		Ref<Camera> camera;
-		// Will conform to the entity's local transform rotation instead of it's own
-		bool lock_camera = true;
 
 		CameraComponent() = default;
 		CameraComponent(const CameraComponent&) = default;

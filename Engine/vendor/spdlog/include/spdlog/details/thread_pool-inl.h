@@ -4,7 +4,7 @@
 #pragma once
 
 #ifndef SPDLOG_HEADER_ONLY
-#    include <spdlog/details/thread_pool.h>
+#include <spdlog/details/thread_pool.h>
 #endif
 
 #include <spdlog/common.h>
@@ -13,8 +13,7 @@
 namespace spdlog {
 namespace details {
 
-SPDLOG_INLINE thread_pool::thread_pool(
-    size_t q_max_items, size_t threads_n, std::function<void()> on_thread_start, std::function<void()> on_thread_stop)
+SPDLOG_INLINE thread_pool::thread_pool(size_t q_max_items, size_t threads_n, std::function<void()> on_thread_start)
     : q_(q_max_items)
 {
     if (threads_n == 0 || threads_n > 1000)
@@ -24,21 +23,15 @@ SPDLOG_INLINE thread_pool::thread_pool(
     }
     for (size_t i = 0; i < threads_n; i++)
     {
-        threads_.emplace_back([this, on_thread_start, on_thread_stop] {
+        threads_.emplace_back([this, on_thread_start] {
             on_thread_start();
             this->thread_pool::worker_loop_();
-            on_thread_stop();
         });
     }
 }
 
-SPDLOG_INLINE thread_pool::thread_pool(size_t q_max_items, size_t threads_n, std::function<void()> on_thread_start)
-    : thread_pool(q_max_items, threads_n, on_thread_start, [] {})
-{}
-
 SPDLOG_INLINE thread_pool::thread_pool(size_t q_max_items, size_t threads_n)
-    : thread_pool(
-          q_max_items, threads_n, [] {}, [] {})
+    : thread_pool(q_max_items, threads_n, [] {})
 {}
 
 // message all threads to terminate gracefully join them
@@ -56,7 +49,7 @@ SPDLOG_INLINE thread_pool::~thread_pool()
             t.join();
         }
     }
-    SPDLOG_CATCH_STD
+    SPDLOG_CATCH_ALL() {}
 }
 
 void SPDLOG_INLINE thread_pool::post_log(async_logger_ptr &&worker_ptr, const details::log_msg &msg, async_overflow_policy overflow_policy)
@@ -75,21 +68,6 @@ size_t SPDLOG_INLINE thread_pool::overrun_counter()
     return q_.overrun_counter();
 }
 
-void SPDLOG_INLINE thread_pool::reset_overrun_counter()
-{
-    q_.reset_overrun_counter();
-}
-
-size_t SPDLOG_INLINE thread_pool::discard_counter()
-{
-    return q_.discard_counter();
-}
-
-void SPDLOG_INLINE thread_pool::reset_discard_counter()
-{
-    q_.reset_discard_counter();
-}
-
 size_t SPDLOG_INLINE thread_pool::queue_size()
 {
     return q_.size();
@@ -101,14 +79,9 @@ void SPDLOG_INLINE thread_pool::post_async_msg_(async_msg &&new_msg, async_overf
     {
         q_.enqueue(std::move(new_msg));
     }
-    else if (overflow_policy == async_overflow_policy::overrun_oldest)
-    {
-        q_.enqueue_nowait(std::move(new_msg));
-    }
     else
     {
-        assert(overflow_policy == async_overflow_policy::discard_new);
-        q_.enqueue_if_have_room(std::move(new_msg));
+        q_.enqueue_nowait(std::move(new_msg));
     }
 }
 
@@ -123,7 +96,11 @@ void SPDLOG_INLINE thread_pool::worker_loop_()
 bool SPDLOG_INLINE thread_pool::process_next_msg_()
 {
     async_msg incoming_async_msg;
-    q_.dequeue(incoming_async_msg);
+    bool dequeued = q_.dequeue_for(incoming_async_msg, std::chrono::seconds(10));
+    if (!dequeued)
+    {
+        return true;
+    }
 
     switch (incoming_async_msg.msg_type)
     {

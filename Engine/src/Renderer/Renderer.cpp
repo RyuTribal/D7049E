@@ -46,6 +46,7 @@ namespace Engine
 
 	void Renderer::SubmitObject(Mesh* mesh, Material* material)
 	{
+		HVE_PROFILE_FUNC();
 		m_Meshes.push_back(mesh); m_Materials.push_back(material);
 		m_Stats.vertices_count += mesh->Size();
 		m_Stats.index_count += mesh->GetVertexArray()->GetIndexBuffer()->GetCount();
@@ -53,6 +54,7 @@ namespace Engine
 
     void Renderer::BeginFrame(Camera* camera)
     {
+		HVE_PROFILE_FUNC();
 		auto& app = Application::Get();
 		float r, g, b;
 		r = m_BackgroundColor[0] / 255.0f;
@@ -73,6 +75,7 @@ namespace Engine
 
 	void Renderer::DepthPrePass()
 	{
+		HVE_PROFILE_FUNC();
 		m_RendererAPI.ClearDepth();
 		m_DepthFramebuffer->Bind();
 		m_DepthPrePassProgram.Activate();
@@ -87,6 +90,7 @@ namespace Engine
 
 	void Renderer::CullLights()
 	{
+		HVE_PROFILE_FUNC();
 		m_LightCullingProgram.Activate();
 		m_LightCullingProgram.UploadIntData("lightCount", (int)m_PointLights.size());
 		m_LightCullingProgram.UploadVec2IntData("screenSize", glm::ivec2((int)current_window_width, (int)current_window_height));
@@ -109,6 +113,7 @@ namespace Engine
 
 	void Renderer::ShadeAllObjects()
 	{
+		HVE_PROFILE_FUNC();
 		m_HDRFramebuffer->Bind();
 		m_HDRFramebuffer->ClearAttachment(1, -1);
 		m_RendererAPI.ClearAll();
@@ -141,6 +146,7 @@ namespace Engine
 
 	void Renderer::DrawIndexed(Mesh* mesh, Material* material)
 	{
+		HVE_PROFILE_FUNC();
 		if (material != nullptr) {
 			material->ApplyMaterial();
 			material->GetProgram()->UploadMat4FloatData("u_Transform", mesh->GetTransform());
@@ -169,6 +175,7 @@ namespace Engine
 
 	void Renderer::ReCreateFrameBuffers()
 	{
+		HVE_PROFILE_FUNC();
 		m_WorkGroupsX = (current_window_width + ((int)current_window_width % 16)) / 16;
 		m_WorkGroupsY = (current_window_height + ((int)current_window_height % 16)) / 16;
 		
@@ -182,9 +189,7 @@ namespace Engine
 		m_VisibleLightsSSBO->Bind();
 	}
 	void Renderer::UploadLightData() {
-		if (!m_LightsSSBO) {
-			m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * m_PointLights.size(), 0);
-		}
+		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * m_PointLights.size(), 0); // Maybe create a resize shader buffer function if possible
 
 		std::vector<PointLightInfo> pointLightsData(m_PointLights.size());
 		for (size_t i = 0; i < m_PointLights.size(); ++i) {
@@ -200,6 +205,7 @@ namespace Engine
 	}
 	void Renderer::DrawHDRQuad()
 	{
+		HVE_PROFILE_FUNC();
 		// have to fix this later, want to get rid of native gl calls from the renderer
 		if (m_QuadVAO == 0) {
 			GLfloat quadVertices[] = {

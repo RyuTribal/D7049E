@@ -11,7 +11,7 @@ namespace Engine {
 
 	class Camera {
 	public:
-		
+		Camera();
 		Camera(CameraType type);
 
 		const glm::vec3& GetPosition() const { return m_FocalPoint; }

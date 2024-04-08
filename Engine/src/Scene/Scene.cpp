@@ -43,7 +43,8 @@ namespace Engine {
 
 	EntityHandle* Scene::CreateEntity(std::string name, EntityHandle* parent)
 	{
-		return CreateEntity(name, &parent->GetID());
+		UUID* id = &parent->GetID();
+		return CreateEntity(name, id);
 	}
 
 	EntityHandle* Scene::CreateEntity(std::string name, UUID* parent)
@@ -80,6 +81,20 @@ namespace Engine {
 		entities.erase(id);
 	}
 
+	Entity* Scene::GetEntity(UUID& id)
+	{
+		auto it = entities.find(id);
+		if (it != entities.end()) {
+			return it->second.get();
+		}
+		return nullptr;
+	}
+
+	Entity* Scene::GetEntity(EntityHandle* id)
+	{
+		return GetEntity(id->GetID());
+	}
+
 	void Scene::FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent) {
 		for (auto& child : *current->GetChildren()) {
 			if (child->GetID() == id) {
@@ -92,7 +107,9 @@ namespace Engine {
 	}
 
 	void Scene::ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id) {
-		ReparentSceneNode(&id->GetID(), &new_parent_id->GetID());
+		UUID* ent_id = &id->GetID();
+		UUID* parent_id = &new_parent_id->GetID();
+		ReparentSceneNode(ent_id, parent_id);
 	}
 
 	void Scene::ReparentSceneNode(UUID* id, UUID* new_parent_id)

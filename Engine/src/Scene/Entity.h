@@ -45,7 +45,7 @@ namespace Engine {
 			return false;
 		}
 
-		UUID GetID() { return m_Handle.GetID(); }
+		UUID& GetID() { return m_Handle.GetID(); }
 		EntityHandle* GetHandle() { return &m_Handle; }
 
 	private:

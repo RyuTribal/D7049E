@@ -34,8 +34,10 @@
 #include <glm/glm.hpp>
 #include <Jolt/Jolt.h>
 
-#include "Utils/Log.h"
+#include "Core/Log.h"
 #include "Utils/DataStructures.h"
+#include "Core/Profiler.h"
+#include "Core/Timer.h"
 
 #include "Core/UUID.h"
 

@@ -88,6 +88,7 @@ namespace Engine
 			}
 
 			m_Window->OnUpdate();
+			HVE_PROFILE_MARK_FRAME;
 		}
 	}
 

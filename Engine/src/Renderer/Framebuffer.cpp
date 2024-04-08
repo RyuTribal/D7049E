@@ -196,7 +196,7 @@ namespace Engine{
 	{
 		if (width == 0 || height == 0 || width > s_MaxFramebufferSize || height > s_MaxFramebufferSize)
 		{
-			HVE_CORE_WARN("Attempted to rezize framebuffer to {0}, {1}", width, height);
+			HVE_CORE_WARN_TAG("FrameBuffer", "Attempted to rezize framebuffer to {0}, {1}", width, height);
 			return;
 		}
 		m_Specification.Width = width;

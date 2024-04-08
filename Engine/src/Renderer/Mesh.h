@@ -20,8 +20,8 @@ namespace Engine {
 		Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t> indices);
 		~Mesh();
 
-		void Mesh::Bind() const;
-		void Mesh::Unbind() const;
+		void Bind() const;
+		void Unbind() const;
 
 		void SetTransform(glm::mat4 transform) { m_Transform = transform; }
 

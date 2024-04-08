@@ -57,7 +57,7 @@ namespace Engine {
 			}
 		}
 
-		UUID GetID() { return m_ID; }
+		UUID& GetID() { return m_ID; }
 		std::vector<Scope<SceneNode>>* GetChildren() { return &children; }
 
 	private:
@@ -89,14 +89,14 @@ namespace Engine {
 
 		void UpdateScene();
 
-		UUID GetId() { return m_ID; }
+		UUID& GetId() { return m_ID; }
 
 		SceneNode* GetRootNode() { return &m_RootSceneNode; }
 
 		std::string& GetName() { return m_Name; }
 
-		Entity* GetEntity(EntityHandle* id) { return entities[id->GetID()].get(); }
-		Entity* GetEntity(UUID &id) { return entities[id].get(); }
+		Entity* GetEntity(UUID& id);
+		Entity* GetEntity(EntityHandle* id);
 
 	private:
 

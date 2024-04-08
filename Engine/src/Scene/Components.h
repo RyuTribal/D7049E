@@ -146,7 +146,7 @@ namespace Engine {
 	struct CameraComponent : public Component {
 		Ref<Camera> camera;
 
-		CameraComponent() = default;
+		CameraComponent() { camera = CreateRef<Camera>(); };
 		CameraComponent(const CameraComponent&) = default;
 		CameraComponent(Ref<Camera> new_camera) : camera(new_camera) {}
 
@@ -158,7 +158,7 @@ namespace Engine {
 	struct PointLightComponent : public Component {
 		Ref<PointLight> light;
 
-		PointLightComponent() = default;
+		PointLightComponent() { light = CreateRef<PointLight>(); };
 		PointLightComponent(const PointLightComponent&) = default;
 		PointLightComponent(Ref<PointLight> new_light) : light(new_light) {}
 

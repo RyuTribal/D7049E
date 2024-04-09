@@ -9,7 +9,7 @@ namespace Engine {
 			m_ID = UUID();
 		}
 
-		UUID GetID() { return m_ID; }
+		UUID& GetID() { return m_ID; }
 
 		bool operator==(EntityHandle& other) {
 			return other.GetID() == m_ID;

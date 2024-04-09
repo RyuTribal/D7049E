@@ -42,6 +42,10 @@ namespace Engine
 		int frame_count = 0;
 		double last_FPS_calculation_time = 0.0;
 
+		int draw_calls = 0;
+		int vertices_count = 0;
+		int index_count = 0;
+
 		void UpdateFPS(double currentTime, double frameTime) {
 			frame_time_accumulator += frameTime;
 			frame_count++;
@@ -63,7 +67,7 @@ namespace Engine
 		Renderer();
 		~Renderer();
 
-		void SubmitObject(Mesh* mesh, Material* material) { m_Meshes.push_back(mesh); m_Materials.push_back(material); }
+		void SubmitObject(Mesh* mesh, Material* material);
 		void SubmitPointLight(PointLight* point_light) { m_PointLights.push_back(point_light); }
 
 		void BeginFrame(Camera* camera);
@@ -91,6 +95,7 @@ namespace Engine
 
 		void SetBackgroundColor(int red, int green, int blue) { m_BackgroundColor[0] = red; m_BackgroundColor[1] = green; m_BackgroundColor[2] = blue;}
 		uint32_t GetSceneTextureID() { return m_SceneFramebuffer->GetColorAttachmentRendererID(); }
+		Ref<Framebuffer> GetObjectFrameBuffer() { m_HDRFramebuffer->Bind(); return m_HDRFramebuffer; }
 
 		Statistics* GetStats() { return &m_Stats; }
 		void ResizeViewport(int width, int height);

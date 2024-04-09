@@ -57,7 +57,7 @@ namespace Engine {
 			}
 		}
 
-		UUID GetID() { return m_ID; }
+		UUID& GetID() { return m_ID; }
 		std::vector<Scope<SceneNode>>* GetChildren() { return &children; }
 
 	private:
@@ -75,22 +75,29 @@ namespace Engine {
 		Registry* GetRegistry() { return &m_Registry; }
 
 		EntityHandle* CreateEntity(std::string name, Entity* parent);
+		EntityHandle* CreateEntity(std::string name, EntityHandle* parent);
+		EntityHandle* CreateEntity(std::string name, UUID* parent);
+		EntityHandle* CreateEntity(std::string name, nullptr_t parent);
 		void DestroyEntity(EntityHandle* id);
+		void DestroyEntity(UUID id);
 		void ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id);
+		void ReparentSceneNode(UUID* id, UUID* new_parent_id);
 
+		Entity* GetCurrentCameraEntity();
 		Camera* GetCurrentCamera();
 
 		void SetCurrentCamera(EntityHandle* camera_entity_id) { m_CurrentCamera = entities[camera_entity_id->GetID()]; }
 
 		void UpdateScene();
 
-		UUID GetId() { return m_ID; }
+		UUID& GetId() { return m_ID; }
 
 		SceneNode* GetRootNode() { return &m_RootSceneNode; }
 
 		std::string& GetName() { return m_Name; }
 
-		Entity* GetEntity(EntityHandle* id) { return entities[id->GetID()].get(); }
+		Entity* GetEntity(UUID& id);
+		Entity* GetEntity(EntityHandle* id);
 
 	private:
 

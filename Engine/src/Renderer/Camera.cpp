@@ -6,6 +6,12 @@
 #include <glm/gtx/quaternion.hpp>
 
 namespace Engine {
+
+	Camera::Camera() : m_Type(CameraType::PERSPECTIVE)
+	{
+		SetPerspective();
+	}
+
 	Camera::Camera(CameraType type) : m_Type(type)
 	{
 		if (m_Type == CameraType::ORTHOGRAPHIC) {

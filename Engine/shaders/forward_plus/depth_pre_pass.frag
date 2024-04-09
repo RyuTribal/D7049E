@@ -2,5 +2,5 @@
 
 void main()
 {
-    // No output needed, just depth writing
+
 }

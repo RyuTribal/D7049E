@@ -15,6 +15,7 @@ namespace Engine
 		auto state = glfwGetKey(window, keycode);
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
+
 	void WindowsInput::SetLockMouseModeImpl(bool lock_mouse)
 	{
 		if (lock_mouse != b_IsLocked) {

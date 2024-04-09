@@ -4,6 +4,7 @@ in vec3 worldSpacePosition;
 in vec3 normal;
 in vec2 texCoords;
 in vec3 cameraPosition;
+in flat int v_EntityID;
 
 #define DIFFUSE_RATE 0.5
 #define AMBIENT_RATE 0.2
@@ -39,6 +40,7 @@ layout(std430, binding = 0) readonly buffer LightBuffer {
 } lightBuffer;
 
 out vec4 fragColor;
+layout(location = 1) out int o_EntityID;
 
 uniform int numberOfTilesX;
 
@@ -65,6 +67,7 @@ void main() {
     }
 
     fragColor = final_color;
+    o_EntityID = v_EntityID;
 }
 
 

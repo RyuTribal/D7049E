@@ -7,6 +7,20 @@
 #define HVE_ENABLE_ASSERTS
 #endif
 
+#if defined(__clang__)
+#define HVE_COMPILER_CLANG
+#elif defined(_MSC_VER)
+#define HVE_COMPILER_MSVC
+#endif
+
+#ifdef HVE_COMPILER_MSVC
+#define HVE_FORCE_INLINE __forceinline
+#elif defined(HVE_COMPILER_CLANG)
+#define HVE_FORCE_INLINE __attribute__((always_inline)) inline
+#else
+#define HVE_FORCE_INLINE inline
+#endif
+
 #ifdef PLATFORM_WINDOWS
     #define THROW_NATIVE_ERROR() {__debugbreak();}
 #endif
@@ -14,33 +28,12 @@
     #define THROW_NATIVE_ERROR() {__builtin_trap();}
 #endif
 
-#define HVE_EXPAND_MACRO(x) x
-#define HVE_STRINGIFY_MACRO(x) #x
-
-#ifdef HVE_ENABLE_ASSERTS
-
-#define INTERNAL_ASSERT_IMPL(type, check, msg, ...) { if(!(check)) { HVE##type##ERROR(msg, __VA_ARGS__); THROW_NATIVE_ERROR(); } }
-#define INTERNAL_ASSERT_WITH_MSG(type, check, ...) INTERNAL_ASSERT_IMPL(type, check, "Assertion failed: {0}", __VA_ARGS__)
-#define INTERNAL_ASSERT_NO_MSG(type, check) INTERNAL_ASSERT_IMPL(type, check, "Assertion '{0}' failed at {1}:{2}", HVE_STRINGIFY_MACRO(check), std::filesystem::path(__FILE__).filename().string(), __LINE__)
-
-#define INTERNAL_ASSERT_GET_MACRO_NAME(arg1, arg2, macro, ...) macro
-#define INTERNAL_ASSERT_GET_MACRO(...) HVE_EXPAND_MACRO( INTERNAL_ASSERT_GET_MACRO_NAME(__VA_ARGS__, INTERNAL_ASSERT_WITH_MSG, INTERNAL_ASSERT_NO_MSG) )
-
-// Currently accepts at least the condition and one additional parameter (the message) being optional
-#define HVE_ASSERT(...) HVE_EXPAND_MACRO( INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_, __VA_ARGS__) )
-#define HVE_CORE_ASSERT(...) HVE_EXPAND_MACRO( INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_CORE_, __VA_ARGS__) )
-#else
-#define HVE_ASSERT(...)
-#define HVE_CORE_ASSERT(...)
-#endif
-
 #define BIT(x) (1 << x)
 
-#define THROW_CORE_ERROR(...)                          \
-    {                                                  \
-        HVE_CORE_ERROR("Runtime error: {0}", __VA_ARGS__); \
-        std::abort();                                  \
-    }
+#define BIND_EVENT_FN(fn) std::bind(&fn, this, std::placeholders::_1)
+#define EPSILON 1e-6
+
+#include "Core/Assert.h"
 
 namespace Engine {
 
@@ -61,6 +54,3 @@ namespace Engine {
 	}
 
 }
-
-#define BIND_EVENT_FN(fn) std::bind(&fn, this, std::placeholders::_1)
-#define EPSILON 1e-6

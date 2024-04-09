@@ -185,6 +185,11 @@ namespace Engine {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
+	void RendererAPI::UnBindBuffer()
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
 	void RendererAPI::SetLineWidth(float width)
 	{
 		glLineWidth(width);

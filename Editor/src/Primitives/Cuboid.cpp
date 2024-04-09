@@ -2,7 +2,7 @@
 #include "Cuboid.h"
 
 namespace Editor {
-	Cuboid::Cuboid(float height, float width, float depth) : h(height), w(width), d(depth)
+	Cuboid::Cuboid(float height, float width, float depth, Engine::UUID entity_id) : h(height), w(width), d(depth)
 	{
         float half_width = w / 2.0f;
         float half_height = h / 2.0f;
@@ -45,6 +45,10 @@ namespace Editor {
         for (int i = 0; i < 6; i++) {
             vertices.push_back(Engine::Vertex(faceCenters[i]));
             vertices[vertices.size() - 1].normal = normals[i];
+        }
+
+        for (int i = 0; i < vertices.size(); i++) {
+            vertices[i].entity_id = (uint32_t)entity_id;
         }
 
         std::vector<uint32_t> indices = {

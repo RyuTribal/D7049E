@@ -1,8 +1,6 @@
 project "Engine"
     kind "StaticLib"
     staticruntime "off"
-    language "C++"
-    cppdialect "C++17"
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 
@@ -16,7 +14,8 @@ project "Engine"
         "src/**.cpp",
         "src/**.c",
         "vendor/glm/glm/**.hpp",
-        "vendor/glm/glm/**.inl"
+        "vendor/glm/glm/**.inl",
+
     }
 
     removefiles
@@ -34,7 +33,10 @@ project "Engine"
         "GLFW",
         "Glad",
         "ImGui",
-        "JoltPhysics"
+        "JoltPhysics",
+        "%{Library.Tracy}",
+        "Dbghelp",
+        "Ws2_32"
     }
 
     defines
@@ -56,8 +58,11 @@ project "Engine"
         "%{IncludeDir.glm}",
         "%{IncludeDir.Jolt}",
         "%{IncludeDir.Jolt}/Jolt",
+        "%{IncludeDir.Tracy}",
         "src/",
     }
+
+    flags { "NoPCH" }
 
     filter "system:windows"
         systemversion "latest"

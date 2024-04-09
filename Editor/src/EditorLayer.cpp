@@ -1,36 +1,36 @@
 #include "EditorLayer.h"
 #include "Panels/Viewport.h"
+#include "Panels/SceneGraph.h"
 #include <imgui/imgui_internal.h>
 
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
 		auto [scene, camera_entity_handle] = Engine::Scene::CreateScene("Editor Scene");
-		m_Camera = Engine::CreateRef<EditorCamera>(scene->GetCurrentCamera(), camera_entity_handle);
+		m_Camera = Engine::CreateRef<EditorCamera>(scene->GetCurrentCamera(), camera_entity_handle, scene);
 		m_Scene = scene;
 		Engine::Renderer::Get()->SetBackgroundColor(0, 0, 0);
 
-		Cuboid cube{ 1.f, 1.f, 1.f };
-		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
-
 		Engine::EntityHandle* cube_entity_handle = m_Scene->CreateEntity("Cube", nullptr);
 		Engine::Entity* cube_entity = m_Scene->GetEntity(cube_entity_handle);
-		Engine::TransformComponent cube_transform{ glm::vec3(0.f, 0.f, 0.f) };
-		cube_transform.local_transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
+
+		Cuboid cube{ 1.f, 1.f, 1.f,  cube_entity->GetID()};
+		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
+
+		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
 
 		cube_entity->AddComponent<Engine::MeshComponent>(cube.GetMesh());
 		cube_entity->AddComponent<Engine::MaterialComponent>(cube_material);
-		cube_entity->AddComponent<Engine::TransformComponent>(cube_transform);
 
 		entities.push_back(cube_entity_handle);
 
 		Engine::EntityHandle* light_entity_handle = m_Scene->CreateEntity("Sun", nullptr);
 		Engine::Entity* light_entity = m_Scene->GetEntity(light_entity_handle);
 		Engine::Ref<Engine::PointLight> light = Engine::CreateRef<Engine::PointLight>(); // defaults to white
-		Engine::TransformComponent new_transform(glm::vec3(0.5f, 0.7f, 0.f));
+
+		light_entity->GetComponent<TransformComponent>()->local_transform.translation = glm::vec3(0.5f, 0.7f, 0.f);
 		Engine::PointLightComponent new_light(light);
 
-		light_entity->AddComponent<Engine::TransformComponent>(new_transform);
 		light_entity->AddComponent<Engine::PointLightComponent>(new_light);
 
 		entities.push_back(light_entity_handle);
@@ -51,11 +51,12 @@ namespace Editor {
 	{
 		Engine::EventDispatcher dispatcher(event);
 
-		dispatcher.Dispatch<Engine::KeyPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyPress));
-		dispatcher.Dispatch<Engine::KeyReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyRelease));
-		dispatcher.Dispatch<Engine::MouseButtonPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonPressed));
-		dispatcher.Dispatch<Engine::MouseButtonReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonReleased));
-		dispatcher.Dispatch<Engine::MouseMovedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseMoved));
+		dispatcher.Dispatch<KeyPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyPress));
+		dispatcher.Dispatch<KeyReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyRelease));
+		dispatcher.Dispatch<MouseButtonPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonPressed));
+		dispatcher.Dispatch<MouseButtonReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonReleased));
+		dispatcher.Dispatch<MouseMovedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseMoved));
+		dispatcher.Dispatch<MouseScrolledEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnScrolled));
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -139,23 +140,23 @@ namespace Editor {
 		}
 
 
-		ImGui::Begin("Scene Hierarchy");
-		
-		ImGui::End();
-
-		ImGui::Begin("Properties");
-
-		ImGui::End();
+		EditorPanels::SceneGraph::Render(m_Scene);
 
 		ImGui::Begin("Content Browser");
 
 		ImGui::End();
 
-		EditorPanels::Viewport::Render();
+		EditorPanels::Viewport::Render(m_Camera->GetCamera());
 
+		ImGui::Begin("Stats");
 
+		ImGui::Text("Renderer Stats:");
+		ImGui::Text("FPS: %f", Renderer::Get()->GetStats()->frames_per_second);
+		ImGui::Text("Draw Calls: %d", Renderer::Get()->GetStats()->draw_calls);
+		ImGui::Text("Vertices: %d", Renderer::Get()->GetStats()->vertices_count);
+		ImGui::Text("Indices: %d", Renderer::Get()->GetStats()->index_count);
 
-		ImGui::ShowMetricsWindow();
+		ImGui::End();
 
 		ImGui::Begin("Settings");
 
@@ -167,7 +168,16 @@ namespace Editor {
 
 	bool EditorLayer::OnKeyPress(Engine::KeyPressedEvent& event)
 	{
-		m_Camera->UpdateKeyState(event.GetKeyCode(), true);
+
+		bool control = Input::IsKeyPressed(KEY_LEFT_CONTROL) || Input::IsKeyPressed(KEY_RIGHT_CONTROL);
+		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
+
+		if (shift) {
+			m_Camera->UpdateKeyState(event.GetKeyCode(), true);
+		}
+		else {
+			EditorPanels::Viewport::OnKeyPressed(event.GetKeyCode());
+		}
 		return true;
 	}
 
@@ -191,7 +201,21 @@ namespace Editor {
 
 	bool EditorLayer::OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event)
 	{
+		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
 		m_Camera->UpdateKeyState(event.GetMouseButton(), true);
+		if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused() && EditorPanels::Viewport::CanReadPixelData()) {
+			auto [x, y] = EditorPanels::Viewport::GetMousePos();
+			int pixelData = Renderer::Get()->GetObjectFrameBuffer()->ReadPixel(1, x, y);
+			if (pixelData != -1 || EditorPanels::SceneGraph::GetSelectedEntity()->GetID() != (UUID)pixelData) {
+				EditorPanels::SceneGraph::SetSelectedEntity(pixelData);
+				EditorPanels::Viewport::ActivateGizmo();
+			}
+		}
 		return true;
+	}
+	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)
+	{
+		m_Camera->Zoom(event.GetYOffset());
+		return false;
 	}
 }

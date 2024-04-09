@@ -7,6 +7,9 @@
 #include "Core/Input.h"
 #include "Core/KeyCodes.h"
 #include "Core/MouseButtonCodes.h"
+#include "Core/Log.h"
+#include "Core/Profiler.h"
+#include "Core/Timer.h"
 
 
 // ------------- Renderer ----------------
@@ -22,10 +25,9 @@
 #include "Scene/Components.h"
 
 // ---------------- Utils ----------------
-#include "Utils/Log.h"
 #include "Utils/DataStructures.h"
 #include "Utils/Random.h"
-
+#include "Math/Math.h"
 #include "ImGui/ImGuiLayer.h"
 
 

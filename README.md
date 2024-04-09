@@ -1,5 +1,6 @@
 <p align="center">
   <h1 align="center">Helios engine</h1>
+  <img src="logo.png" alt="Logo" width="600" height="400">
 
 <a href="https://trello.com/b/3jKnPwDf/d7049e-projekt">Project board</a>
 

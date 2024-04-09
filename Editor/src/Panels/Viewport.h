@@ -25,6 +25,12 @@ namespace EditorPanels {
 			return s_Instance->m_Focused;
 		}
 
+		static bool IsHovered()
+		{
+			Create();
+			return s_Instance->m_IsHovered;
+		}
+
 		static glm::vec2& GetViewportSize() { 
 			Create();
 
@@ -64,6 +70,7 @@ namespace EditorPanels {
 			m_MouseY = (int)my;
 
 			m_Focused = ImGui::IsWindowFocused();
+			m_IsHovered = ImGui::IsWindowHovered();
 			uint32_t id = Engine::Renderer::Get()->GetSceneTextureID();
 			ImVec2 windowSize = ImGui::GetContentRegionAvail();
 			if (m_ViewportSize != *((glm::vec2*)&windowSize)) {
@@ -150,6 +157,7 @@ namespace EditorPanels {
 		static Viewport* s_Instance;
 		glm::vec2 m_ViewportSize;
 		bool m_Focused;
+		bool m_IsHovered;
 		int m_GizmoType = -1;
 		glm::vec2 m_ViewportBounds[2];
 		int m_MouseX = 0, m_MouseY = 0;

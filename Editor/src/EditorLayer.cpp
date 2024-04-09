@@ -202,8 +202,12 @@ namespace Editor {
 	bool EditorLayer::OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event)
 	{
 		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
-		m_Camera->UpdateKeyState(event.GetMouseButton(), true);
-		if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused() && EditorPanels::Viewport::CanReadPixelData()) {
+		if (EditorPanels::Viewport::IsHovered())
+		{
+			m_Camera->UpdateKeyState(event.GetMouseButton(), true);
+		}
+		
+		if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused()) {
 			auto [x, y] = EditorPanels::Viewport::GetMousePos();
 			int pixelData = Renderer::Get()->GetObjectFrameBuffer()->ReadPixel(1, x, y);
 			if (pixelData != -1 || EditorPanels::SceneGraph::GetSelectedEntity()->GetID() != (UUID)pixelData) {
@@ -215,7 +219,10 @@ namespace Editor {
 	}
 	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)
 	{
-		m_Camera->Zoom(event.GetYOffset());
+		if (EditorPanels::Viewport::IsHovered())
+		{
+			m_Camera->Zoom(event.GetYOffset());
+		}
 		return false;
 	}
 }

@@ -20,14 +20,9 @@ project "Editor"
         "%{IncludeDir.Jolt}",
         "%{IncludeDir.Jolt}/Jolt",
         "%{IncludeDir.Tracy}",
+        "%{IncludeDir.Assimp}",
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
-        "vendor/assimp/include"
-    }
-
-    libdirs 
-    { 
-        "vendor/assimp/lib/x64" 
     }
 
     links
@@ -35,7 +30,6 @@ project "Editor"
         "Engine",
         "Glad",
         "%{Library.Tracy}",
-        "assimp-vc143-mt.lib"
     }
 
     defines

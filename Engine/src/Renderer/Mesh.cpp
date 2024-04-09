@@ -33,6 +33,7 @@ namespace Engine {
 
 		m_VertexCount = (int)vertices.size();
 	}
+
 	Mesh::~Mesh()
 	{
 	}

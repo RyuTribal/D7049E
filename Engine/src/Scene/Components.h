@@ -145,7 +145,6 @@ namespace Engine {
 
 	struct CameraComponent : public Component {
 		Ref<Camera> camera;
-		bool primary = false;
 
 		CameraComponent() { camera = CreateRef<Camera>(); };
 		CameraComponent(const CameraComponent&) = default;

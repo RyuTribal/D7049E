@@ -44,6 +44,7 @@ As soon as the project is open, press F5 or the "Local windows debugger" button 
   <li><a href="https://github.com/gabime/spdlog">SPDLog (Logging)</a></li>
   <li><a href="https://github.com/nothings/stb">STB (Image Loading)</a></li>
   <li><a href="https://github.com/wolfpld/tracy">Tracy (Profiling)</a></li>
+  <li><a href="https://premake.github.io/">Premake (Build tools)</a></li>
 </ul>
 
 ## Main Idea

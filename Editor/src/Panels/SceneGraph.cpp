@@ -30,8 +30,7 @@ namespace EditorPanels {
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered()) {
 			m_SelectionContext = {};
-		}
-			
+		}	
 
 		if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 		{
@@ -125,7 +124,7 @@ namespace EditorPanels {
         ImGui::PopID();
     }
 
-	void SceneGraph::DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
+	static void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		auto boldFont = io.Fonts->Fonts[0];
@@ -191,6 +190,47 @@ namespace EditorPanels {
 		ImGui::PopID();
 	}
 
+	template<typename T, typename UIFunction>
+	static void DrawComponent(const std::string& name, Entity* entity, UIFunction uiFunction)
+	{
+		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+		if (entity->HasComponent<T>())
+		{
+			auto component = entity->GetComponent<T>();
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+			ImGui::Separator();
+			bool open = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, name.c_str());
+			ImGui::PopStyleVar(
+			);
+			ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
+			if (ImGui::Button("+", ImVec2{ lineHeight, lineHeight }))
+			{
+				ImGui::OpenPopup("ComponentSettings");
+			}
+
+			bool removeComponent = false;
+			if (ImGui::BeginPopup("ComponentSettings"))
+			{
+				if (ImGui::MenuItem("Remove component"))
+					removeComponent = true;
+
+				ImGui::EndPopup();
+			}
+
+			if (open)
+			{
+				uiFunction(component);
+				ImGui::TreePop();
+			}
+
+			if (removeComponent)
+				entity->RemoveComponent<T>();
+		}
+	}
+
     void SceneGraph::DrawComponents()
     {
 		auto entity = m_Scene->GetEntity(m_SelectionContext);
@@ -200,14 +240,14 @@ namespace EditorPanels {
 
 		if (entity->HasComponent<TagComponent>())
 		{
-			auto tag = entity->GetComponent<TagComponent>()->name;
+			auto tag = entity->GetComponent<TagComponent>();
 
 			char buffer[256];
 			memset(buffer, 0, sizeof(buffer));
-			strncpy_s(buffer, sizeof(buffer), tag.c_str(), sizeof(buffer));
+			strncpy_s(buffer, sizeof(buffer), tag->name.c_str(), sizeof(buffer));
 			if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
 			{
-				tag = std::string(buffer);
+				tag->name = std::string(buffer);
 			}
 		}
 
@@ -228,6 +268,85 @@ namespace EditorPanels {
 		}
 
 		ImGui::PopItemWidth();
+
+		DrawComponent<TransformComponent>("Transform", entity, [](auto& component)
+		{
+			DrawVec3Control("Translation", component->local_transform.translation);
+			glm::vec3 rotation = glm::degrees(component->local_transform.rotation);
+			DrawVec3Control("Rotation", rotation);
+			component->local_transform.rotation = glm::radians(rotation);
+			DrawVec3Control("Scale", component->local_transform.scale, 1.0f);
+		});
+
+		DrawComponent<CameraComponent>("Camera", entity, [](auto& component)
+		{
+			auto& camera = component->camera;
+
+			ImGui::Checkbox("Primary", &component->primary);
+
+			const char* projectionTypeStrings[] = { "Perspective", "Orthographic" };
+			const char* currentProjectionTypeString = camera->GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
+			if (ImGui::BeginCombo("Projection", currentProjectionTypeString))
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
+					if (ImGui::Selectable(projectionTypeStrings[i], isSelected))
+					{
+						currentProjectionTypeString = projectionTypeStrings[i];
+						camera->ChangeCameraType(i == 0 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
+					}
+
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+
+				ImGui::EndCombo();
+			}
+			float perspectiveVerticalFov = glm::degrees(camera->GetFOVY());
+			if (ImGui::DragFloat("Vertical FOV", &perspectiveVerticalFov))
+				camera->SetFovy(glm::radians(perspectiveVerticalFov));
+
+			float perspectiveNear = camera->GetNear();
+			if (ImGui::DragFloat("Near", &perspectiveNear))
+				camera->SetNear(perspectiveNear);
+
+			float perspectiveFar = camera->GetFar();
+			if (ImGui::DragFloat("Far", &perspectiveFar))
+				camera->SetFar(perspectiveFar);
+		});
+
+
+		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component)
+		{
+			auto& light = component->light;
+			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
+			ImGui::Text("Light color:");
+			ImGui::ColorEdit3("##light_color", color);
+			light->SetColor(glm::vec3(color[0], color[1], color[2]));
+
+			float intensity = light->GetIntensity();
+			ImGui::Text("Intensity:");
+			ImGui::DragFloat("##light_intensity", &intensity, 0.1f);
+			light->SetIntensity(intensity);
+
+			float attenuations[3] = { light->GetConstantAttenuation(),  light->GetLinearAttenuation(), light->GetQuadraticAttenuation() };
+			ImGui::Text("Attenuations (constant, linear, quadratic):");
+			ImGui::DragFloat3("##light_attenuation", attenuations, 0.1f);
+			light->SetConstantAttenuation(attenuations[0]);
+			light->SetLinearAttenuation(attenuations[1]);
+			light->SetQuadraticAttenuation(attenuations[2]);
+		});
+
+		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component)
+		{
+			ImGui::Text("Nothing yet :(");
+		});
+
+		DrawComponent<MaterialComponent>("Material", entity, [](auto& component)
+		{
+			ImGui::Text("Nothing yet :(");
+		});
     }
 
 

@@ -28,13 +28,18 @@ namespace EditorPanels {
 			s_Instance->SetSelectedEntityImpl(id);
 		}
 
+		static Ref<Scene> GetScene()
+		{
+			Create();
+			return s_Instance->m_Scene;
+		}
+
 	private:
 		void SetActiveScene(Ref<Scene> scene) { m_Scene = scene; }
 		void RenderImpl();
 		void DisplaySceneEntity(SceneNode* node);
 		Entity* GetSelectedEntityImpl() { return m_Scene->GetEntity(m_SelectionContext); }
 		void SetSelectedEntityImpl(int id){ m_SelectionContext = (UUID)id; }
-		void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue, float columnWidth);
 		void DrawComponents();
 
 		template<typename T>

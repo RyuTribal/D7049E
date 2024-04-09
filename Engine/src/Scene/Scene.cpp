@@ -119,11 +119,24 @@ namespace Engine {
 	}
 
 
+	Entity* Scene::GetCurrentCameraEntity()
+	{
+		return m_CurrentCamera.get();
+	}
+
 	Camera* Scene::GetCurrentCamera(){
 		return m_CurrentCamera->GetComponent<CameraComponent>()->camera.get();
 	}
 	void Scene::UpdateScene()
 	{
+		if (m_Registry.GetComponentRegistry<CameraComponent>() != nullptr)
+		{
+			for (auto& [id, value] : *m_Registry.GetComponentRegistry<CameraComponent>())
+			{
+				value.primary = m_CurrentCamera->GetID() == id;
+			}
+		}
+
 		UpdateTransforms();
 		DrawSystem();
 	}
@@ -182,8 +195,11 @@ namespace Engine {
 	{
 		if (m_Registry.GetComponentRegistry<MeshComponent>() != nullptr) {
 			for (const auto& [id, value] : *m_Registry.GetComponentRegistry<MeshComponent>()) {
-				value.mesh->SetTransform(m_Registry.Get<TransformComponent>(id)->world_transform.mat4());
-				Renderer::Get()->SubmitObject(value.mesh.get(), m_Registry.Get<MaterialComponent>(id)->material.get());
+				if (value.mesh != nullptr)
+				{
+					value.mesh->SetTransform(m_Registry.Get<TransformComponent>(id)->world_transform.mat4());
+					Renderer::Get()->SubmitObject(value.mesh.get(), m_Registry.Get<MaterialComponent>(id)->material.get());
+				}
 			}
 		}
 		if (m_Registry.GetComponentRegistry<PointLightComponent>() != nullptr) {

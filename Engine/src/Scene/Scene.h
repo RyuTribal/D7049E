@@ -83,6 +83,7 @@ namespace Engine {
 		void ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id);
 		void ReparentSceneNode(UUID* id, UUID* new_parent_id);
 
+		Entity* GetCurrentCameraEntity();
 		Camera* GetCurrentCamera();
 
 		void SetCurrentCamera(EntityHandle* camera_entity_id) { m_CurrentCamera = entities[camera_entity_id->GetID()]; }

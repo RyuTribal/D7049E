@@ -17,11 +17,13 @@ namespace Engine {
 		const glm::vec3& GetPosition() const { return m_FocalPoint; }
 		float GetPitch() const { return m_Pitch; }
 		float GetYaw() const { return m_Yaw; }
+		float GetNear() { return m_Near; }
 		float GetFar() { return m_Far; }
 		float GetFOVY() { return glm::degrees(m_PerspectiveFOVY); }
 
 		void SetPitch(float pitch) { m_Pitch = pitch; }
 		void SetYaw(float yaw) { m_Yaw = yaw; }
+		void SetNear(float near) { m_Near = near; }
 		void SetFar(float far) { m_Far = far; }
 		 
 		glm::vec3 GetUpDirection() const;

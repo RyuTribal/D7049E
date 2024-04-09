@@ -282,8 +282,6 @@ namespace EditorPanels {
 		{
 			auto& camera = component->camera;
 
-			ImGui::Checkbox("Primary", &component->primary);
-
 			const char* projectionTypeStrings[] = { "Perspective", "Orthographic" };
 			const char* currentProjectionTypeString = camera->GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
 			if (ImGui::BeginCombo("Projection", currentProjectionTypeString))

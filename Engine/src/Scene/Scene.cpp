@@ -129,14 +129,6 @@ namespace Engine {
 	}
 	void Scene::UpdateScene()
 	{
-		if (m_Registry.GetComponentRegistry<CameraComponent>() != nullptr)
-		{
-			for (auto& [id, value] : *m_Registry.GetComponentRegistry<CameraComponent>())
-			{
-				value.primary = m_CurrentCamera->GetID() == id;
-			}
-		}
-
 		UpdateTransforms();
 		DrawSystem();
 	}

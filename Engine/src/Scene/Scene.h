@@ -87,6 +87,7 @@ namespace Engine {
 		Camera* GetCurrentCamera();
 
 		void SetCurrentCamera(EntityHandle* camera_entity_id) { m_CurrentCamera = entities[camera_entity_id->GetID()]; }
+		void SetCurrentCamera(UUID camera_entity_id) { m_CurrentCamera = entities[camera_entity_id]; }
 
 		void UpdateScene();
 

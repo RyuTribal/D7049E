@@ -26,6 +26,7 @@ project "Engine"
     libdirs
     {
         "vendor/GLFW/lib-vc2022",
+        "vendor/assimp/lib/x64"
     }
 
     links
@@ -35,8 +36,9 @@ project "Engine"
         "ImGui",
         "JoltPhysics",
         "%{Library.Tracy}",
+        "Ws2_32",
         "Dbghelp",
-        "Ws2_32"
+        "assimp-vc143-mt.lib"
     }
 
     defines
@@ -59,6 +61,7 @@ project "Engine"
         "%{IncludeDir.Jolt}",
         "%{IncludeDir.Jolt}/Jolt",
         "%{IncludeDir.Tracy}",
+        "%{IncludeDir.Assimp}",
         "src/",
     }
 

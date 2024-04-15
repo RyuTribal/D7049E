@@ -4,6 +4,7 @@
 
 // The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
 // You can use Jolt.h in your precompiled header to speed up compilation.
+#include "pch.h"
 #include <Jolt/Jolt.h>
 
 // Jolt includes
@@ -205,9 +206,9 @@ public:
 	}
 };
 
-// simulation test call
 static void sim()
 {
+
 	// Register allocation hook
 	RegisterDefaultAllocator();
 

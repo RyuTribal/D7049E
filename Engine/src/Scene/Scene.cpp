@@ -190,7 +190,7 @@ namespace Engine {
 				if (value.mesh != nullptr)
 				{
 					value.mesh->SetTransform(m_Registry.Get<TransformComponent>(id)->world_transform.mat4());
-					Renderer::Get()->SubmitObject(value.mesh.get(), m_Registry.Get<MaterialComponent>(id)->material.get());
+					Renderer::Get()->SubmitObject(value.mesh.get());
 				}
 			}
 		}
@@ -203,6 +203,13 @@ namespace Engine {
 			}
 		}
 
+		if (m_Registry.GetComponentRegistry<DirectionalLightComponent>() != nullptr)
+		{
+			for (const auto& [id, value] : *m_Registry.GetComponentRegistry<DirectionalLightComponent>())
+			{
+				Renderer::Get()->SubmitDirectionalLight(value.light.get());
+			}
+		}
 		Renderer::Get()->BeginDrawing();
 	}
 

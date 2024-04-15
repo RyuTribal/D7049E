@@ -10,6 +10,7 @@ uniform mat4 u_CameraView;
 uniform mat4 u_CameraProjection;
 uniform vec3 u_CameraPos;
 uniform mat4 u_Transform;
+uniform sampler2D u_NormalTexture;
 
 out vec3 worldSpacePosition;
 out vec3 normal;
@@ -21,7 +22,7 @@ out flat int v_EntityID;
 void main() {
     gl_Position = u_CameraProjection * u_CameraView * u_Transform * vec4(a_coords, 1.0);
     worldSpacePosition = vec3(u_Transform * vec4(a_coords, 1.0));
-    normal = mat3(transpose(inverse(u_Transform))) * a_normals;
+    normal = mat3(transpose(inverse(u_Transform))) * texture(u_NormalTexture, texCoords).xyz;
     cameraPosition = u_CameraPos;
     texCoords = a_texture_coords;
     v_EntityID = a_entity_id;

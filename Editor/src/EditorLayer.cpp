@@ -11,27 +11,26 @@ namespace Editor {
 		m_Scene = scene;
 		Engine::Renderer::Get()->SetBackgroundColor(0, 0, 0);
 
-		Engine::EntityHandle* cube_entity_handle = m_Scene->CreateEntity("Cube", nullptr);
-		Engine::Entity* cube_entity = m_Scene->GetEntity(cube_entity_handle);
+		Engine::EntityHandle* object_entity_handle = m_Scene->CreateEntity("Lion", nullptr);
+		Engine::Entity* cube_entity = m_Scene->GetEntity(object_entity_handle);
 
-		Cuboid cube{ 1.f, 1.f, 1.f,  cube_entity->GetID()};
-		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
+		Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh("C:\\Users\\sedel\\Downloads\\Lion\\source\\lion\\mn_rpat_00_ani.FBX", &object_entity_handle->GetID(), std::string(ROOT_PATH) + "/shaders/phong_material_shader");
 
-		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
+		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.01f, 0.01f, 0.01f);
 
-		cube_entity->AddComponent<Engine::MeshComponent>(cube.GetMesh());
-		cube_entity->AddComponent<Engine::MaterialComponent>(cube_material);
+		cube_entity->AddComponent<Engine::MeshComponent>(object_mesh);
 
-		entities.push_back(cube_entity_handle);
+		entities.push_back(object_entity_handle);
+
 
 		Engine::EntityHandle* light_entity_handle = m_Scene->CreateEntity("Sun", nullptr);
 		Engine::Entity* light_entity = m_Scene->GetEntity(light_entity_handle);
-		Engine::Ref<Engine::PointLight> light = Engine::CreateRef<Engine::PointLight>(); // defaults to white
+		Engine::Ref<Engine::DirectionalLight> light = Engine::CreateRef<Engine::DirectionalLight>(); // defaults to white
 
 		light_entity->GetComponent<TransformComponent>()->local_transform.translation = glm::vec3(0.5f, 0.7f, 0.f);
-		Engine::PointLightComponent new_light(light);
+		Engine::DirectionalLightComponent new_light(light);
 
-		light_entity->AddComponent<Engine::PointLightComponent>(new_light);
+		light_entity->AddComponent<Engine::DirectionalLightComponent>(new_light);
 
 		entities.push_back(light_entity_handle);
 	}

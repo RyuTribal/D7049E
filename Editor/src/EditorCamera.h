@@ -11,6 +11,9 @@ namespace Editor {
 		EditorCamera(Camera* camera, EntityHandle* handle, Ref<Scene> context) : m_Camera(camera), m_EntityHandle(handle), m_Context(context) {
 			m_CurrentMouseOrientation.x = Input::GetMouseX();
 			m_CurrentMouseOrientation.y = Input::GetMouseY();
+			m_Camera->Zoom(m_InitialZoomFactor);
+			m_Camera->RotateWithVector(m_InitialRotation);
+			m_Context->GetEntity(handle)->GetComponent<TransformComponent>()->local_transform.translation = m_InitialPosition;
 		}
 		~EditorCamera() = default;
 
@@ -32,13 +35,16 @@ namespace Editor {
 		Camera* m_Camera;
 		Ref<Scene> m_Context;
 
-		const float c_ZoomSpeed = 0.1;
-		float m_Speed = 1000.0f;
+		const float c_ZoomSpeed = 1.f;
+		float m_Speed = 10000.0f;
 		glm::vec3 m_Velocity = { 0.f, 0.f, 0.f };
 		float m_AirFriction = 500.f;
 		float m_Sensitivity = 1.f;
 		const float m_SmoothingFactor = 0.9f;
+		const float m_InitialZoomFactor = 10.f;
 		std::map<int, bool> m_KeyStates;
+		glm::vec3 m_InitialPosition = { 1.15f, 3.85f, 0.f };
+		glm::vec3 m_InitialRotation = { -32.f, 30.f, 0.f };
 		bool m_FirstClick = true;
 		glm::vec2 m_DeltaMouseOrientation = { 0.f, 0.f };
 		glm::vec2 m_CurrentMouseOrientation = { 0.f, 0.f };

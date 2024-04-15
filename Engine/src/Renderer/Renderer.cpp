@@ -37,6 +37,27 @@ namespace Engine
 		};
 		m_SceneFramebuffer = Engine::Framebuffer::Create(sceneSpec);
 
+		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * MAX_POINT_LIGHTS, 2); // Maybe create a resize shader buffer function if possible
+		m_DirLightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(DirectionalLightInfo) * MAX_DIR_LIGHTS, 0); // Maybe create a resize shader buffer function if possible
+
+		TextureSpecification texture_spec{};
+		texture_spec.Width = 1024;
+		texture_spec.Height = 1024;
+		texture_spec.Format = ImageFormat::RGBA8;
+
+		m_DefaultMap = CreateRef<Texture2D>(texture_spec);
+
+		uint32_t bpp = 4;
+		size_t dataSize = texture_spec.Width * texture_spec.Height * bpp;
+		auto* data = new uint8_t[dataSize];
+
+		std::fill_n(data, dataSize, 0);
+		m_DefaultMap->SetData(data, dataSize);
+
+		delete[] data;
+
+
+
 		ReCreateFrameBuffers();
     }
 
@@ -44,12 +65,12 @@ namespace Engine
         
     }
 
-	void Renderer::SubmitObject(Mesh* mesh, Material* material)
+	void Renderer::SubmitObject(Mesh* mesh)
 	{
 		HVE_PROFILE_FUNC();
-		m_Meshes.push_back(mesh); m_Materials.push_back(material);
-		m_Stats.vertices_count += mesh->Size();
-		m_Stats.index_count += mesh->GetVertexArray()->GetIndexBuffer()->GetCount();
+		m_Meshes.push_back(mesh);
+		m_Stats.vertices_count += mesh->VertexSize();
+		m_Stats.index_count += mesh->IndexSize();
 	}
 
     void Renderer::BeginFrame(Camera* camera)
@@ -82,7 +103,7 @@ namespace Engine
 		m_DepthPrePassProgram.UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
 		m_DepthPrePassProgram.UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
 		for (Mesh* mesh : m_Meshes) {
-			DrawIndexed(mesh, nullptr);
+			DrawIndexed(mesh, false);
 		}
 
 		m_DepthFramebuffer->Unbind();
@@ -99,15 +120,14 @@ namespace Engine
 
 		uint32_t depthTextureID = m_DepthFramebuffer->GetDepthAttachmentID();
 
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE4);
+		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE18);
 		m_RendererAPI.BindTexture(depthTextureID);
-		m_LightCullingProgram.UploadIntData("depthMap", 4);
+		m_LightCullingProgram.UploadIntData("depthMap", 18);
 
-		m_LightsSSBO->Bind();
-		m_VisibleLightsSSBO->Bind();
 
 		m_RendererAPI.DispatchCompute(m_WorkGroupsX, m_WorkGroupsY, 1);
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE4);
+		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE18);
+
 		m_RendererAPI.UnBindTexture(depthTextureID);
 	}
 
@@ -119,42 +139,48 @@ namespace Engine
 		m_RendererAPI.ClearAll();
 
 		for (size_t i = 0; i < m_Meshes.size(); i++) {
-			DrawIndexed(m_Meshes[i], m_Materials[i]);
+			DrawIndexed(m_Meshes[i], true);
 		}
+
 		m_HDRFramebuffer->Unbind();
 
-		uint32_t color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
 
-		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // need to create an abstraction for this in renderer API
+		uint32_t color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
 
 		m_RendererAPI.ClearAll();
 		m_QuadProgram.Activate();
 
 		color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE0);
+		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE19);
 		m_RendererAPI.BindTexture(color_attachment);
 		m_QuadProgram.UploadFloatData("exposure", exposure);
+		m_QuadProgram.UploadIntData("hdrBuffer", 19);
 
 		m_SceneFramebuffer->Bind();
 		m_RendererAPI.ClearAll();
 		DrawHDRQuad();
 		m_SceneFramebuffer->Unbind();
 		
-		m_LightsSSBO->Unbind();
-		m_VisibleLightsSSBO->Unbind();
 	}
 
-	void Renderer::DrawIndexed(Mesh* mesh, Material* material)
+	void Renderer::DrawIndexed(Mesh* mesh, bool use_material)
 	{
 		HVE_PROFILE_FUNC();
-		if (material != nullptr) {
-			material->ApplyMaterial();
-			material->GetProgram()->UploadMat4FloatData("u_Transform", mesh->GetTransform());
-			material->GetProgram()->UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
-			material->GetProgram()->UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
+		for (size_t i = 0; i < mesh->GetSubmeshes().size(); i++)
+		{
+			
+			if (use_material)
+			{
+				Ref<Material> material = mesh->GetMaterials()[mesh->GetSubmeshes()[i].MaterialIndex];
+				material->ApplyMaterial();
+				material->GetProgram()->UploadMat4FloatData("u_Transform", mesh->GetTransform() * mesh->GetSubmeshes()[i].WorldTransform);
+				material->GetProgram()->UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
+				material->GetProgram()->UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
+				material->GetProgram()->UploadIntData("u_NumDirectionalLights", (int)m_DirectionalLights.size());
+			}
+			m_RendererAPI.DrawIndexed(mesh->GetSubmeshes()[i].VertexArray);
+			m_Stats.draw_calls++;
 		}
-		m_RendererAPI.DrawIndexed(mesh->GetVertexArray());
-		m_Stats.draw_calls++;
 	}
 
 	void Renderer::BeginDrawing()
@@ -170,26 +196,27 @@ namespace Engine
 		glUseProgram(0);
 		m_Meshes.clear();
 		m_PointLights.clear();
-		m_Materials.clear();
+		m_DirectionalLights.clear();
     }
 
 	void Renderer::ReCreateFrameBuffers()
 	{
 		HVE_PROFILE_FUNC();
-		m_WorkGroupsX = (current_window_width + ((int)current_window_width % 16)) / 16;
-		m_WorkGroupsY = (current_window_height + ((int)current_window_height % 16)) / 16;
 		
 		m_DepthFramebuffer->Resize(current_window_width, current_window_height);
 		m_HDRFramebuffer->Resize(current_window_width, current_window_height);
 		m_SceneFramebuffer->Resize(current_window_width, current_window_height);
 
+		m_WorkGroupsX = (current_window_width + ((int)current_window_width % 16)) / 16;
+		m_WorkGroupsY = (current_window_height + ((int)current_window_height % 16)) / 16;
 		size_t numberOfTiles = m_WorkGroupsX * m_WorkGroupsY;
 		size_t data = numberOfTiles * sizeof(VisibleIndex) * 1024;
 		m_VisibleLightsSSBO = CreateRef<ShaderStorageBuffer>(data, 1);
 		m_VisibleLightsSSBO->Bind();
 	}
 	void Renderer::UploadLightData() {
-		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * m_PointLights.size(), 0); // Maybe create a resize shader buffer function if possible
+
+		m_LightsSSBO->Bind();
 
 		std::vector<PointLightInfo> pointLightsData(m_PointLights.size());
 		for (size_t i = 0; i < m_PointLights.size(); ++i) {
@@ -202,6 +229,17 @@ namespace Engine
 		}
 
 		m_LightsSSBO->SetData(pointLightsData.data(), pointLightsData.size() * sizeof(PointLightInfo));
+
+		m_DirLightsSSBO->Bind();
+
+		std::vector<DirectionalLightInfo> dirLightsData(m_DirectionalLights.size());
+		for (size_t i = 0; i < m_DirectionalLights.size(); ++i)
+		{
+			dirLightsData[i].color = glm::vec4(m_DirectionalLights[i]->GetColor(), 1.f);
+			dirLightsData[i].direction = glm::vec4(m_DirectionalLights[i]->GetDirection(), 1.f);
+			dirLightsData[i].intensity = m_DirectionalLights[i]->GetIntensity();
+		}
+		m_DirLightsSSBO->SetData(dirLightsData.data(), dirLightsData.size() * sizeof(DirectionalLightInfo));
 	}
 	void Renderer::DrawHDRQuad()
 	{

@@ -260,9 +260,9 @@ namespace EditorPanels {
 		if (ImGui::BeginPopup("AddComponent"))
 		{
 			DisplayAddComponentEntry<CameraComponent>("Camera");
-			DisplayAddComponentEntry<MaterialComponent>("Material");
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
+			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
 
 			ImGui::EndPopup();
 		}
@@ -284,7 +284,11 @@ namespace EditorPanels {
 
 			const char* projectionTypeStrings[] = { "Perspective", "Orthographic" };
 			const char* currentProjectionTypeString = camera->GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
-			if (ImGui::BeginCombo("Projection", currentProjectionTypeString))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Projection");
+			ImGui::NextColumn();
+			if (ImGui::BeginCombo("##projection", currentProjectionTypeString))
 			{
 				for (int i = 0; i < 2; i++)
 				{
@@ -301,17 +305,33 @@ namespace EditorPanels {
 
 				ImGui::EndCombo();
 			}
+			ImGui::Columns(1);
 			float perspectiveVerticalFov = glm::degrees(camera->GetFOVY());
-			if (ImGui::DragFloat("Vertical FOV", &perspectiveVerticalFov))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Vertical FOV");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##fov", &perspectiveVerticalFov))
 				camera->SetFovy(glm::radians(perspectiveVerticalFov));
 
+			ImGui::Columns(1);
 			float perspectiveNear = camera->GetNear();
-			if (ImGui::DragFloat("Near", &perspectiveNear))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Near");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##near", &perspectiveNear))
 				camera->SetNear(perspectiveNear);
-
+			ImGui::Columns(1);
 			float perspectiveFar = camera->GetFar();
-			if (ImGui::DragFloat("Far", &perspectiveFar))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Far");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##far", &perspectiveFar))
 				camera->SetFar(perspectiveFar);
+
+			ImGui::Columns(1);
 		});
 
 
@@ -319,29 +339,67 @@ namespace EditorPanels {
 		{
 			auto& light = component->light;
 			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
-			ImGui::Text("Light color:");
-			ImGui::ColorEdit3("##light_color", color);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Color");
+			ImGui::NextColumn();
+			ImGui::ColorEdit3("##point_light_color", color);
 			light->SetColor(glm::vec3(color[0], color[1], color[2]));
+			ImGui::Columns(1);
 
 			float intensity = light->GetIntensity();
-			ImGui::Text("Intensity:");
-			ImGui::DragFloat("##light_intensity", &intensity, 0.1f);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Intensity");
+			ImGui::NextColumn();
+			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f);
 			light->SetIntensity(intensity);
+			ImGui::Columns(1);
 
 			float attenuations[3] = { light->GetConstantAttenuation(),  light->GetLinearAttenuation(), light->GetQuadraticAttenuation() };
-			ImGui::Text("Attenuations (constant, linear, quadratic):");
-			ImGui::DragFloat3("##light_attenuation", attenuations, 0.1f);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Attenuations (constant, linear, quadratic)");
+			ImGui::NextColumn();
+			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f);
 			light->SetConstantAttenuation(attenuations[0]);
 			light->SetLinearAttenuation(attenuations[1]);
 			light->SetQuadraticAttenuation(attenuations[2]);
+			ImGui::Columns(1);
+		});
+
+		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component)
+		{
+			auto& light = component->light;
+			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Color");
+			ImGui::NextColumn();
+			ImGui::ColorEdit3("##dir_light_color", color);
+			glm::vec3 new_color = glm::vec3(color[0], color[1], color[2]);
+			light->SetColor(new_color);
+			ImGui::Columns(1);
+
+			float intensity = light->GetIntensity();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Intensity");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f))
+			{
+				light->SetIntensity(intensity);
+			}	
+			ImGui::Columns(1);
+
+			glm::vec3 curr_direction = light->GetDirection();
+			DrawVec3Control("Direction", curr_direction);
+			
+			light->SetDirection(curr_direction);
+
 		});
 
 		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component)
-		{
-			ImGui::Text("Nothing yet :(");
-		});
-
-		DrawComponent<MaterialComponent>("Material", entity, [](auto& component)
 		{
 			ImGui::Text("Nothing yet :(");
 		});

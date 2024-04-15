@@ -1,8 +1,6 @@
 #pragma once
 #include <Engine.h>
 #include <imgui/imgui.h>
-#include "Primitives/Cuboid.h"
-#include "Materials/Silver.h"
 #include "EditorCamera.h"
 #include <map>
 

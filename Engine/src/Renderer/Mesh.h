@@ -1,11 +1,12 @@
 #pragma once
 #include <glad/gl.h>
 #include "VertexArray.h"
+#include "Material.h"
 
 
 namespace Engine {
 
-	struct VertexData
+	struct Vertex
 	{
 		glm::vec3 coordinates = { 0.f, 0.f, 0.f };
 		glm::vec4 color = { 1.f, 1.f, 1.f, 1.f };
@@ -14,26 +15,51 @@ namespace Engine {
 		uint32_t entity_id = -1;
 	};
 
-	class Mesh {
+	class Submesh
+	{
+	public:
+		uint32_t MaterialIndex = -1;
+		Ref<VertexArray> VertexArray;
+
+		glm::mat4 LocalTransform{ 1.0f };
+
+		glm::mat4 WorldTransform{ 1.0f };
+
+		std::string MeshName;
+	};
+
+	struct MeshNode
+	{
+		uint32_t Parent = 0xffffffff;
+		std::vector<uint32_t> Children;
+		std::vector<uint32_t> Submeshes;
+		std::string Name;
+		inline bool IsRoot() const { return Parent == 0xffffffff; }
+	};
+
+	class Mesh
+	{
 	public:
 		Mesh() = default;
-		Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t> indices);
+		Mesh(std::vector<MeshNode> nodes, std::vector<Submesh> meshes, std::vector<Ref<Material>> materials, uint32_t root_node, int vertex_count, int index_count);
 		~Mesh();
 
-		void Bind() const;
-		void Unbind() const;
+		int VertexSize() { return m_VertexCount; }
+		int IndexSize() { return m_IndexCount; }
 
-		void SetTransform(glm::mat4 transform) { m_Transform = transform; }
+		glm::mat4 GetTransform() { return m_Transform; }
+		void SetTransform(glm::mat4 transform);
 
-		glm::mat4& GetTransform() { return m_Transform; }
-
-		Ref<VertexArray> GetVertexArray() { return m_VertexArray; }
-
-		int Size() { return m_VertexCount; }
+		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
+		std::vector<Ref<Material>>& GetMaterials() { return m_Materials; }
 
 	private:
-		Ref<VertexArray> m_VertexArray;
-		glm::mat4 m_Transform = glm::mat4(0.f);
+		std::vector<MeshNode> m_Nodes;
+		std::vector<Submesh> m_Submeshes;
+		uint32_t m_RootNode;
 		int m_VertexCount = 0;
+		int m_IndexCount = 0;
+		std::vector<Ref<Material>> m_Materials;
+		glm::mat4 m_Transform;
 	};
 }

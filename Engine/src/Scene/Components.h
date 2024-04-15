@@ -5,6 +5,7 @@
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 #include "Lights/PointLight.h"
+#include <Lights/DirectionalLight.h>
 
 namespace Engine {
 
@@ -17,8 +18,8 @@ namespace Engine {
 		Transform,
 		CameraComp,
 		PointLightComp,
-		MeshComp,
-		MaterialComp
+		DirectionalLightComp,
+		MeshComp
 	};
 
 	struct Component {
@@ -130,18 +131,6 @@ namespace Engine {
 		}
 	};
 
-	struct MaterialComponent : public Component {
-		Ref<Material> material;
-
-		MaterialComponent() = default;
-		MaterialComponent(const MaterialComponent&) = default;
-		MaterialComponent(Ref<Material> new_material) : material(new_material) {}
-
-		const ComponentType Type() const override {
-			return ComponentType::MaterialComp;
-		}
-	};
-
 
 	struct CameraComponent : public Component {
 		Ref<Camera> camera;
@@ -164,6 +153,20 @@ namespace Engine {
 
 		const ComponentType Type() const override {
 			return ComponentType::PointLightComp;
+		}
+	};
+
+	struct DirectionalLightComponent : public Component
+	{
+		Ref<DirectionalLight> light;
+
+		DirectionalLightComponent() { light = CreateRef<DirectionalLight>(); };
+		DirectionalLightComponent(const DirectionalLightComponent&) = default;
+		DirectionalLightComponent(Ref<DirectionalLight> new_light) : light(new_light) {}
+
+		const ComponentType Type() const override
+		{
+			return ComponentType::DirectionalLightComp;
 		}
 	};
 

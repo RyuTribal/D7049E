@@ -22,7 +22,7 @@ namespace Engine {
 	}
 
 
-	ShaderStorageBuffer::ShaderStorageBuffer(uint32_t size, uint32_t binding)
+	ShaderStorageBuffer::ShaderStorageBuffer(uint32_t size, uint32_t binding) : m_Binding(binding)
 	{
 		glCreateBuffers(1, &m_RendererID);
 		glNamedBufferData(m_RendererID, size, nullptr, GL_DYNAMIC_DRAW);
@@ -41,7 +41,7 @@ namespace Engine {
 
 	void ShaderStorageBuffer::Bind() const
 	{
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_RendererID);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_Binding, m_RendererID);
 	}
 
 
@@ -53,10 +53,12 @@ namespace Engine {
 	void ShaderStorageBuffer::Unmap() const
 	{
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
 	void* ShaderStorageBuffer::Map() const
 	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_RendererID);
 		return glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
 	}
 

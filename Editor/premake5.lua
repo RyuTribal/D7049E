@@ -37,6 +37,11 @@ project "Editor"
         "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\""
     }
 
+    postbuildcommands
+    {
+        '{COPY} "%{wks.location}/Engine/vendor/assimp/bin/x64/assimp-vc143-mt.dll" "%{cfg.targetdir}"'
+    }
+
     filter "system:windows"
         systemversion "latest"
         defines

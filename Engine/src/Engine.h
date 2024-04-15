@@ -12,10 +12,13 @@
 #include "Core/Timer.h"
 
 
+// ------------- Assets ------------------
+#include "Assets/ModelLibrary.h"
+
 // ------------- Renderer ----------------
 #include "Renderer/Renderer.h"
-#include "Materials/Phong.h"
 #include "Lights/PointLight.h"
+#include "Lights/DirectionalLight.h"
 #include "Renderer/Texture.h"
 
 
@@ -25,8 +28,6 @@
 #include "Scene/Components.h"
 
 // ---------------- Utils ----------------
-#include "Utils/DataStructures.h"
-#include "Utils/Random.h"
 #include "Math/Math.h"
 #include "ImGui/ImGuiLayer.h"
 

@@ -41,40 +41,50 @@ namespace Engine {
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		HVE_CORE_ASSERT(location != -1, err_message);
-        glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
+		if (location == -1)
+		{
+			glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
+		}
 
     }
     void ShaderProgram::UploadVec3FloatData(const std::string& name, const glm::vec3& vector)
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		HVE_CORE_ASSERT(location != -1, err_message);
-        glUniform3fv(location, 1, glm::value_ptr(vector));
+		if (location == -1)
+		{
+			glUniform3fv(location, 1, glm::value_ptr(vector));
+		}
     }
 
     void ShaderProgram::UploadFloatData(const std::string& name, float data)
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		HVE_CORE_ASSERT(location != -1, err_message);
-        glUniform1f(location, data);
+		if (location == -1)
+		{
+			glUniform1f(location, data);
+		}
     }
 
     void ShaderProgram::UploadVec2IntData(const std::string& name, const glm::ivec2& vector)
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		HVE_CORE_ASSERT(location != -1, err_message);
-        glUniform2iv(location, 1, glm::value_ptr(vector));
+		if (location == -1)
+		{
+			glUniform2iv(location, 1, glm::value_ptr(vector));
+		}
     }
 
     void ShaderProgram::UploadIntData(const std::string& name, int data)
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		HVE_CORE_ASSERT(location != -1, err_message);
-        glUniform1i(location, data);
+		if (location == -1)
+		{
+			glUniform1i(location, data);
+		}
     }
 
     ShaderProgram::~ShaderProgram()

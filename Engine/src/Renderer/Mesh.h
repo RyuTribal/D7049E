@@ -12,6 +12,8 @@ namespace Engine {
 		glm::vec4 color = { 1.f, 1.f, 1.f, 1.f };
 		glm::vec2 texture_coordinates = { 1.f, 1.f };
 		glm::vec3 normal = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 tangent = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 bitangent = { 0.0f, 0.0f, 0.0f };
 		uint32_t entity_id = -1;
 	};
 
@@ -37,6 +39,12 @@ namespace Engine {
 		inline bool IsRoot() const { return Parent == 0xffffffff; }
 	};
 
+	struct MeshMetaData
+	{
+		std::string MeshPath = "";
+		std::string ShaderPath = "";
+	};
+
 	class Mesh
 	{
 	public:
@@ -53,7 +61,13 @@ namespace Engine {
 		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
 		std::vector<Ref<Material>>& GetMaterials() { return m_Materials; }
 
+		void SetShader(const std::string& path);
+
+		MeshMetaData& GetMetaData() { return m_MetaData; }
+		void SetMetaData(MeshMetaData meta_data) { m_MetaData = meta_data; }
+
 	private:
+		MeshMetaData m_MetaData{};
 		std::vector<MeshNode> m_Nodes;
 		std::vector<Submesh> m_Submeshes;
 		uint32_t m_RootNode;

@@ -7,11 +7,6 @@ namespace Engine {
 
 	Ref<AssetSource> ModelLibrary::LoadModel(const std::string& file_path)
 	{
-		auto iter = m_Library.find(file_path);
-		if (iter != m_Library.end())
-		{
-			return m_Library[file_path];
-		}
 
 		if (!std::filesystem::exists(file_path))
 		{
@@ -30,7 +25,7 @@ namespace Engine {
 		
 		HVE_CORE_TRACE_TAG("Model Library", "Opening file: {0}", absolute_path);
 
-		const aiScene* scene = m_Importer.ReadFile(absolute_path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+		const aiScene* scene = m_Importer.ReadFile(absolute_path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
 
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -64,12 +59,22 @@ namespace Engine {
 
 		int vertex_count = 0, index_count = 0;
 
-		uint32_t root_node_index = ProcessNode(mesh_asset->scene->mRootNode, mesh_asset->scene, nodes, meshes, vertex_count, index_count, entity, nullptr, materials, directory, shader_path);
+		uint32_t root_node_index = ProcessNode(mesh_asset->scene->mRootNode, mesh_asset->scene, mesh_asset->transformed, nodes, meshes, vertex_count, index_count, entity, nullptr, materials, directory, shader_path);
 
-		return CreateRef<Mesh>(nodes, meshes, materials, root_node_index, vertex_count, index_count);
+		Ref<Mesh> new_mesh = CreateRef<Mesh>(nodes, meshes, materials, root_node_index, vertex_count, index_count);
+
+		MeshMetaData meta_data{};
+		meta_data.MeshPath = absolute_path;
+		meta_data.ShaderPath = std::filesystem::absolute(shader_path).string();
+
+		new_mesh->SetMetaData(meta_data);
+
+		mesh_asset->transformed = true;
+
+		return new_mesh;
 	}
 
-	uint32_t ModelLibrary::ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, aiMatrix4x4* parent_matrix, std::vector<Ref<Material>>& material_destination, const std::string& directory, const std::string& shader_path)
+	uint32_t ModelLibrary::ProcessNode(aiNode* node, const aiScene* scene, bool transformed, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, aiMatrix4x4* parent_matrix, std::vector<Ref<Material>>& material_destination, const std::string& directory, const std::string& shader_path)
 	{
 		MeshNode mesh_node{};
 		mesh_node.Name = node->mName.C_Str();
@@ -79,9 +84,13 @@ namespace Engine {
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 			mesh_node.Submeshes.push_back(ProcessMesh(mesh, scene, mesh_destination, vertex_count, index_count, entity, material_destination, directory, shader_path));
 			mesh_destination[mesh_node.Submeshes[mesh_node.Submeshes.size() - 1]].LocalTransform = ConvertMatrix(node->mTransformation);
-			if (parent_matrix != nullptr)
+			if (parent_matrix != nullptr && !transformed)
 			{
 				mesh_destination[mesh_node.Submeshes[mesh_node.Submeshes.size() - 1]].WorldTransform = ConvertMatrix(*parent_matrix) * ConvertMatrix(node->mTransformation);
+			}
+			else
+			{
+				mesh_destination[mesh_node.Submeshes[mesh_node.Submeshes.size() - 1]].WorldTransform = ConvertMatrix(node->mTransformation);
 			}
 		}
 
@@ -92,7 +101,7 @@ namespace Engine {
 	
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
-			mesh_node.Children.push_back(ProcessNode(node->mChildren[i], scene, node_destination, mesh_destination, vertex_count, index_count, entity, &node->mTransformation, material_destination, directory, shader_path));
+			mesh_node.Children.push_back(ProcessNode(node->mChildren[i], scene, transformed, node_destination, mesh_destination, vertex_count, index_count, entity, &node->mTransformation, material_destination, directory, shader_path));
 		}
 
 		node_destination.push_back(mesh_node);
@@ -115,6 +124,14 @@ namespace Engine {
 			vertex.normal.x = mesh->mNormals[i].x;
 			vertex.normal.y = mesh->mNormals[i].y;
 			vertex.normal.z = mesh->mNormals[i].z;
+
+			vertex.tangent.x = mesh->mTangents[i].x;
+			vertex.tangent.y = mesh->mTangents[i].y;
+			vertex.tangent.z = mesh->mTangents[i].z;
+
+			vertex.bitangent.x = mesh->mBitangents[i].x;
+			vertex.bitangent.y = mesh->mBitangents[i].y;
+			vertex.bitangent.z = mesh->mBitangents[i].z;
 
 			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
 			{
@@ -147,6 +164,8 @@ namespace Engine {
 			{ ShaderDataType::Float4, "a_colors" },
 			{ ShaderDataType::Float2, "a_texture_coords" },
 			{ ShaderDataType::Float3, "a_normals" },
+			{ ShaderDataType::Float3, "a_tangent" },
+			{ ShaderDataType::Float3, "a_bitangent" },
 			{ ShaderDataType::Int, "a_entity_id"}
 			});
 		vertexBuffer->SetData(vertices.data(), vertices.size() * sizeof(Vertex));

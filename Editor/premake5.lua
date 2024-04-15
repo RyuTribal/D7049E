@@ -23,6 +23,7 @@ project "Editor"
         "%{IncludeDir.Assimp}",
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
+        "vendor/nativefiledialog-extended/src/include",
     }
 
     links
@@ -30,6 +31,8 @@ project "Editor"
         "Engine",
         "Glad",
         "%{Library.Tracy}",
+        "vendor/nativefiledialog-extended/lib/nfd.lib",
+        
     }
 
     defines

@@ -41,7 +41,7 @@ namespace Engine {
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		if (location == -1)
+		if (location != -1)
 		{
 			glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 		}
@@ -51,7 +51,7 @@ namespace Engine {
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		if (location == -1)
+		if (location != -1)
 		{
 			glUniform3fv(location, 1, glm::value_ptr(vector));
 		}
@@ -61,7 +61,7 @@ namespace Engine {
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		if (location == -1)
+		if (location != -1)
 		{
 			glUniform1f(location, data);
 		}
@@ -71,7 +71,7 @@ namespace Engine {
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		if (location == -1)
+		if (location != -1)
 		{
 			glUniform2iv(location, 1, glm::value_ptr(vector));
 		}
@@ -81,7 +81,7 @@ namespace Engine {
     {
         GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
 		std::string err_message = "Shader does not have a uniform " + name + "!";
-		if (location == -1)
+		if (location != -1)
 		{
 			glUniform1i(location, data);
 		}

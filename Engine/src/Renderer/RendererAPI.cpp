@@ -92,7 +92,7 @@ namespace Engine {
 	{
 		switch (severity)
 		{
-		case GL_DEBUG_SEVERITY_HIGH:         HVE_CORE_FATAL(message); return;
+			case GL_DEBUG_SEVERITY_HIGH:	 HVE_CORE_FATAL(message); return;
 		case GL_DEBUG_SEVERITY_MEDIUM:       HVE_CORE_ERROR(message);  return;
 		case GL_DEBUG_SEVERITY_LOW:          HVE_CORE_WARN(message);  return;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: HVE_CORE_TRACE(message);  return;

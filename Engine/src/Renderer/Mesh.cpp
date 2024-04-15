@@ -14,4 +14,11 @@ namespace Engine {
 	{
 		m_Transform = transform;
 	}
+	void Mesh::SetShader(const std::string& path)
+	{
+		for (size_t i = 0; i < m_Materials.size(); i++)
+		{
+			m_Materials[i]->SetProgram(CreateRef<ShaderProgram>(path));
+		}
+	}
 }

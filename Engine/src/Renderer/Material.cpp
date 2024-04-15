@@ -24,18 +24,18 @@ namespace Engine {
 		);
 #endif
 		if (UsesAlbedoTexture()) {
-			TextureLibrary::Get()->GetTexture(m_AlbedoTexture)->Bind(0);
+			TextureLibrary::Get()->GetTexture(m_AlbedoTexture)->Bind(6);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(0);
+			Renderer::GetGrayTexture()->Bind(6);
 		}
-		m_Program->UploadIntData("u_AlbedoTexture", 0);
+		m_Program->UploadIntData("u_AlbedoTexture", 6);
 
 		if (UsesNormalTexture()) {
 			TextureLibrary::Get()->GetTexture(m_NormalTexture)->Bind(1);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(1);
+			Renderer::GetBlueTexture()->Bind(1);
 		}
 		m_Program->UploadIntData("u_NormalTexture", 1);
 
@@ -43,7 +43,7 @@ namespace Engine {
 			TextureLibrary::Get()->GetTexture(m_RoughnessTexture)->Bind(2);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(2);
+			Renderer::GetGrayTexture()->Bind(2);
 		}
 		m_Program->UploadIntData("u_RoughnessTexture", 2);
 
@@ -51,17 +51,17 @@ namespace Engine {
 			TextureLibrary::Get()->GetTexture(m_MetalnessTexture)->Bind(3);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(3);
+			Renderer::GetBlackTexture()->Bind(3);
 		}
 		m_Program->UploadIntData("u_MetalnessTexture", 3);
 
 		if (UsesSpecularTexture()) {
-			TextureLibrary::Get()->GetTexture(m_SpecularTexture)->Bind(4);
+			TextureLibrary::Get()->GetTexture(m_SpecularTexture)->Bind(7);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(4);		
+			Renderer::GetWhiteTexture()->Bind(7);
 		}
-		m_Program->UploadIntData("u_SpecularTexture", 4);
+		m_Program->UploadIntData("u_SpecularTexture", 7);
 
 		if (UsesEmissiveTexture())
 		{
@@ -69,42 +69,42 @@ namespace Engine {
 		}
 		else
 		{
-			Renderer::Get()->GetDefaultMap()->Bind(5);
+			Renderer::GetBlackTexture()->Bind(5);
 		}
 		m_Program->UploadIntData("u_EmissiveTexture", 5);
 
 
 		if (UsesHeightTexture()) {
-			TextureLibrary::Get()->GetTexture(m_HeightTexture)->Bind(6);
+			TextureLibrary::Get()->GetTexture(m_HeightTexture)->Bind(8);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(6);
+			Renderer::GetGrayTexture()->Bind(8);
 		}
-		m_Program->UploadIntData("u_HeightTexture", 6);
+		m_Program->UploadIntData("u_HeightTexture", 8);
 
 		if (UsesOpacityTexture()) {
-			TextureLibrary::Get()->GetTexture(m_OpacityTexture)->Bind(7);
+			TextureLibrary::Get()->GetTexture(m_OpacityTexture)->Bind(11);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(7);
+			Renderer::GetWhiteTexture()->Bind(11);
 		}
-		m_Program->UploadIntData("u_OpacityTexture", 7);
+		m_Program->UploadIntData("u_OpacityTexture", 11);
 
 		if (UsesAOTexture()) {
-			TextureLibrary::Get()->GetTexture(m_AOTexture)->Bind(8);
+			TextureLibrary::Get()->GetTexture(m_AOTexture)->Bind(9);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(8);
+			Renderer::GetWhiteTexture()->Bind(9);
 		}
-		m_Program->UploadIntData("u_AOTexture", 8);
+		m_Program->UploadIntData("u_AOTexture", 9);
 
 		if (UsesRefractionTexture()) {
-			TextureLibrary::Get()->GetTexture(m_RefractionTexture)->Bind(9);
+			TextureLibrary::Get()->GetTexture(m_RefractionTexture)->Bind(10);
 		}
 		else {
-			Renderer::Get()->GetDefaultMap()->Bind(9);
+			Renderer::GetBlackTexture()->Bind(10);
 		}
-		m_Program->UploadIntData("u_RefractionTexture", 9);
+		m_Program->UploadIntData("u_RefractionTexture", 10);
 
 
     }

@@ -91,6 +91,12 @@ namespace Engine
 		void ShadeAllObjects();
 		void DrawIndexed(Mesh* mesh, bool use_material);
 
+
+		static Ref<Texture2D> GetWhiteTexture();
+		static Ref<Texture2D> GetBlackTexture();
+		static Ref<Texture2D> GetGrayTexture();
+		static Ref<Texture2D> GetBlueTexture();
+
 		void EndFrame();
 
 		void BeginDrawing();
@@ -115,8 +121,6 @@ namespace Engine
 		void ResizeViewport(int width, int height);
 		void SetVSync(bool vsync);
 		void SetViewport(int width, int height);
-
-		Ref<Texture2D> GetDefaultMap() { return m_DefaultMap; }
 		void BindTextureUnit(TextureUnits unit) { m_RendererAPI.ActivateTextureUnit(unit); }
 	private:
 
@@ -162,8 +166,6 @@ namespace Engine
 		GLuint m_QuadVBO;
 
 		RendererAPI m_RendererAPI{};
-
-		Ref<Texture2D> m_DefaultMap;
 	};
 
 	// This is so the spd log library can print this data structure

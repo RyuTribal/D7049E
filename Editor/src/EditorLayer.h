@@ -31,7 +31,7 @@ namespace Editor {
 		Ref<Scene> m_Scene;
 		Ref<EditorCamera> m_Camera;
 		std::vector<EntityHandle*> entities{};
-		bool b_EditDockspace = true;
+		bool b_EditDockspace = false;
 		Ref<Framebuffer> m_SceneBuffer;
 	};
 }

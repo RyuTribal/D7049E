@@ -14,8 +14,7 @@ namespace Editor {
 		Engine::EntityHandle* object_entity_handle = m_Scene->CreateEntity("Lion", nullptr);
 		Engine::Entity* cube_entity = m_Scene->GetEntity(object_entity_handle);
 
-		Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh("C:\\Users\\sedel\\Downloads\\Lion\\source\\lion\\mn_rpat_00_ani.FBX", &object_entity_handle->GetID(), std::string(ROOT_PATH) + "/shaders/phong_material_shader");
-
+		Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh("C:/Users/sedel/Downloads/Lion/source/lion/mn_rpat_00_ani.FBX", &object_entity_handle->GetID(), std::string(ROOT_PATH) + "/shaders/default_static_shader");
 		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.01f, 0.01f, 0.01f);
 
 		cube_entity->AddComponent<Engine::MeshComponent>(object_mesh);

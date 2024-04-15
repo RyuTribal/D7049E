@@ -2,7 +2,7 @@
 
 in vec2 TextureCoordinates;
 
-layout(binding = 19) uniform sampler2D hdrBuffer;
+layout(binding = 0) uniform sampler2D hdrBuffer;
 
 // Controls exposure level of image
 uniform float exposure;

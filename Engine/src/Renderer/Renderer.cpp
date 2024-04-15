@@ -5,11 +5,46 @@
 
 namespace Engine
 {
+	struct DefaultTextures
+	{
+		Ref<Texture2D> White;
+		Ref<Texture2D> Black;
+		Ref<Texture2D> Gray;
+		Ref<Texture2D> Blue;
+	};
+	
+	static DefaultTextures* s_DefaultTextures;
+
     Renderer* Renderer::s_Instance = nullptr;
 
     Renderer::Renderer()
     {
 		m_RendererAPI.Init();
+
+		s_DefaultTextures = new DefaultTextures();
+
+		TextureSpecification default_texture_spec;
+		default_texture_spec.Format = ImageFormat::RGBA8;
+		default_texture_spec.Width = 1;
+		default_texture_spec.Height = 1;
+
+		uint32_t whiteTextureData = 0xffffffff;
+		s_DefaultTextures->White = Texture2D::Create(default_texture_spec);
+		s_DefaultTextures->White->SetData(&whiteTextureData, sizeof(whiteTextureData));
+
+		uint32_t blackTextureData = 0xff000000;
+		s_DefaultTextures->Black = Texture2D::Create(default_texture_spec);
+		s_DefaultTextures->Black->SetData(&blackTextureData, sizeof(blackTextureData));
+
+		uint32_t grayTextureData = 0xff808080;
+		s_DefaultTextures->Gray = Texture2D::Create(default_texture_spec);
+		s_DefaultTextures->Gray->SetData(&grayTextureData, sizeof(grayTextureData));
+
+		uint32_t blueTextureData = 0xffff8080;
+		s_DefaultTextures->Blue = Texture2D::Create(default_texture_spec);
+		s_DefaultTextures->Blue->SetData(&blueTextureData, sizeof(blueTextureData));
+
+
 		current_window_width = Application::Get().GetWindow().GetWidth();
 		current_window_height = Application::Get().GetWindow().GetHeight();
 		FramebufferSpecification depthSpec = {};
@@ -40,29 +75,11 @@ namespace Engine
 		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * MAX_POINT_LIGHTS, 2); // Maybe create a resize shader buffer function if possible
 		m_DirLightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(DirectionalLightInfo) * MAX_DIR_LIGHTS, 0); // Maybe create a resize shader buffer function if possible
 
-		TextureSpecification texture_spec{};
-		texture_spec.Width = 1024;
-		texture_spec.Height = 1024;
-		texture_spec.Format = ImageFormat::RGBA8;
-
-		m_DefaultMap = CreateRef<Texture2D>(texture_spec);
-
-		uint32_t bpp = 4;
-		size_t dataSize = texture_spec.Width * texture_spec.Height * bpp;
-		auto* data = new uint8_t[dataSize];
-
-		std::fill_n(data, dataSize, 0);
-		m_DefaultMap->SetData(data, dataSize);
-
-		delete[] data;
-
-
-
 		ReCreateFrameBuffers();
     }
 
     Renderer::~Renderer() {
-        
+		delete s_DefaultTextures;
     }
 
 	void Renderer::SubmitObject(Mesh* mesh)
@@ -120,13 +137,12 @@ namespace Engine
 
 		uint32_t depthTextureID = m_DepthFramebuffer->GetDepthAttachmentID();
 
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE18);
+		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE4);
 		m_RendererAPI.BindTexture(depthTextureID);
-		m_LightCullingProgram.UploadIntData("depthMap", 18);
 
 
 		m_RendererAPI.DispatchCompute(m_WorkGroupsX, m_WorkGroupsY, 1);
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE18);
+		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE4);
 
 		m_RendererAPI.UnBindTexture(depthTextureID);
 	}
@@ -151,10 +167,9 @@ namespace Engine
 		m_QuadProgram.Activate();
 
 		color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE19);
+		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE0);
 		m_RendererAPI.BindTexture(color_attachment);
 		m_QuadProgram.UploadFloatData("exposure", exposure);
-		m_QuadProgram.UploadIntData("hdrBuffer", 19);
 
 		m_SceneFramebuffer->Bind();
 		m_RendererAPI.ClearAll();
@@ -173,6 +188,7 @@ namespace Engine
 			{
 				Ref<Material> material = mesh->GetMaterials()[mesh->GetSubmeshes()[i].MaterialIndex];
 				material->ApplyMaterial();
+				material->GetProgram()->UploadVec3FloatData("u_CameraPos", m_CurrentCamera->CalculatePosition());
 				material->GetProgram()->UploadMat4FloatData("u_Transform", mesh->GetTransform() * mesh->GetSubmeshes()[i].WorldTransform);
 				material->GetProgram()->UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
 				material->GetProgram()->UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
@@ -181,6 +197,26 @@ namespace Engine
 			m_RendererAPI.DrawIndexed(mesh->GetSubmeshes()[i].VertexArray);
 			m_Stats.draw_calls++;
 		}
+	}
+
+	Ref<Texture2D> Renderer::GetWhiteTexture()
+	{
+		return s_DefaultTextures->White;
+	}
+
+	Ref<Texture2D> Renderer::GetBlackTexture()
+	{
+		return s_DefaultTextures->Black;
+	}
+
+	Ref<Texture2D> Renderer::GetGrayTexture()
+	{
+		return s_DefaultTextures->Gray;
+	}
+
+	Ref<Texture2D> Renderer::GetBlueTexture()
+	{
+		return s_DefaultTextures->Blue;
 	}
 
 	void Renderer::BeginDrawing()

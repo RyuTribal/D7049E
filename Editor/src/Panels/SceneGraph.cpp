@@ -1,5 +1,6 @@
 #include "SceneGraph.h"
 #include <imgui/imgui_internal.h>
+#include "../Utils/FilePicker.h"
 
 namespace EditorPanels {
 	SceneGraph* SceneGraph::s_Instance = nullptr;
@@ -222,7 +223,7 @@ namespace EditorPanels {
 
 			if (open)
 			{
-				uiFunction(component);
+				uiFunction(component, entity->GetHandle());
 				ImGui::TreePop();
 			}
 
@@ -269,7 +270,7 @@ namespace EditorPanels {
 
 		ImGui::PopItemWidth();
 
-		DrawComponent<TransformComponent>("Transform", entity, [](auto& component)
+		DrawComponent<TransformComponent>("Transform", entity, [](auto& component, auto entity)
 		{
 			DrawVec3Control("Translation", component->local_transform.translation);
 			glm::vec3 rotation = glm::degrees(component->local_transform.rotation);
@@ -278,7 +279,7 @@ namespace EditorPanels {
 			DrawVec3Control("Scale", component->local_transform.scale, 1.0f);
 		});
 
-		DrawComponent<CameraComponent>("Camera", entity, [](auto& component)
+		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, auto entity)
 		{
 			auto& camera = component->camera;
 
@@ -335,7 +336,7 @@ namespace EditorPanels {
 		});
 
 
-		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component)
+		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
 			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
@@ -368,7 +369,7 @@ namespace EditorPanels {
 			ImGui::Columns(1);
 		});
 
-		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component)
+		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
 			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
@@ -399,9 +400,68 @@ namespace EditorPanels {
 
 		});
 
-		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component)
+		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
 		{
-			ImGui::Text("Nothing yet :(");
+			ImGui::Columns(3);
+			ImGui::SetColumnWidth(0, 200.f);
+			ImGui::Text("Mesh File Path");
+			if (ImGui::IsItemHovered() && component->mesh)
+			{
+				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
+			}
+			ImGui::NextColumn();
+			ImGui::Text(component->mesh ? component->mesh->GetMetaData().MeshPath.c_str() : "No mesh picked");
+			if (ImGui::IsItemHovered() && component->mesh)
+			{
+				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
+			}
+			ImGui::NextColumn();
+			ImGui::PushID("MeshFilePathButton");
+			if (ImGui::Button("..."))
+			{
+				std::vector<std::vector<std::string>> filter = { {"3D object files", "FBX,fbx,glft"} };
+				std::string path = Editor::FilePicker::OpenFileExplorer(filter);
+				if (path != "")
+				{
+					std::string shader_path = component->mesh ? component->mesh->GetMetaData().ShaderPath : "shaders/default_static_shader";
+					Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh(path, &entity->GetID(), shader_path);
+					component->mesh = object_mesh;
+				}
+			}
+			ImGui::PopID();
+			ImGui::Columns(1);
+			if (component->mesh)
+			{
+				ImGui::Columns(3);
+				ImGui::SetColumnWidth(0, 200.f);
+				ImGui::Text("Shader File Path");
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", component->mesh->GetMetaData().ShaderPath.c_str());
+				}
+				ImGui::NextColumn();
+				ImGui::Text(component->mesh->GetMetaData().ShaderPath.c_str());
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", component->mesh->GetMetaData().ShaderPath.c_str());
+				}
+				ImGui::NextColumn();
+				ImGui::PushID("ShaderFilePathButton");
+				if (ImGui::Button("..."))
+				{
+					std::vector<std::vector<std::string>> filter = { {"GLSL Shader files", "vert,frag"} };
+					std::string path = Editor::FilePicker::OpenFileExplorer(filter);
+					if (path != "")
+					{
+						size_t lastindex = path.find_last_of(".");
+						std::string rawpath = path.substr(0, lastindex);
+						component->mesh->SetShader(rawpath);
+					}
+				}
+			
+				ImGui::PopID();
+				ImGui::Columns(1);
+			}
 		});
     }
 

@@ -3,6 +3,8 @@
 #include "Application.h"
 
 #include "Renderer/Renderer.h"
+#include "Physics/PhysicsEngine.h"
+
 
 namespace Engine
 {
@@ -20,6 +22,9 @@ namespace Engine
 		m_ImGuiLayer = new ImGuiLayer();
 
 		PushOverlay(m_ImGuiLayer);
+
+		PhysicsEngine::Get()->Init();
+
 	}
 
 	void Application::OnEvent(Event& event)
@@ -55,6 +60,7 @@ namespace Engine
 
 	Application::~Application()
 	{
+		PhysicsEngine::Get()->Shutdown();
 	}
 
 	void Application::run()
@@ -63,7 +69,7 @@ namespace Engine
 		m_Window->SetFullScreen(m_Window->GetFullScreen(), m_Window->GetFullScreenType());
 
 		auto last_frame = std::chrono::high_resolution_clock::now();
-		PhysicsEngine::tmpRunner();
+		
 		while (m_Running)
 		{
 			auto newTime = std::chrono::high_resolution_clock::now();

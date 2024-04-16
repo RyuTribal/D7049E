@@ -3,6 +3,7 @@
 #include "Window.h"
 #include "Events/ApplicationEvent.h"
 #include "ImGui/ImGuiLayer.h"
+#include "PhysicsEngine.h"
 
 namespace Engine
 {

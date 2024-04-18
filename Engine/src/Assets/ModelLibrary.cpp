@@ -1,18 +1,19 @@
 #include "pch.h"
 #include "ModelLibrary.h"
 #include "TextureLibrary.h"
+#include "Renderer/Renderer.h"
+
+#include <stb_image.h>
 
 namespace Engine {
 	ModelLibrary* ModelLibrary::s_Instance = nullptr;
 
 	Ref<AssetSource> ModelLibrary::LoadModel(const std::string& file_path)
 	{
-
 		if (!std::filesystem::exists(file_path))
 		{
 			return nullptr;
 		}
-
 		const std::string file_ending = std::filesystem::path(file_path).extension().string();
 
 		if (file_ending != ".fbx" && file_ending != ".FBX" && file_ending != ".gltf" && file_ending != ".glb")
@@ -20,12 +21,11 @@ namespace Engine {
 			HVE_CORE_ERROR_TAG("Model Library", "Tried to load a model file of type {0}, which is not supported", file_ending);
 			return nullptr;
 		}
-
 		const std::string absolute_path = std::filesystem::absolute(file_path).string();
 		
 		HVE_CORE_TRACE_TAG("Model Library", "Opening file: {0}", absolute_path);
 
-		const aiScene* scene = m_Importer.ReadFile(absolute_path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+		const aiScene* scene = m_Importer.ReadFile(absolute_path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace );
 
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -41,7 +41,7 @@ namespace Engine {
 		return asset;
 	}
 
-	Ref<Mesh> ModelLibrary::CreateMesh(const std::string& file_path, UUID* entity, const std::string& shader_path)
+	Ref<Mesh> ModelLibrary::CreateMesh(const std::string& file_path, UUID* entity)
 	{
 		Ref<AssetSource> mesh_asset = LoadModel(file_path);
 
@@ -54,18 +54,262 @@ namespace Engine {
 		std::vector<Submesh> meshes;
 		std::vector<Ref<Material>> materials;
 
-		const std::string absolute_path = std::filesystem::absolute(file_path).string();
+		std::string absolute_path = std::filesystem::absolute(file_path).string();
 		const std::string directory = absolute_path.substr(0, absolute_path.find_last_of('/'));
 
 		int vertex_count = 0, index_count = 0;
+		uint32_t root_node_index = ProcessNode(mesh_asset->scene->mRootNode, mesh_asset->scene, mesh_asset->transformed, nodes, meshes, vertex_count, index_count, entity, nullptr);
 
-		uint32_t root_node_index = ProcessNode(mesh_asset->scene->mRootNode, mesh_asset->scene, mesh_asset->transformed, nodes, meshes, vertex_count, index_count, entity, nullptr, materials, directory, shader_path);
+		// Materials
+		Ref<Texture2D> WhiteTexture = Renderer::GetWhiteTexture();
+		Ref<Texture2D> BlueTexture = Renderer::GetBlueTexture();
+		if (mesh_asset->scene->HasMaterials())
+		{
+			auto scene = mesh_asset->scene;
+			materials.resize(mesh_asset->scene->mNumMaterials);
+			for (uint32_t i = 0; i < mesh_asset->scene->mNumMaterials; i++)
+			{
+				auto aiMaterial = scene->mMaterials[i];
+				auto aiMaterialName = aiMaterial->GetName();
+				Ref<Material> material = CreateRef<Material>(Renderer::GetShaderLibrary()->Get("default_static_pbr"));
+				materials[i] = material;
+
+				HVE_CORE_TRACE_TAG("Model Library","  {0} (Index = {1})", aiMaterialName.data, i);
+
+				aiString aiTexPath;
+				uint32_t textureCount = aiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+				HVE_CORE_TRACE_TAG("Model Library", "    TextureCount = {0}", textureCount);
+				
+				glm::vec3 albedoColor(0.8f);
+				float emission = 0.0f;
+				aiColor3D aiColor, aiEmission;
+				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS)
+					albedoColor = { aiColor.r, aiColor.g, aiColor.b };
+
+				if (aiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, aiEmission) == AI_SUCCESS)
+					emission = aiEmission.r;
+
+				material->Set("u_MaterialUniforms.AlbedoColor", albedoColor);
+				material->Set("u_MaterialUniforms.Emission", emission);
+
+				float roughness, metalness;
+				if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) != aiReturn_SUCCESS)
+					roughness = 0.5f;
+
+				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
+					metalness = 0.0f;
+
+				HVE_CORE_TRACE_TAG("Model Library","    COLOR = {0}, {1}, {2}", aiColor.r, aiColor.g, aiColor.b);
+				HVE_CORE_TRACE_TAG("Model Library","    ROUGHNESS = {0}", roughness);
+				HVE_CORE_TRACE_TAG("Model Library","    METALNESS = {0}", metalness);
+				bool hasAlbedoMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS;
+				bool fallback = !hasAlbedoMap;
+
+				if (hasAlbedoMap)
+				{
+					UUID texture_id;
+					TextureSpecification spec;
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						spec.Format = ImageFormat::RGBA8;
+						spec.Width = aiTexEmbedded->mWidth;
+						spec.Height = aiTexEmbedded->mHeight;
+						Ref<Texture2D> texture = Texture2D::Create(spec);
+						texture->SetData(aiTexEmbedded->pcData, 1);
+						texture_id = TextureLibrary::Get()->LoadTexture(texture);
+					}
+					else
+					{
+						std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+						HVE_CORE_TRACE_TAG("Model Library", "    Albedo map path = {0}", texturePath);
+						texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+					}
+
+					Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+					if (texture && texture->IsLoaded())
+					{
+						material->Set("u_AlbedoTexture", texture, TextureSlots::Albedo);
+						material->Set("u_MaterialUniforms.AlbedoColor", glm::vec3(1.0f));
+					}
+					else
+					{
+						HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+						fallback = true;
+					}
+
+				}
+
+				if (fallback)
+				{
+					HVE_CORE_TRACE_TAG("Model Library", "    No albedo map");
+					material->Set("u_AlbedoTexture", WhiteTexture, TextureSlots::Albedo);
+				}
+
+
+				// Normal maps
+				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == AI_SUCCESS;
+				fallback = !hasNormalMap;
+				if (hasNormalMap)
+				{
+					UUID texture_id;
+					TextureSpecification spec;
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						spec.Format = ImageFormat::RGBA8;
+						spec.Width = aiTexEmbedded->mWidth;
+						spec.Height = aiTexEmbedded->mHeight;
+						Ref<Texture2D> texture = Texture2D::Create(spec);
+						texture->SetData(aiTexEmbedded->pcData, 1);
+						texture_id = TextureLibrary::Get()->LoadTexture(texture);
+					}
+					else
+					{
+						std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+						HVE_CORE_TRACE_TAG("Model Library", "    Normal map path = {0}", texturePath);
+						texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+					}
+
+					Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+					if (texture && texture->IsLoaded())
+					{
+						material->Set("u_NormalTexture", texture, TextureSlots::Normal);
+						material->Set("u_MaterialUniforms.UseNormalMap", true);
+					}
+					else
+					{
+						HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+						fallback = true;
+					}
+				}
+
+				if (fallback)
+				{
+					HVE_CORE_TRACE_TAG("Model Library", "    No normal map");
+					material->Set("u_NormalTexture", BlueTexture, TextureSlots::Normal);
+					material->Set("u_MaterialUniforms.UseNormalMap", false);
+				}
+
+
+				// Roughness map
+				bool hasRoughnessMap = aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &aiTexPath) == AI_SUCCESS;
+				fallback = !hasRoughnessMap;
+				if (hasRoughnessMap)
+				{
+					UUID texture_id;
+					TextureSpecification spec;
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						spec.Format = ImageFormat::RGBA8;
+						spec.Width = aiTexEmbedded->mWidth;
+						spec.Height = aiTexEmbedded->mHeight;
+						Ref<Texture2D> texture = Texture2D::Create(spec);
+						texture->SetData(aiTexEmbedded->pcData, 1);
+						texture_id = TextureLibrary::Get()->LoadTexture(texture);
+					}
+					else
+					{
+						std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+						HVE_CORE_TRACE_TAG("Model Library", "    Roughness map path = {0}", texturePath);
+						texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+					}
+
+					Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+					if (texture && texture->IsLoaded())
+					{
+						material->Set("u_RoughnessTexture", texture, TextureSlots::Roughness);
+						material->Set("u_MaterialUniforms.Roughness", 1.0f);
+					}
+					else
+					{
+						HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+						fallback = true;
+					}
+				}
+
+				if (fallback)
+				{
+					HVE_CORE_TRACE_TAG("Model Library", "    No roughness map");
+					material->Set("u_RoughnessTexture", WhiteTexture, TextureSlots::Roughness);
+					material->Set("u_MaterialUniforms.Roughness", roughness);
+				}
+
+				//Metalness
+
+				bool metalnessTextureFound = false;
+				for (uint32_t p = 0; p < aiMaterial->mNumProperties; p++)
+				{
+					auto prop = aiMaterial->mProperties[p];
+
+					if (prop->mType == aiPTI_String)
+					{
+						uint32_t strLength = *(uint32_t*)prop->mData;
+						std::string str(prop->mData + 4, strLength);
+
+						std::string key = prop->mKey.data;
+						if (key == "$raw.ReflectionFactor|file")
+						{
+							UUID texture_id;
+							TextureSpecification spec;
+							if (auto aiTexEmbedded = scene->GetEmbeddedTexture(str.data()))
+							{
+								spec.Format = ImageFormat::RGBA8;
+								spec.Width = aiTexEmbedded->mWidth;
+								spec.Height = aiTexEmbedded->mHeight;
+								Ref<Texture2D> texture = Texture2D::Create(spec);
+								texture->SetData(aiTexEmbedded->pcData, 1);
+								texture_id = TextureLibrary::Get()->LoadTexture(texture);
+							}
+							else
+							{
+								std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+								HVE_CORE_TRACE_TAG("Model Library", "    Metalness map path = {0}", texturePath);
+								texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+							}
+
+							Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+							if (texture && texture->IsLoaded())
+							{
+								material->Set("u_MetalnessTexture", texture, TextureSlots::Metalness);
+								material->Set("u_MaterialUniforms.Metalness", 1.0f);
+							}
+							else
+							{
+								HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+							}
+							break;
+						}
+					}
+				}
+				fallback = !metalnessTextureFound;
+				if (fallback)
+				{
+					HVE_CORE_TRACE_TAG("Model Library", "    No metalness map");
+					material->Set("u_MetalnessTexture", WhiteTexture, TextureSlots::Metalness);
+					material->Set("u_MaterialUniforms.Metalness", metalness);
+
+				}
+			}
+			HVE_CORE_TRACE_TAG("Model Library", "------------------------");
+		}
+		else
+		{
+			Ref<Material> material = CreateRef<Material>(Renderer::GetShaderLibrary()->Get("default_static_pbr"));
+			material->Set("u_MaterialUniforms.AlbedoColor", glm::vec3(0.8f));
+			material->Set("u_MaterialUniforms.Emission", 0.0f);
+			material->Set("u_MaterialUniforms.Metalness", 0.0f);
+			material->Set("u_MaterialUniforms.Roughness", 0.8f);
+			material->Set("u_MaterialUniforms.UseNormalMap", false);
+			material->Set("u_AlbedoTexture", WhiteTexture, TextureSlots::Albedo);
+			material->Set("u_MetalnessTexture", WhiteTexture, TextureSlots::Metalness);
+			material->Set("u_RoughnessTexture", WhiteTexture, TextureSlots::Roughness);
+			materials.push_back(material);
+		}
 
 		Ref<Mesh> new_mesh = CreateRef<Mesh>(nodes, meshes, materials, root_node_index, vertex_count, index_count);
 
 		MeshMetaData meta_data{};
 		meta_data.MeshPath = absolute_path;
-		meta_data.ShaderPath = std::filesystem::absolute(shader_path).string();
+		//meta_data.ShaderPath = std::filesystem::absolute(shader_path).string(); // This part should be fixed with the creation of asset packs and such
 
 		new_mesh->SetMetaData(meta_data);
 
@@ -74,15 +318,14 @@ namespace Engine {
 		return new_mesh;
 	}
 
-	uint32_t ModelLibrary::ProcessNode(aiNode* node, const aiScene* scene, bool transformed, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, aiMatrix4x4* parent_matrix, std::vector<Ref<Material>>& material_destination, const std::string& directory, const std::string& shader_path)
+	uint32_t ModelLibrary::ProcessNode(aiNode* node, const aiScene* scene, bool transformed, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, aiMatrix4x4* parent_matrix)
 	{
 		MeshNode mesh_node{};
 		mesh_node.Name = node->mName.C_Str();
-
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			mesh_node.Submeshes.push_back(ProcessMesh(mesh, scene, mesh_destination, vertex_count, index_count, entity, material_destination, directory, shader_path));
+			mesh_node.Submeshes.push_back(ProcessMesh(mesh, scene, mesh_destination, vertex_count, index_count, entity));
 			mesh_destination[mesh_node.Submeshes[mesh_node.Submeshes.size() - 1]].LocalTransform = ConvertMatrix(node->mTransformation);
 			if (parent_matrix != nullptr && !transformed)
 			{
@@ -101,17 +344,19 @@ namespace Engine {
 	
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
-			mesh_node.Children.push_back(ProcessNode(node->mChildren[i], scene, transformed, node_destination, mesh_destination, vertex_count, index_count, entity, &node->mTransformation, material_destination, directory, shader_path));
+			mesh_node.Children.push_back(ProcessNode(node->mChildren[i], scene, transformed, node_destination, mesh_destination, vertex_count, index_count, entity, &node->mTransformation));
 		}
 
 		node_destination.push_back(mesh_node);
 		return node_destination.size() - 1;
 	}
 
-	uint32_t ModelLibrary::ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, std::vector<Ref<Material>>& material_destination, const std::string& directory, const std::string& shader_path)
+	uint32_t ModelLibrary::ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity)
 	{
 		mesh_destination.push_back(Submesh());
 		mesh_destination[mesh_destination.size() - 1].MeshName = mesh->mName.C_Str();
+		mesh_destination[mesh_destination.size() - 1].MaterialIndex = mesh->mMaterialIndex;
+		HVE_CORE_TRACE_TAG("Mesh", "Meterial Index: {}", mesh->mMaterialIndex);
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -125,13 +370,19 @@ namespace Engine {
 			vertex.normal.y = mesh->mNormals[i].y;
 			vertex.normal.z = mesh->mNormals[i].z;
 
-			vertex.tangent.x = mesh->mTangents[i].x;
-			vertex.tangent.y = mesh->mTangents[i].y;
-			vertex.tangent.z = mesh->mTangents[i].z;
+			if (mesh->mTangents)
+			{
+				vertex.tangent.x = mesh->mTangents[i].x;
+				vertex.tangent.y = mesh->mTangents[i].y;
+				vertex.tangent.z = mesh->mTangents[i].z;
+			}
 
-			vertex.bitangent.x = mesh->mBitangents[i].x;
-			vertex.bitangent.y = mesh->mBitangents[i].y;
-			vertex.bitangent.z = mesh->mBitangents[i].z;
+			if (mesh->mBitangents)
+			{
+				vertex.bitangent.x = mesh->mBitangents[i].x;
+				vertex.bitangent.y = mesh->mBitangents[i].y;
+				vertex.bitangent.z = mesh->mBitangents[i].z;
+			}
 
 			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
 			{
@@ -177,33 +428,6 @@ namespace Engine {
 		vertex_count += (int)vertices.size();
 		index_count += (int)indices.size();
 
-
-		// Material //////
-		if (mesh->mMaterialIndex >= 0)
-		{
-			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-
-			Ref<Material> new_material = CreateRef<Material>();
-
-			new_material->SetProgram(CreateRef<ShaderProgram>(shader_path));
-
-			LoadMaterialTextures(material, aiTextureType_DIFFUSE, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_NORMALS, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_SHININESS, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_METALNESS, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_SPECULAR, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_HEIGHT, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_OPACITY, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_AMBIENT_OCCLUSION, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_REFLECTION, directory, new_material);
-			LoadMaterialTextures(material, aiTextureType_EMISSIVE, directory, new_material);
-
-			material_destination.push_back(new_material);
-
-			mesh_destination[mesh_destination.size() - 1].MaterialIndex = (uint32_t)material_destination.size() - 1;
-		}
-
-
 		return (uint32_t)(mesh_destination.size()) - 1;
 	}
 
@@ -216,55 +440,6 @@ namespace Engine {
 		aiMat.a3, aiMat.b3, aiMat.c3, aiMat.d3,
 		aiMat.a4, aiMat.b4, aiMat.c4, aiMat.d4
 		};
-	}
-
-	void ModelLibrary::LoadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& directory, Ref<Material>& material)
-	{
-		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-		{
-			aiString str;
-			mat->GetTexture(type, i, &str);
-
-			std::string texturePath = directory + '/' + std::string(str.C_Str());
-			UUID textureId = TextureLibrary::Get()->LoadTexture(texturePath);
-
-			switch (type)
-			{
-				case aiTextureType_DIFFUSE:
-					material->SetAlbedoTexture(textureId);
-					break;
-				case aiTextureType_NORMALS:
-					material->SetNormalTexture(textureId);
-					break;
-				case aiTextureType_SHININESS:
-					material->SetRoughnessTexture(textureId);
-					break;
-				case aiTextureType_METALNESS:
-					material->SetMetalnessTexture(textureId);
-					break;
-				case aiTextureType_SPECULAR:
-					material->SetSpecularTexture(textureId);
-					break;
-				case aiTextureType_HEIGHT:
-					material->SetHeightTexture(textureId);
-					break;
-				case aiTextureType_OPACITY:
-					material->SetOpacityTexture(textureId);
-					break;
-				case aiTextureType_AMBIENT_OCCLUSION:
-					material->SetAOTexture(textureId);
-					break;
-				case aiTextureType_REFLECTION:
-					material->SetRefractionTexture(textureId);
-					break;
-				case aiTextureType_EMISSIVE:
-					material->SetEmissiveTexture(textureId);
-					break;
-				default:
-					// Dont know how to handle unknowns yet, we'll get there when we need to
-					break;
-			}
-		}
 	}
 
 

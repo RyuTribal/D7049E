@@ -67,7 +67,14 @@ namespace Engine {
 
 		void Bind(uint32_t slot = 0) const;
 
-		bool IsLoaded() const { return m_IsLoaded; }
+		bool IsLoaded() const 
+		{ 
+			if (!m_IsLoaded || m_RendererID == 0)
+			{
+				return false;
+			}
+			return glIsTexture(m_RendererID) == GL_TRUE;
+		}
 
 		bool operator==(const Texture& other) const
 		{

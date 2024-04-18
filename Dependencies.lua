@@ -6,6 +6,7 @@ IncludeDir["glm"] = "%{wks.location}/Engine/vendor/glm"
 IncludeDir["Jolt"] = "%{wks.location}/Engine/vendor/JoltPhysics/JoltPhysics"
 IncludeDir["Tracy"] = "%{wks.location}/Engine/vendor/tracy/tracy/public"
 IncludeDir["Assimp"] = "%{wks.location}/Engine/vendor/assimp/include"
+IncludeDir["YamlCpp"] = "%{wks.location}/Engine/vendor/yaml-cpp/include"
 
 rootPath = path.getabsolute(".")
 

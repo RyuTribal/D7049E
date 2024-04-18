@@ -32,12 +32,11 @@ namespace Engine {
 		~ModelLibrary() = default;
 
 		Ref<AssetSource> LoadModel(const std::string& file_path);
-		Ref<Mesh> CreateMesh(const std::string& file_path, UUID* entity, const std::string& shader_path);
+		Ref<Mesh> CreateMesh(const std::string& file_path, UUID* entity);
 
 	private:
-		uint32_t ProcessNode(aiNode* node, const aiScene* scene, bool transformed, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, aiMatrix4x4* parent_matrix, std::vector<Ref<Material>>& material_destination, const std::string& directory, const std::string& shader_path);
-		uint32_t ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, std::vector<Ref<Material>>& material_destination, const std::string& directory, const std::string& shader_path);
-		void LoadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& directory, Ref<Material>& material);
+		uint32_t ProcessNode(aiNode* node, const aiScene* scene, bool transformed, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, aiMatrix4x4* parent_matrix);
+		uint32_t ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity);
 		glm::mat4 ConvertMatrix(const aiMatrix4x4& aiMat);
 
 	private:

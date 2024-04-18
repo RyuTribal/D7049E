@@ -97,6 +97,11 @@ namespace Engine
 		static Ref<Texture2D> GetGrayTexture();
 		static Ref<Texture2D> GetBlueTexture();
 
+		static ShaderLibrary* GetShaderLibrary()
+		{
+			return &Get()->m_ShaderLibrary;
+		}
+
 		void EndFrame();
 
 		void BeginDrawing();
@@ -129,6 +134,8 @@ namespace Engine
 		void UploadLightData();
 		void DrawHDRQuad();
 
+		ShaderLibrary m_ShaderLibrary{};
+
 		static Renderer* s_Instance;
 		Camera* m_CurrentCamera = nullptr;
 
@@ -142,10 +149,6 @@ namespace Engine
 		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
 		Ref<Framebuffer> m_SceneFramebuffer = nullptr;
 
-		ShaderProgram m_DepthPrePassProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/depth_pre_pass");
-
-		ShaderProgram m_LightCullingProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/light_culling_shader");
-
 		int m_BackgroundColor[3] = { 0, 0, 0 };
 
 		Statistics m_Stats{};
@@ -157,8 +160,6 @@ namespace Engine
 		std::vector<DirectionalLight*> m_DirectionalLights{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
-
-		ShaderProgram m_QuadProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/hdr_shader");
 
 		const float exposure = 1.0f;
 

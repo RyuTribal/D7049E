@@ -14,8 +14,8 @@ namespace Editor {
 		Engine::EntityHandle* object_entity_handle = m_Scene->CreateEntity("Lion", nullptr);
 		Engine::Entity* cube_entity = m_Scene->GetEntity(object_entity_handle);
 
-		Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh("C:/Users/sedel/Downloads/Lion/source/lion/mn_rpat_00_ani.FBX", &object_entity_handle->GetID(), std::string(ROOT_PATH) + "/shaders/default_static_shader");
-		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.01f, 0.01f, 0.01f);
+		Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh("C:/Users/sedel/Downloads/Lion/source/lion/lion.FBX", &object_entity_handle->GetID());
+		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.1f, 0.1f, 0.1f);
 
 		cube_entity->AddComponent<Engine::MeshComponent>(object_mesh);
 
@@ -111,14 +111,25 @@ namespace Editor {
 			if (ImGui::BeginMenu("File"))
 			{
 				if (ImGui::MenuItem("Open Project...", "Ctrl+O"))
+				{
+
+				}
 
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
+				{
+
+				}
 
 				if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+				{
+					SaveScene();
+				}
 
 				if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+				{
+				}
 
 				ImGui::Separator();
 
@@ -173,6 +184,13 @@ namespace Editor {
 		if (shift) {
 			m_Camera->UpdateKeyState(event.GetKeyCode(), true);
 		}
+		else if (control)
+		{
+			if (event.GetKeyCode() == KEY_S)
+			{
+				SaveScene();
+			}
+		}
 		else {
 			EditorPanels::Viewport::OnKeyPressed(event.GetKeyCode());
 		}
@@ -222,5 +240,10 @@ namespace Editor {
 			m_Camera->Zoom(event.GetYOffset());
 		}
 		return false;
+	}
+	void EditorLayer::SaveScene()
+	{
+		HVE_INFO("here");
+		SceneSerializer::Serializer("Resources/Scenes/", m_Scene);
 	}
 }

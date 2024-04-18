@@ -95,6 +95,14 @@ namespace Engine {
 		return GetEntity(id->GetID());
 	}
 
+	void Scene::ForEachEntity(std::function<void(const UUID, const Ref<Entity>)> func) const
+	{
+		for (const auto& [key, value] : entities)
+		{
+			func(key, value);
+		}
+	}
+
 	void Scene::FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent) {
 		for (auto& child : *current->GetChildren()) {
 			if (child->GetID() == id) {

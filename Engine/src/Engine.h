@@ -27,6 +27,13 @@
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 
+// ---------------- Serializers ----------
+#include "Serialization/ProjectSerializer.h"
+#include "Serialization/SceneSerializer.h"
+
+// ---------------- UI -------------------
+#include "UI/FilePicker.h"
+
 // ---------------- Utils ----------------
 #include "Math/Math.h"
 #include "ImGui/ImGuiLayer.h"

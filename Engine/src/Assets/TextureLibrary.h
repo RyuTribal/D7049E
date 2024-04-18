@@ -21,6 +21,7 @@ namespace Engine {
 
 		UUID LoadTexture(const std::string& path);
 		Ref<Texture2D> GetTexture(UUID& id);
+		UUID LoadTexture(Ref<Texture2D> texture);
 
 	private:
 		std::unordered_map<UUID, Ref<Texture2D>> m_Library;

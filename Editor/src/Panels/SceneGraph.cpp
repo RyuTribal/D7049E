@@ -1,6 +1,5 @@
 #include "SceneGraph.h"
 #include <imgui/imgui_internal.h>
-#include "../Utils/FilePicker.h"
 
 namespace EditorPanels {
 	SceneGraph* SceneGraph::s_Instance = nullptr;
@@ -420,11 +419,10 @@ namespace EditorPanels {
 			if (ImGui::Button("..."))
 			{
 				std::vector<std::vector<std::string>> filter = { {"3D object files", "FBX,fbx,glft"} };
-				std::string path = Editor::FilePicker::OpenFileExplorer(filter);
+				std::string path = Engine::FilePicker::OpenFileExplorer(filter);
 				if (path != "")
 				{
-					std::string shader_path = component->mesh ? component->mesh->GetMetaData().ShaderPath : "shaders/default_static_shader";
-					Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh(path, &entity->GetID(), shader_path);
+					Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh(path, &entity->GetID());
 					component->mesh = object_mesh;
 				}
 			}
@@ -450,7 +448,7 @@ namespace EditorPanels {
 				if (ImGui::Button("..."))
 				{
 					std::vector<std::vector<std::string>> filter = { {"GLSL Shader files", "vert,frag"} };
-					std::string path = Editor::FilePicker::OpenFileExplorer(filter);
+					std::string path = Engine::FilePicker::OpenFileExplorer(filter);
 					if (path != "")
 					{
 						size_t lastindex = path.find_last_of(".");

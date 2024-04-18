@@ -100,6 +100,8 @@ namespace Engine {
 		Entity* GetEntity(UUID& id);
 		Entity* GetEntity(EntityHandle* id);
 
+		void ForEachEntity(std::function<void(const UUID, const Ref<Entity>)> func) const;
+
 	private:
 
 		void FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent);

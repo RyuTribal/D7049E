@@ -28,4 +28,17 @@ namespace Engine {
 		}
 		return nullptr;
 	}
+	UUID TextureLibrary::LoadTexture(Ref<Texture2D> texture)
+	{
+		UUID new_id{};
+		std::string new_path = std::to_string(new_id);
+		auto iter = m_PathLibrary.find(new_path);
+		if (iter != m_PathLibrary.end())
+		{
+			return m_PathLibrary[new_path];
+		}
+		m_PathLibrary[new_path] = new_id;
+		m_Library[new_id] = texture;
+		return new_id;
+	}
 }

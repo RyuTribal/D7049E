@@ -72,8 +72,13 @@ namespace Engine
 		};
 		m_SceneFramebuffer = Engine::Framebuffer::Create(sceneSpec);
 
-		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * MAX_POINT_LIGHTS, 2); // Maybe create a resize shader buffer function if possible
-		m_DirLightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(DirectionalLightInfo) * MAX_DIR_LIGHTS, 0); // Maybe create a resize shader buffer function if possible
+		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * MAX_POINT_LIGHTS, 2);
+		m_DirLightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(DirectionalLightInfo) * MAX_DIR_LIGHTS, 0);
+
+		m_ShaderLibrary.Load("default_static_pbr", "Resources/Shaders/default_static_shader");
+		m_ShaderLibrary.Load("forward_plus_depth_pre_pass", "Resources/Shaders/depth_pre_pass");
+		m_ShaderLibrary.Load("forward_plus_light_culling", "Resources/Shaders/light_culling_shader");
+		m_ShaderLibrary.Load("hdr_shader", "Resources/Shaders/hdr_shader");
 
 		ReCreateFrameBuffers();
     }
@@ -116,9 +121,10 @@ namespace Engine
 		HVE_PROFILE_FUNC();
 		m_RendererAPI.ClearDepth();
 		m_DepthFramebuffer->Bind();
-		m_DepthPrePassProgram.Activate();
-		m_DepthPrePassProgram.UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
-		m_DepthPrePassProgram.UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
+		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("forward_plus_depth_pre_pass");
+		shader->Set("u_CameraView", m_CurrentCamera->GetView());
+		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
+		shader->Activate();
 		for (Mesh* mesh : m_Meshes) {
 			DrawIndexed(mesh, false);
 		}
@@ -129,11 +135,12 @@ namespace Engine
 	void Renderer::CullLights()
 	{
 		HVE_PROFILE_FUNC();
-		m_LightCullingProgram.Activate();
-		m_LightCullingProgram.UploadIntData("lightCount", (int)m_PointLights.size());
-		m_LightCullingProgram.UploadVec2IntData("screenSize", glm::ivec2((int)current_window_width, (int)current_window_height));
-		m_LightCullingProgram.UploadMat4FloatData("view", m_CurrentCamera->GetView());
-		m_LightCullingProgram.UploadMat4FloatData("projection", m_CurrentCamera->GetProjection());
+		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("forward_plus_light_culling");
+		shader->Set("lightCount", (int)m_PointLights.size());
+		shader->Set("screenSize", glm::ivec2((int)current_window_width, (int)current_window_height));
+		shader->Set("view", m_CurrentCamera->GetView());
+		shader->Set("projection", m_CurrentCamera->GetProjection());
+		shader->Activate();
 
 		uint32_t depthTextureID = m_DepthFramebuffer->GetDepthAttachmentID();
 
@@ -164,12 +171,14 @@ namespace Engine
 		uint32_t color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
 
 		m_RendererAPI.ClearAll();
-		m_QuadProgram.Activate();
+		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("hdr_shader");
+		shader->Activate();
 
 		color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
 		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE0);
 		m_RendererAPI.BindTexture(color_attachment);
-		m_QuadProgram.UploadFloatData("exposure", exposure);
+		shader->Set("exposure", exposure);
+		shader->Activate();
 
 		m_SceneFramebuffer->Bind();
 		m_RendererAPI.ClearAll();
@@ -183,16 +192,15 @@ namespace Engine
 		HVE_PROFILE_FUNC();
 		for (size_t i = 0; i < mesh->GetSubmeshes().size(); i++)
 		{
-			
+			Ref<Material> material = mesh->GetMaterials()[mesh->GetSubmeshes()[i].MaterialIndex];
 			if (use_material)
 			{
-				Ref<Material> material = mesh->GetMaterials()[mesh->GetSubmeshes()[i].MaterialIndex];
+				material->Set("u_CameraPos", GetCamera()->CalculatePosition());
+				material->Set("u_CameraView", GetCamera()->GetView());
+				material->Set("u_CameraProjection", Renderer::Get()->GetCamera()->GetProjection());
+				material->Set("u_Transform", mesh->GetTransform() * mesh->GetSubmeshes()[i].WorldTransform);
+				material->Set("u_NumDirectionalLights", (int)m_DirectionalLights.size());
 				material->ApplyMaterial();
-				material->GetProgram()->UploadVec3FloatData("u_CameraPos", m_CurrentCamera->CalculatePosition());
-				material->GetProgram()->UploadMat4FloatData("u_Transform", mesh->GetTransform() * mesh->GetSubmeshes()[i].WorldTransform);
-				material->GetProgram()->UploadMat4FloatData("u_CameraView", m_CurrentCamera->GetView());
-				material->GetProgram()->UploadMat4FloatData("u_CameraProjection", m_CurrentCamera->GetProjection());
-				material->GetProgram()->UploadIntData("u_NumDirectionalLights", (int)m_DirectionalLights.size());
 			}
 			m_RendererAPI.DrawIndexed(mesh->GetSubmeshes()[i].VertexArray);
 			m_Stats.draw_calls++;

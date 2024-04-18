@@ -28,6 +28,9 @@ namespace Editor {
 		bool OnScrolled(MouseScrolledEvent& event);
 
 	private:
+		void SaveScene();
+
+	private:
 		Ref<Scene> m_Scene;
 		Ref<EditorCamera> m_Camera;
 		std::vector<EntityHandle*> entities{};

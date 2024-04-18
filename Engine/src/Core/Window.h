@@ -20,6 +20,7 @@ namespace Engine {
 		bool Fullscreen;
 		bool ScreenMaximized;
 		FullscreenType FullScreenType;
+		bool Resizable = true;
 
 		WindowProps(const std::string& title = "Engine",
 			unsigned int width = 1280,

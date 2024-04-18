@@ -4,7 +4,7 @@ include "./vendor/solution_items.lua"
 workspace "Helios"
     configurations { "Debug", "Debug-AS", "Release", "Dist" }
     targetdir "build"
-    startproject "Editor"
+    startproject "EditorLauncher"
     conformancemode "On"
 
     language "C++"
@@ -75,8 +75,6 @@ group "Core"
 
 group "Tools"
     include "Editor"
-
-group "Misc"
-    include "App"
+    include "EditorLauncher"
 
 group ""

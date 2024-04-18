@@ -8,14 +8,14 @@ namespace Engine {
 	}
 
 	/// Construct from index and sequence number combined in a single uint32_t (use with care!)
-	explicit HBodyID::HBodyID(std::uint32_t inID) : mID(inID)
+	HBodyID::HBodyID(std::uint32_t inID) : mID(inID)
 	{
 		//JPH_ASSERT((inID & cBroadPhaseBit) == 0 || inID == cInvalidBodyID); // Check bit used by broadphase
 		HVE_ASSERT((inID & cBroadPhaseBit) == 0 || inID == cInvalidBodyID);
 	}
 
 	/// Construct from index and sequence number
-	explicit HBodyID::HBodyID(std::uint32_t inID, std::uint8_t inSequenceNumber) : mID((uint32_t(inSequenceNumber) << 24) | inID)
+	HBodyID::HBodyID(std::uint32_t inID, std::uint8_t inSequenceNumber) : mID((uint32_t(inSequenceNumber) << 24) | inID)
 	{
 		//JPH_ASSERT(inID < cMaxBodyIndex); // Should not use bit pattern for invalid ID and should not use the broadphase bit
 		HVE_ASSERT(inID < cMaxBodyIndex);

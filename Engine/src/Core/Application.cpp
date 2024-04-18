@@ -23,7 +23,7 @@ namespace Engine
 
 		PushOverlay(m_ImGuiLayer);
 
-		PhysicsEngine::Get()->Init();
+		//PhysicsEngine::Get()->Init();		// TODO: here?
 
 	}
 
@@ -69,7 +69,7 @@ namespace Engine
 		m_Window->SetFullScreen(m_Window->GetFullScreen(), m_Window->GetFullScreenType());
 
 		auto last_frame = std::chrono::high_resolution_clock::now();
-		
+		PhysicsEngine::tmpRunner();
 		while (m_Running)
 		{
 			auto newTime = std::chrono::high_resolution_clock::now();

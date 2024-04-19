@@ -419,7 +419,7 @@ namespace EditorPanels {
 			if (ImGui::Button("..."))
 			{
 				std::vector<std::vector<std::string>> filter = { {"3D object files", "FBX,fbx,glft"} };
-				std::string path = Engine::FilePicker::OpenFileExplorer(filter);
+				std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
 				if (path != "")
 				{
 					Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh(path, &entity->GetID());
@@ -428,38 +428,6 @@ namespace EditorPanels {
 			}
 			ImGui::PopID();
 			ImGui::Columns(1);
-			if (component->mesh)
-			{
-				ImGui::Columns(3);
-				ImGui::SetColumnWidth(0, 200.f);
-				ImGui::Text("Shader File Path");
-				if (ImGui::IsItemHovered())
-				{
-					ImGui::SetTooltip("%s", component->mesh->GetMetaData().ShaderPath.c_str());
-				}
-				ImGui::NextColumn();
-				ImGui::Text(component->mesh->GetMetaData().ShaderPath.c_str());
-				if (ImGui::IsItemHovered())
-				{
-					ImGui::SetTooltip("%s", component->mesh->GetMetaData().ShaderPath.c_str());
-				}
-				ImGui::NextColumn();
-				ImGui::PushID("ShaderFilePathButton");
-				if (ImGui::Button("..."))
-				{
-					std::vector<std::vector<std::string>> filter = { {"GLSL Shader files", "vert,frag"} };
-					std::string path = Engine::FilePicker::OpenFileExplorer(filter);
-					if (path != "")
-					{
-						size_t lastindex = path.find_last_of(".");
-						std::string rawpath = path.substr(0, lastindex);
-						component->mesh->SetShader(rawpath);
-					}
-				}
-			
-				ImGui::PopID();
-				ImGui::Columns(1);
-			}
 		});
     }
 

@@ -7,24 +7,10 @@
 
 namespace Engine {
 
-	std::pair<Ref<Scene>, EntityHandle*> Scene::CreateScene(std::string name)
+	Ref<Scene> Scene::CreateScene(std::string name)
 	{
-		Ref<Camera> camera = CreateRef<Camera>(CameraType::PERSPECTIVE);
-		camera->SetIsRotationLocked(true);
-		
-
-		return CreateScene(camera, name);
+		return CreateRef<Scene>(name);
 	}
-
-	std::pair<Ref<Scene>, EntityHandle*> Scene::CreateScene(Ref<Camera> starting_camera, std::string name)
-	 {
-		 Ref<Scene> scene = CreateRef<Scene>(name);
-		 EntityHandle* default_camera_entity = scene->CreateEntity("Default scene camera", nullptr);
-		 scene->SetCurrentCamera(default_camera_entity);
-		 scene->GetEntity(default_camera_entity)->AddComponent<CameraComponent>(CameraComponent(starting_camera));
-		 Renderer::Get()->SetCamera(starting_camera.get());
-		 return { scene, default_camera_entity };
-	 }
 
 
 	Scene::Scene(std::string name)
@@ -50,23 +36,45 @@ namespace Engine {
 	EntityHandle* Scene::CreateEntity(std::string name, UUID* parent)
 	{
 		UUID new_id = UUID();
-		m_RootSceneNode.AddChild(parent == nullptr ? m_ID : *parent, new_id);
-
-		m_Registry.Add<IDComponent>(new_id, IDComponent(new_id));
-		m_Registry.Add<ParentIDComponent>(new_id, ParentIDComponent(parent == nullptr ? m_ID : *parent));
-		m_Registry.Add<TagComponent>(new_id, TagComponent(name));
-		m_Registry.Add<TransformComponent>(new_id, TransformComponent());
-
-		Ref<Entity> new_entity = CreateRef<Entity>(new_id, this);
-
-		entities[new_id] = new_entity;
-
-		return new_entity->GetHandle();
+		return CreateEntityByUUID(new_id, name, parent);
 	}
 
 	EntityHandle* Scene::CreateEntity(std::string name, nullptr_t parent)
 	{
 		return CreateEntity(name, &m_ID);
+	}
+
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, Entity* parent)
+	{
+		UUID* parent_id = &parent->GetID();
+		return CreateEntityByUUID(id, name, parent_id);
+	}
+
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, EntityHandle* parent)
+	{
+		UUID* parent_id = &parent->GetID();
+		return CreateEntityByUUID(id, name, parent_id);
+	}
+
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, nullptr_t parent)
+	{
+		return CreateEntityByUUID(id, name, &m_ID);
+	}
+
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, UUID* parent)
+	{
+		m_RootSceneNode.AddChild(parent == nullptr ? m_ID : *parent, id);
+
+		m_Registry.Add<IDComponent>(id, IDComponent(id));
+		m_Registry.Add<ParentIDComponent>(id, ParentIDComponent(parent == nullptr ? m_ID : *parent));
+		m_Registry.Add<TagComponent>(id, TagComponent(name));
+		m_Registry.Add<TransformComponent>(id, TransformComponent());
+
+		Ref<Entity> new_entity = CreateRef<Entity>(id, this);
+
+		entities[id] = new_entity;
+
+		return new_entity->GetHandle();
 	}
 
 	void Scene::DestroyEntity(EntityHandle* id)
@@ -126,14 +134,12 @@ namespace Engine {
 		m_RootSceneNode.AddChild(*new_parent_id, *id);
 	}
 
-
-	Entity* Scene::GetCurrentCameraEntity()
-	{
+	Camera* Scene::GetCurrentCamera(){
 		return m_CurrentCamera.get();
 	}
-
-	Camera* Scene::GetCurrentCamera(){
-		return m_CurrentCamera->GetComponent<CameraComponent>()->camera.get();
+	void Scene::SetCurrentCamera(Ref<Camera> camera)
+	{
+		m_CurrentCamera = camera;
 	}
 	void Scene::UpdateScene()
 	{

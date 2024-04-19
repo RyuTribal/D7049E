@@ -16,7 +16,7 @@ public:
 	}
 };
 
-Engine::Application* Engine::CreateApplication()
+Engine::Application* Engine::CreateApplication(int argc, char** argv)
 {
 	WindowProps props{};
 	props.Title = "Editor Launcher";

@@ -11,8 +11,8 @@ namespace Engine {
 	class ProjectSerializer
 	{
 	public:
-		static bool CreateNewProject(const std::string& directory, const std::string& name);
+		static std::pair<bool, std::string> CreateNewProject(const std::string& directory, const std::string& name);
 		static void Serializer(ProjectSettings& settings);
-		static void Deserializer(const std::string& filepath);
+		static ProjectSettings Deserializer(const std::string& filepath);
 	};
 }

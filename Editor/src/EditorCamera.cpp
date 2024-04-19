@@ -72,17 +72,14 @@ namespace Editor {
 	}
 	void EditorCamera::UpdateMovement(float delta_time)
 	{
-		auto transform_comp = m_Context->GetEntity(m_EntityHandle)->GetComponent<TransformComponent>();
 
 		if (m_KeyStates[MOUSE_BUTTON_RIGHT]) {
-			auto camera_rotation = m_Camera->GetDeltaOrientation(m_DeltaMouseOrientation * delta_time, m_Sensitivity, true);
-			transform_comp->local_transform.rotation.x += camera_rotation.first;
-			transform_comp->local_transform.rotation.y += camera_rotation.second;
+			m_Camera->Rotate(m_DeltaMouseOrientation * delta_time, m_Sensitivity, false);
 			m_DeltaMouseOrientation = { 0.f, 0.f };
 		}
 
 		if (m_Velocity != glm::vec3(0.0f)) {
-			transform_comp->local_transform.translation += m_Velocity * delta_time;
+			m_Camera->Move(m_Velocity * delta_time);
 		}
 	}
 	void EditorCamera::ApplyFriction(float delta_time)

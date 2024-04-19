@@ -84,11 +84,11 @@ namespace EditorLauncher {
 
 			if (ImGui::Button("Create"))
 			{
-				success = Engine::ProjectSerializer::CreateNewProject(path_buffer, name_buffer);
+				auto [success, project_file_path] = Engine::ProjectSerializer::CreateNewProject(path_buffer, name_buffer);
 				attempted_to_create = true;
 				if (success)
 				{
-					ImGui::CloseCurrentPopup();
+					OpenProject(project_file_path);
 				}
 			}
 
@@ -108,7 +108,11 @@ namespace EditorLauncher {
 
 		if (ImGui::Button("Open Project", ImVec2(-1, 0)))
 		{
-			// OpenSelectedProject();
+			std::string file_ending = Engine::Utils::GetFileEndings(Engine::ProjectAsset);
+			file_ending.erase(file_ending.begin()); // Have to remove the . for it to work
+			std::vector<std::vector<std::string>> filter = { {"Helios project files", file_ending} };
+			std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
+			OpenProject(path);
 		}
 		ImGui::EndChild();
 
@@ -121,5 +125,19 @@ namespace EditorLauncher {
 	void EditorLauncherLayer::OnEvent(Engine::Event& event)
 	{
 		
+	}
+	void EditorLauncherLayer::OpenProject(std::string& project_path)
+	{
+		Engine::CommandArgs args{};
+		args.NewProcess = true;
+		args.UseAnotherWorkingDir = true;
+		args.SleepUntilFinished = false;
+		args.WorkingDir = std::string(EDITOR_WORKING_DIRECTORY);
+		HVE_INFO(args.WorkingDir);
+		std::string command = "\"" + std::string(EDITOR_EXECUTABLE_PATH) + "\" \"" + project_path + "\"";
+		std::replace(command.begin(), command.end(), '/', '\\');
+		std::replace(args.WorkingDir.begin(), args.WorkingDir.end(), '/', '\\');
+		Engine::CommandLine::Create()->ExecuteCommand(command, args);
+		Engine::Application::Get().Close();
 	}
 }

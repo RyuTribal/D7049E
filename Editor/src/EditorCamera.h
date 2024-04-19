@@ -8,17 +8,16 @@ using namespace Engine;
 namespace Editor {
 	class EditorCamera {
 	public:
-		EditorCamera(Camera* camera, EntityHandle* handle, Ref<Scene> context) : m_Camera(camera), m_EntityHandle(handle), m_Context(context) {
+		EditorCamera(Ref<Scene> context) : m_Context(context) {
 			m_CurrentMouseOrientation.x = Input::GetMouseX();
 			m_CurrentMouseOrientation.y = Input::GetMouseY();
 			m_Camera->Zoom(m_InitialZoomFactor);
 			m_Camera->RotateWithVector(m_InitialRotation);
-			m_Context->GetEntity(handle)->GetComponent<TransformComponent>()->local_transform.translation = m_InitialPosition;
+			m_Camera->Move(m_InitialPosition);
 		}
 		~EditorCamera() = default;
 
-		Camera* GetCamera() { return m_Camera; }
-		EntityHandle* GetHandle() { return m_EntityHandle; }
+		Ref<Camera> GetCamera() { return m_Camera; }
 
 		void Update(float delta_time);
 		void PanCamera();
@@ -31,8 +30,7 @@ namespace Editor {
 		void UpdateMovement(float delta_time);
 		void ApplyFriction(float delta_time);
 	private:
-		EntityHandle* m_EntityHandle;
-		Camera* m_Camera;
+		Ref<Camera> m_Camera = CreateRef<Camera>();
 		Ref<Scene> m_Context;
 
 		const float c_ZoomSpeed = 1.f;

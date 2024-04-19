@@ -5,8 +5,8 @@
 namespace Engine {
 
 	enum CameraType {
-		ORTHOGRAPHIC,
-		PERSPECTIVE
+		ORTHOGRAPHIC = 0,
+		PERSPECTIVE = 1
 	};
 
 	class Camera {

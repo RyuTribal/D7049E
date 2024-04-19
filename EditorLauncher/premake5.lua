@@ -37,7 +37,9 @@ project "EditorLauncher"
 
     defines
     {
-        "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\""
+        "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\"",
+        'EDITOR_EXECUTABLE_PATH="'.. rootPath ..'/bin/' .. outputdir .. '/Editor/Editor.exe"',
+        'EDITOR_WORKING_DIRECTORY="'.. rootPath ..'/Editor/"'
     }
 
     postbuildcommands
@@ -49,7 +51,7 @@ project "EditorLauncher"
         systemversion "latest"
         defines
         {
-            "PLATFORM_WINDOWS",
+            "PLATFORM_WINDOWS"
         }
         links 
         {

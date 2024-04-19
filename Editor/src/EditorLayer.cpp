@@ -6,32 +6,10 @@
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
-		auto [scene, camera_entity_handle] = Engine::Scene::CreateScene("Editor Scene");
-		m_Camera = Engine::CreateRef<EditorCamera>(scene->GetCurrentCamera(), camera_entity_handle, scene);
+		auto scene = Engine::SceneSerializer::Deserializer(m_Settings.RootPath + "/" + m_Settings.StartingScene);
+		m_Camera = Engine::CreateRef<EditorCamera>(scene);
+		scene->SetCurrentCamera(m_Camera->GetCamera());
 		m_Scene = scene;
-		Engine::Renderer::Get()->SetBackgroundColor(0, 0, 0);
-
-		Engine::EntityHandle* object_entity_handle = m_Scene->CreateEntity("Lion", nullptr);
-		Engine::Entity* cube_entity = m_Scene->GetEntity(object_entity_handle);
-
-		Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh("C:/Users/sedel/Downloads/Lion/source/lion/lion.FBX", &object_entity_handle->GetID());
-		cube_entity->GetComponent<TransformComponent>()->local_transform.scale = glm::vec3(0.1f, 0.1f, 0.1f);
-
-		cube_entity->AddComponent<Engine::MeshComponent>(object_mesh);
-
-		entities.push_back(object_entity_handle);
-
-
-		Engine::EntityHandle* light_entity_handle = m_Scene->CreateEntity("Sun", nullptr);
-		Engine::Entity* light_entity = m_Scene->GetEntity(light_entity_handle);
-		Engine::Ref<Engine::DirectionalLight> light = Engine::CreateRef<Engine::DirectionalLight>(); // defaults to white
-
-		light_entity->GetComponent<TransformComponent>()->local_transform.translation = glm::vec3(0.5f, 0.7f, 0.f);
-		Engine::DirectionalLightComponent new_light(light);
-
-		light_entity->AddComponent<Engine::DirectionalLightComponent>(new_light);
-
-		entities.push_back(light_entity_handle);
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
@@ -110,6 +88,10 @@ namespace Editor {
 		{
 			if (ImGui::BeginMenu("File"))
 			{
+				if (ImGui::MenuItem("New Project...", "Ctrl+P"))
+				{
+
+				}
 				if (ImGui::MenuItem("Open Project...", "Ctrl+O"))
 				{
 
@@ -127,9 +109,10 @@ namespace Editor {
 					SaveScene();
 				}
 
-				if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
-				{
-				}
+				//if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+				//{
+				// Dont know if we will need this
+				//}
 
 				ImGui::Separator();
 
@@ -155,7 +138,7 @@ namespace Editor {
 
 		ImGui::End();
 
-		EditorPanels::Viewport::Render(m_Camera->GetCamera());
+		EditorPanels::Viewport::Render(m_Camera->GetCamera().get());
 
 		ImGui::Begin("Stats");
 
@@ -243,7 +226,6 @@ namespace Editor {
 	}
 	void EditorLayer::SaveScene()
 	{
-		HVE_INFO("here");
-		SceneSerializer::Serializer("Resources/Scenes/", m_Scene);
+		SceneSerializer::Serializer(m_Settings.RootPath + m_Settings.AssetPath + "/Scenes/", m_Scene);
 	}
 }

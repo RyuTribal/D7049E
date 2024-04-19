@@ -5,9 +5,9 @@
 class EditorApp : public Engine::Application
 {
 public:
-	EditorApp(Engine::WindowProps props) : Application(props)
+	EditorApp(Engine::WindowProps props, std::string projectPath) : Application(props)
 	{
-		PushLayer(new Editor::EditorLayer());
+		PushLayer(new Editor::EditorLayer(projectPath));
 	}
 
 	~EditorApp()
@@ -16,8 +16,11 @@ public:
 	}
 };
 
-Engine::Application* Engine::CreateApplication()
+Engine::Application* Engine::CreateApplication(int argc, char** argv)
 {
+
+	HVE_ASSERT(argc > 1, "No project selected. Please use the launcher to open a project!");
+	std::string projectPath = argv[1];
 	WindowProps props{};
 	props.Title = "Editor";
 	props.Width = 1280;
@@ -26,5 +29,5 @@ Engine::Application* Engine::CreateApplication()
 	props.FullScreenType = BORDERLESS;
 	props.ScreenMaximized = true;	
 	props.VSync = false;
-	return new EditorApp(props);
+	return new EditorApp(props, projectPath);
 }

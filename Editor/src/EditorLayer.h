@@ -11,8 +11,8 @@ using namespace Engine;
 namespace Editor {
 	class EditorLayer : public Layer {
 	public:
-		EditorLayer() : Layer("Editor") {
-
+		EditorLayer(std::string projectPath) : Layer("Editor"), m_ProjectPath(projectPath) {
+			m_Settings = ProjectSerializer::Deserializer(m_ProjectPath);
 		}
 		~EditorLayer() = default;
 
@@ -32,9 +32,11 @@ namespace Editor {
 
 	private:
 		Ref<Scene> m_Scene;
+		std::string m_ProjectPath;
 		Ref<EditorCamera> m_Camera;
 		std::vector<EntityHandle*> entities{};
 		bool b_EditDockspace = false;
 		Ref<Framebuffer> m_SceneBuffer;
+		ProjectSettings m_Settings{};
 	};
 }

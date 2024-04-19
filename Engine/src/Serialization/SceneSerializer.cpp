@@ -4,6 +4,7 @@
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 #include "Assets/AssetTypes.h"
+#include "Assets/ModelLibrary.h"
 
 namespace Engine{
 	void SceneSerializer::Serializer(const std::string& directory, Ref<Scene> scene)
@@ -46,7 +47,29 @@ namespace Engine{
 	}
 	Ref<Scene> SceneSerializer::Deserializer(const std::string& filepath)
 	{
-		return nullptr;
+		std::string file_path_cleaned = filepath;
+		std::replace(file_path_cleaned.begin(), file_path_cleaned.end(), '\\', '/');
+		YAML::Node root_node = YAML::LoadFile(file_path_cleaned);
+		if (!root_node["Scene"]) 
+		{ 
+			HVE_CORE_ERROR_TAG("Scene Deserializer", "File {0}, is not a proper scene file", file_path_cleaned);
+			return nullptr;
+		};
+
+		std::string sceneName = root_node["Scene"].as<std::string>();
+		Ref<Scene> new_scene = CreateRef<Scene>(sceneName);
+
+		if (root_node["Entities"])
+		{
+			YAML::Node entities = root_node["Entities"];
+			for (YAML::const_iterator it = entities.begin(); it != entities.end(); ++it)
+			{
+				YAML::Node entity_node = *it;
+				DeserializeEntity(entity_node, new_scene, nullptr);
+			}
+		}
+
+		return new_scene;
 	}
 
 	void SceneSerializer::TraverseTree(YAML::Emitter& out, SceneNode* scene_node, Ref<Scene> scene)
@@ -102,8 +125,8 @@ namespace Engine{
 			out << YAML::BeginMap;
 			out << YAML::Key << "ProjectionType" << YAML::Value << (int)camera->GetType();
 			out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera->GetFOVY();
-			out << YAML::Key << "Near" << YAML::Value << camera->GetFar();
-			out << YAML::Key << "Far" << YAML::Value << camera->GetNear();
+			out << YAML::Key << "Near" << YAML::Value << camera->GetNear();
+			out << YAML::Key << "Far" << YAML::Value << camera->GetFar();
 			out << YAML::EndMap;
 		}
 
@@ -138,5 +161,87 @@ namespace Engine{
 			out << YAML::Key << "FilePath" << YAML::Value << mesh->GetMetaData().MeshPath;
 			out << YAML::EndMap;
 		}
+	}
+	void SceneSerializer::DeserializeEntity(YAML::Node entity_node, Ref<Scene> scene, UUID* parent_entity_id)
+	{
+		UUID entity_id = entity_node["Entity"].as<uint32_t>();
+		std::string name = "New Entity";
+		if (entity_node["Tag"])
+		{
+			name = entity_node["Tag"].as<std::string>();
+		}
+		EntityHandle* entity = scene->CreateEntityByUUID(entity_id, name, parent_entity_id);
+
+		TransformComponent entity_transform{};
+
+		if (entity_node["LocalTransformComponent"])
+		{
+			entity_transform.local_transform.translation = entity_node["LocalTransformComponent"]["Position"].as<glm::vec3>(glm::vec3(0.0f));
+			entity_transform.local_transform.rotation = entity_node["LocalTransformComponent"]["Rotation"].as<glm::vec3>(glm::vec3(0.0f));
+			entity_transform.local_transform.scale = entity_node["LocalTransformComponent"]["Scale"].as<glm::vec3>(glm::vec3(0.0f));
+		}
+
+		if (entity_node["WorldTransformComponent"])
+		{
+			entity_transform.local_transform.translation = entity_node["WorldTransformComponent"]["Position"].as<glm::vec3>(glm::vec3(0.0f));
+			entity_transform.local_transform.rotation = entity_node["WorldTransformComponent"]["Rotation"].as<glm::vec3>(glm::vec3(0.0f));
+			entity_transform.local_transform.scale = entity_node["WorldTransformComponent"]["Scale"].as<glm::vec3>(glm::vec3(0.0f));
+		}
+
+		scene->GetEntity(entity)->AddComponent<TransformComponent>(entity_transform);
+
+		if (entity_node["Camera"])
+		{
+			auto camera_component = CameraComponent{};
+			camera_component.camera = CreateRef<Camera>(entity_node["Camera"]["ProjectionType"].as<int>() == 1 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
+			camera_component.camera->SetFovy(entity_node["Camera"]["PerspectiveFOV"].as<float>());
+			camera_component.camera->SetNear(entity_node["Camera"]["Near"].as<float>());
+			camera_component.camera->SetFar(entity_node["Camera"]["Far"].as<float>());
+			scene->GetEntity(entity)->AddComponent<CameraComponent>(camera_component);
+		}
+
+		
+
+		if (entity_node["PointLight"])
+		{
+			auto light = PointLightComponent{};
+			light.light = CreateRef<PointLight>();
+			light.light->SetColor(entity_node["PointLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f)));
+			light.light->SetPosition(entity_node["PointLight"]["Position"].as<glm::vec3>(glm::vec3(0.0f)));
+			light.light->SetIntensity(entity_node["PointLight"]["Intensity"].as<float>());
+			glm::vec3 attenuation_factors = entity_node["PointLight"]["AttenuationFactors"].as<glm::vec3>(glm::vec3(0.0f));
+			light.light->SetConstantAttenuation(attenuation_factors.x);
+			light.light->SetLinearAttenuation(attenuation_factors.y);
+			light.light->SetQuadraticAttenuation(attenuation_factors.z);
+			scene->GetEntity(entity)->AddComponent<PointLightComponent>(light);
+		}
+
+		if (entity_node["DirectionalLight"])
+		{
+			auto light = DirectionalLightComponent{};
+			light.light = CreateRef<DirectionalLight>();
+			glm::vec3 color = entity_node["DirectionalLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f));
+			light.light->SetColor(color);
+			glm::vec3 direction = entity_node["DirectionalLight"]["Direction"].as<glm::vec3>(glm::vec3(0.0f));
+			light.light->SetDirection(direction);
+			light.light->SetIntensity(entity_node["DirectionalLight"]["Intensity"].as<float>());
+			scene->GetEntity(entity)->AddComponent<DirectionalLightComponent>(light);
+		}
+
+		if (entity_node["Mesh"])
+		{
+			MeshComponent mesh_comp{};
+			mesh_comp.mesh = ModelLibrary::Get()->CreateMesh(entity_node["Mesh"]["FilePath"].as<std::string>(), &scene->GetEntity(entity)->GetID());
+			scene->GetEntity(entity)->AddComponent<MeshComponent>(mesh_comp);
+		}
+
+		if (entity_node["Children"])
+		{
+			for (const auto& child_node : entity_node["Children"])
+			{
+				DeserializeEntity(child_node, scene, &entity_id);
+			}
+		}
+
 	}
 }

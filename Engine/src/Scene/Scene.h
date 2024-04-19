@@ -67,8 +67,7 @@ namespace Engine {
 
 	class Scene {
 	public:
-		static std::pair<Ref<Scene>, EntityHandle*> CreateScene(std::string name = "A scene");
-		static std::pair<Ref<Scene>, EntityHandle*> CreateScene(Ref<Camera> starting_camera, std::string name = "A scene");
+		static Ref<Scene> CreateScene(std::string name = "A scene");
 		Scene(std::string name);
 		~Scene();
 
@@ -78,16 +77,20 @@ namespace Engine {
 		EntityHandle* CreateEntity(std::string name, EntityHandle* parent);
 		EntityHandle* CreateEntity(std::string name, UUID* parent);
 		EntityHandle* CreateEntity(std::string name, nullptr_t parent);
+
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, Entity* parent);
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, EntityHandle* parent);
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, UUID* parent);
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, nullptr_t parent);
+
 		void DestroyEntity(EntityHandle* id);
 		void DestroyEntity(UUID id);
 		void ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id);
 		void ReparentSceneNode(UUID* id, UUID* new_parent_id);
 
-		Entity* GetCurrentCameraEntity();
 		Camera* GetCurrentCamera();
 
-		void SetCurrentCamera(EntityHandle* camera_entity_id) { m_CurrentCamera = entities[camera_entity_id->GetID()]; }
-		void SetCurrentCamera(UUID camera_entity_id) { m_CurrentCamera = entities[camera_entity_id]; }
+		void SetCurrentCamera(Ref<Camera> camera);
 
 		void UpdateScene();
 
@@ -113,7 +116,7 @@ namespace Engine {
 	private:
 		UUID m_ID = UUID();
 
-		Ref<Entity> m_CurrentCamera;
+		Ref<Camera> m_CurrentCamera;
 
 		std::string m_Name;
 

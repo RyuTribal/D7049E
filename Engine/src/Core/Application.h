@@ -36,5 +36,5 @@ namespace Engine
 		static Application* s_Instance;
 	};
 
-	Application* CreateApplication();
+	Application* CreateApplication(int argc, char** argv);
 }

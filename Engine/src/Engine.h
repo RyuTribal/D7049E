@@ -10,10 +10,12 @@
 #include "Core/Log.h"
 #include "Core/Profiler.h"
 #include "Core/Timer.h"
+#include "Core/IO.h"
 
 
 // ------------- Assets ------------------
 #include "Assets/ModelLibrary.h"
+#include "Assets/AssetTypes.h"
 
 // ------------- Renderer ----------------
 #include "Renderer/Renderer.h"

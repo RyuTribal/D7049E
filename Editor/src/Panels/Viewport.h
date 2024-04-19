@@ -80,7 +80,7 @@ namespace EditorPanels {
 			ImGui::Image((void*)(intptr_t)(id), ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2(0, 1), ImVec2(1, 0));
 
 			Entity* selectedEntity = SceneGraph::GetSelectedEntity();
-			if (selectedEntity != nullptr && m_GizmoType != -1 && selectedEntity->GetID() != SceneGraph::GetScene()->GetCurrentCameraEntity()->GetID())
+			if (selectedEntity != nullptr && m_GizmoType != -1)
 			{
 				ImGuizmo::SetOrthographic(false);
 				ImGuizmo::SetDrawlist();

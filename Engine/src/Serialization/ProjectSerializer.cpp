@@ -6,12 +6,12 @@
 #include "Assets/AssetTypes.h"
 
 namespace Engine {
-	bool ProjectSerializer::CreateNewProject(const std::string& directory, const std::string& name)
+	std::pair<bool, std::string> ProjectSerializer::CreateNewProject(const std::string& directory, const std::string& name)
 	{
 		if (!std::filesystem::exists(directory))
 		{
 			HVE_CORE_ERROR_TAG("Project Serializer", "Directory does not exist!");
-			return false;
+			return { false, "" };
 		}
 		char forward_slash = '/';
 		char back_slash = '\\';
@@ -24,7 +24,7 @@ namespace Engine {
 		if (std::filesystem::exists(full_dir_path))
 		{
 			HVE_CORE_ERROR_TAG("Project Serializer", "The folder {0} already exists!", std::filesystem::absolute(full_dir_path).string());
-			return false;
+			return { false, "" };
 		}
 
 		std::filesystem::path root_path = std::filesystem::absolute(full_dir_path);
@@ -46,10 +46,10 @@ namespace Engine {
 		settings.RootPath = root_path.string();
 		settings.AssetPath = "/Assets";
 		settings.StartingScene = "Assets/Scenes/Main_Scene"+ Utils::GetFileEndings(AssetType::SceneAsset);
-		auto [default_scene, camera_entity_handle] = Scene::CreateScene("Main_Scene");
+		auto default_scene = Scene::CreateScene("Main_Scene");
 		SceneSerializer::Serializer(asset_path.string() + "/Scenes/", default_scene);
 		Serializer(settings);
-		return true;
+		return { true, settings.RootPath + "/" + settings.ProjectName + Utils::GetFileEndings(ProjectAsset) };
 	}
 	void ProjectSerializer::Serializer(ProjectSettings& settings)
 	{		
@@ -70,8 +70,18 @@ namespace Engine {
 		HVE_CORE_TRACE_TAG("Project Serializer", "Project saved successfully to: {0}", filepath);
 
 	}
-	void ProjectSerializer::Deserializer(const std::string& filepath)
+	ProjectSettings ProjectSerializer::Deserializer(const std::string& filepath)
 	{
+		std::string file_path_cleaned = filepath;
+		std::replace(file_path_cleaned.begin(), file_path_cleaned.end(), '\\', '/');
+		YAML::Node config = YAML::LoadFile(file_path_cleaned);
+		ProjectSettings settings{};
+		const std::string root_path = file_path_cleaned.substr(0, file_path_cleaned.find_last_of('/'));
+		settings.ProjectName = config["Project"].as<std::string>();
+		settings.RootPath = root_path;
+		settings.AssetPath = config["AssetPath"].as<std::string>();
+		settings.StartingScene = config["StartingScene"].as<std::string>();
 
+		return settings;
 	}
 }

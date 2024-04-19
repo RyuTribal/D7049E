@@ -263,6 +263,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<MaterialComponent>("Material");
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
+			DisplayAddComponentEntry<SoundComponent>("Sound");
 
 			ImGui::EndPopup();
 		}
@@ -334,6 +335,29 @@ namespace EditorPanels {
 			light->SetConstantAttenuation(attenuations[0]);
 			light->SetLinearAttenuation(attenuations[1]);
 			light->SetQuadraticAttenuation(attenuations[2]);
+		});
+
+
+		DrawComponent<SoundComponent>("Sound", entity, [](auto& component)
+		{
+
+			auto& sound = component->sound;
+			float volume[1] = { sound->GetGlobalVolume() };
+			ImGui::Text("Global volume:");
+			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
+			sound->SetGlobalVolume(volume[0]);
+
+			/*float intensity = light->GetIntensity();
+			ImGui::Text("Intensity:");
+			ImGui::DragFloat("##light_intensity", &intensity, 0.1f);
+			light->SetIntensity(intensity);
+
+			float attenuations[3] = { light->GetConstantAttenuation(),  light->GetLinearAttenuation(), light->GetQuadraticAttenuation() };
+			ImGui::Text("Attenuations (constant, linear, quadratic):");
+			ImGui::DragFloat3("##light_attenuation", attenuations, 0.1f);
+			light->SetConstantAttenuation(attenuations[0]);
+			light->SetLinearAttenuation(attenuations[1]);
+			light->SetQuadraticAttenuation(attenuations[2]);*/
 		});
 
 		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component)

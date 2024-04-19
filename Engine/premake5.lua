@@ -54,6 +54,7 @@ project "Engine"
     {
         "vendor/spdlog/include",
         "vendor/stb",
+        "vendor/SoLoud",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.Glad}",
         "%{IncludeDir.ImGui}",

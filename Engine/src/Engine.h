@@ -30,5 +30,7 @@
 #include "Math/Math.h"
 #include "ImGui/ImGuiLayer.h"
 
+//---------------- Sound ----------------
+#include "Sound/Sound.h"
 
 // -----------------------------------------

@@ -1,10 +1,11 @@
-#include "pch.h"
 #include "Sound.h"
 
 #include <soloud_audiosource.h>
+#include <iostream>
 
 namespace Engine {
-	Sound::Sound(std::string soundDirectory, float globalVolume) {
+	Sound::Sound(std::string soundDirectory, float globalVolume)
+	{
 		m_soundPath = soundDirectory;
 		s_soloud.setGlobalVolume(globalVolume);
 		s_soloud.init();
@@ -15,16 +16,16 @@ namespace Engine {
 		s_soloud.deinit();
 	}
 
-	bool Sound::PlayGlobalSound(const char *soundName, float relativeVolume)
+	bool Sound::PlayGlobalSound(const char* soundName, float relativeVolume)
 	{
-		if (!CheckFileExistance(m_soundPath + soundName)) {
+		if (!CheckFileExistance(m_soundPath + soundName))
+		{
 			return false;
 		}
 
-		SoLoud::Wav sound;
-		sound.load((m_soundPath + soundName).c_str());
+		m_soundfiles[soundName].load((m_soundPath + soundName).c_str());
 
-		m_playingSounds[soundName] = s_soloud.play(sound, relativeVolume);
+		m_playingSounds[soundName] = s_soloud.play(m_soundfiles[soundName], relativeVolume);
 
 		// Wait until sounds have finished
 		/*while (s_soloud.getActiveVoiceCount() > 0)
@@ -49,16 +50,15 @@ namespace Engine {
 
 	bool Sound::PlayBackgroundMusic(const char* soundName, float relativeVolume)
 	{
-		if (!CheckFileExistance(m_soundPath + soundName)) {
+		if (!CheckFileExistance(m_soundPath + soundName))
+		{
 			return false;
 		}
 
-		SoLoud::Wav bgm;
+		m_backgroundMusicFile.load((m_soundPath + soundName).c_str());
+		m_backgroundMusicFile.setLooping(true);
 
-		bgm.load((m_soundPath + soundName).c_str());
-		bgm.setLooping(true);
-
-		m_backgroundMusic = s_soloud.playBackground(bgm, relativeVolume);
+		m_backgroundMusic = s_soloud.playBackground(m_backgroundMusicFile, relativeVolume);
 
 		s_soloud.setProtectVoice(m_backgroundMusic, true);
 
@@ -67,10 +67,12 @@ namespace Engine {
 
 	void Sound::ChangeBackgroundMusicVolume(float relativeVolume, float fadingTime)
 	{
-		if (fadingTime > 0.0f) {
+		if (fadingTime > 0.0f)
+		{
 			s_soloud.fadeVolume(m_backgroundMusic, relativeVolume, fadingTime);
 		}
-		else {
+		else
+		{
 			s_soloud.setVolume(m_backgroundMusic, relativeVolume);
 		}
 	}
@@ -79,6 +81,11 @@ namespace Engine {
 	{
 		// TODO: May need to be refactored in general since right now it might be the case that every component is a separate sound system. Not ideal.
 		return s_soloud.getGlobalVolume();
+	}
+
+	int Sound::GetNumberOfPlayingSounds()
+	{
+		return s_soloud.getActiveVoiceCount();
 	}
 
 }

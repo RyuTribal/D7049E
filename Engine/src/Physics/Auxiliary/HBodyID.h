@@ -25,7 +25,7 @@ namespace Engine {
 
 			inline std::uint8_t GetSequenceNumber() const;
 
-			inline std::uint32_t GetIndexAndSequenceNumber() const;
+			std::uint32_t GetIndexAndSequenceNumber() const;
 
 			inline bool IsInvalid() const;
 
@@ -39,7 +39,6 @@ namespace Engine {
 
 		private:
 			uint32_t mID;
-
 			// Create a std::hash for BodyID
 			//JPH_MAKE_HASHABLE(JPH::BodyID, t.GetIndexAndSequenceNumber())	// TODO: this??
 

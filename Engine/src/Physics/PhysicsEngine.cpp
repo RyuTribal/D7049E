@@ -116,8 +116,8 @@ namespace Engine {
 		this->m_temp_allocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
 		this->m_job_system = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1);
 
-
-		(this->m_physics_system).Init(
+		m_physics_system = CreateRef<JPH::PhysicsSystem>();
+		(this->m_physics_system)->Init(
 			this->cMaxBodies,
 			this->cNumBodyMutexes,
 			this->cMaxBodyPairs,
@@ -128,11 +128,11 @@ namespace Engine {
 		);
 
 
-		m_physics_system.SetBodyActivationListener(&(this->m_body_activation_listener));
+		m_physics_system->SetBodyActivationListener(&(this->m_body_activation_listener));
 
-		m_physics_system.SetContactListener(&(this->m_contact_listener));
+		m_physics_system->SetContactListener(&(this->m_contact_listener));
 
-		this->m_body_interface = &(m_physics_system.GetBodyInterface());
+		this->m_body_interface = &(m_physics_system->GetBodyInterface());
 
 	}
 
@@ -211,7 +211,7 @@ namespace Engine {
 		}
 		else
 		{
-			sphere_settings = new JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::NON_MOVING);
+			sphere_settings = new JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::MOVING);
 		}
 		JPH::BodyID sphere_id;
 		if (activate)
@@ -281,12 +281,12 @@ namespace Engine {
 
 	void PhysicsEngine::optimizeBroadPhase()
 	{
-		(this->m_physics_system).OptimizeBroadPhase();
+		(this->m_physics_system)->OptimizeBroadPhase();
 	}
 
 	void PhysicsEngine::step(int integrationSubSteps)
 	{
-		(this->m_physics_system).Update(
+		(this->m_physics_system)->Update(
 			this->cDeltaTime,
 			this->cCollisionSteps,
 			integrationSubSteps,
@@ -297,7 +297,7 @@ namespace Engine {
 
 	void PhysicsEngine::step(int collisionSteps, int integrationSubSteps)
 	{
-		(this->m_physics_system).Update(
+		(this->m_physics_system)->Update(
 			this->cDeltaTime,
 			collisionSteps,
 			integrationSubSteps,
@@ -338,7 +338,7 @@ namespace Engine {
 	{
 		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
 
-		JPH::Vec3 vec = (this->m_body_interface)->GetCenterOfMassPosition(jolt_id);
+		JPH::Vec3 vec = (this->m_body_interface)->GetLinearVelocity(jolt_id);
 		return PhysicsEngine::makeHVec3(vec);
 	}
 
@@ -346,23 +346,25 @@ namespace Engine {
 	void PhysicsEngine::tmpRunner()
 	{
 		PhysicsEngine* engin = PhysicsEngine::Get();
+		
 		engin->Init(10);
-		engin->createBox(HVec3(100.0f, 1.0f, 100.0f), HVec3(0.0, -1.0, 0.0), HEMotionType::Static, true);
-		HBodyID sphere_id = engin->createSphere(0.5f, HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-		engin->setLinearVelocity(sphere_id, HVec3(0.0f, -5.0f, 0.0f));
+		HBodyID box_id = engin->createBox(HVec3(100.0f, 1.0f, 100.0f), HVec3(0.0, -1.0, 0.0), HEMotionType::Static, true);
+		HBodyID sphere_id = engin->createSphere(0.5f, HVec3(0.0, 5.0, 0.0), HEMotionType::Dynamic, true);
+		engin->setLinearVelocity(sphere_id, HVec3(0.0f, 0.5f, 0.0f));
 		engin->optimizeBroadPhase();
 
 		int stepCounter = 0;
-		while (engin->isActive(sphere_id))
+		while (engin->isActive(sphere_id) && stepCounter < 100)
 		{
 			++stepCounter;
 			engin->step(1);
 			HVec3 position = engin->getCenterOfMassPosition(sphere_id);
 			HVec3 velocity = engin->getLinearVelocity(sphere_id);
 			std::cout << "Step " << stepCounter << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
-
+			
 		}
 		std::cout << "Finished the tmp simulation" << std::endl;
+		
 		/*	TODO: Rework this
 		PhysicsEngine engin(10);
 		engin.createBox(Vec3(100.0f, 1.0f, 100.0f), RVec3(0.0_r, -1.0_r, 0.0_r), EMotionType::Static, true);
@@ -378,7 +380,7 @@ namespace Engine {
 			RVec3 position = engin.getCenterOfMassPosition(sphere_id);
 			Vec3 velocity = engin.getLinearVelocity(sphere_id);
 			cout << "Step " << stepCounter << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
-
+			
 		}
 		cout << "Finished the tmp simulation" << endl;
 		*/

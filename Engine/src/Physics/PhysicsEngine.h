@@ -153,7 +153,8 @@ namespace Engine {
 			{
 				return s_Instance;
 			}
-			return new PhysicsEngine();
+			s_Instance = new PhysicsEngine();
+			return s_Instance;
 		}
 		void Init(int allocationSize);
 		void Shutdown();
@@ -175,13 +176,15 @@ namespace Engine {
 		HVec3 getCenterOfMassPosition(HBodyID id);
 		HVec3 getLinearVelocity(HBodyID id);
 		static void tmpRunner();
+		static JPH::BodyID makeBodyID(HBodyID id);
+		static HBodyID makeHBodyID(JPH::BodyID id);
 
 	private:
 		static PhysicsEngine* s_Instance;
 
 		JPH::TempAllocatorImpl* m_temp_allocator;
 		JPH::JobSystemThreadPool* m_job_system;
-		JPH::PhysicsSystem m_physics_system;
+		Ref<JPH::PhysicsSystem> m_physics_system;
 
 		const JPH::uint cMaxBodies = 65536;
 
@@ -211,8 +214,7 @@ namespace Engine {
 		//static HVec3 makeHVec3(JPH::RVec3 arr);
 		static JPH::EMotionType makeEMotionType(HEMotionType movability);
 		static HEMotionType makeHEMotionType(JPH::EMotionType movability);
-		static JPH::BodyID makeBodyID(HBodyID id);
-		static HBodyID makeHBodyID(JPH::BodyID id);
+		
 
 
 	};

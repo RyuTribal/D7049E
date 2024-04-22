@@ -37,7 +37,7 @@ namespace Engine {
 	}
 
 	/// Returns the index and sequence number combined in an uint32_t
-	inline std::uint32_t			HBodyID::GetIndexAndSequenceNumber() const
+	 std::uint32_t			HBodyID::GetIndexAndSequenceNumber() const
 	{
 		return mID;
 	}

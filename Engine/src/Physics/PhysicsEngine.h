@@ -160,30 +160,29 @@ namespace Engine {
 		void Shutdown();
 		void Update();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID createBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID createSphere(float radius, HVec3 position, HEMotionType movability, bool activate);
-		void insertObjectByID(HBodyID id, bool activate);
-		void setPosition(HBodyID id, HVec3 position, bool activate);
-		void setLinearVelocity(HBodyID id, HVec3 velocity);
-		void setAngularVelocity(HBodyID id, HVec3 velocity);
-		void setLinearAndAngularVelocity(HBodyID id, HVec3 linaerVelocity, HVec3 angularVelocity);
-		void optimizeBroadPhase();
-		void step(int integrationSubSteps);
-		void step(int collisionSteps, int integrationSubSteps);
-		void removeBody(HBodyID id);
-		void destoryBody(HBodyID id);
-		bool isActive(HBodyID id);
-		HVec3 getCenterOfMassPosition(HBodyID id);
-		HVec3 getLinearVelocity(HBodyID id);
+		HBodyID CreateBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
+		HBodyID CreateSphere(float radius, HVec3 position, HEMotionType movability, bool activate);
+		void InsertObjectByID(HBodyID id, bool activate);
+		void SetPosition(HBodyID id, HVec3 position, bool activate);
+		void SetLinearVelocity(HBodyID id, HVec3 velocity);
+		void SetAngularVelocity(HBodyID id, HVec3 velocity);
+		void SetLinearAndAngularVelocity(HBodyID id, HVec3 linaerVelocity, HVec3 angularVelocity);
+		void OptimizeBroadPhase();
+		void Step(int integrationSubSteps);
+		void Step(int collisionSteps, int integrationSubSteps);
+		void RemoveBody(HBodyID id);
+		void DestoryBody(HBodyID id);
+		bool IsActive(HBodyID id);
+		HVec3 GetCenterOfMassPosition(HBodyID id);
+		HVec3 GetLinearVelocity(HBodyID id);
 		static void tmpRunner();
-		static JPH::BodyID makeBodyID(HBodyID id);
-		static HBodyID makeHBodyID(JPH::BodyID id);
+		
 
 	private:
 		static PhysicsEngine* s_Instance;
 
-		JPH::TempAllocatorImpl* m_temp_allocator;
-		JPH::JobSystemThreadPool* m_job_system;
+		//JPH::TempAllocatorImpl* m_temp_allocator;
+		//JPH::JobSystemThreadPool* m_job_system;
 		Ref<JPH::PhysicsSystem> m_physics_system;
 
 		const JPH::uint cMaxBodies = 65536;
@@ -214,7 +213,8 @@ namespace Engine {
 		//static HVec3 makeHVec3(JPH::RVec3 arr);
 		static JPH::EMotionType makeEMotionType(HEMotionType movability);
 		static HEMotionType makeHEMotionType(JPH::EMotionType movability);
-		
+		static JPH::BodyID MakeBodyID(HBodyID id);
+		static HBodyID MakeHBodyID(JPH::BodyID id);
 
 
 	};

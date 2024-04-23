@@ -84,12 +84,12 @@ namespace Engine {
 		}
 	}
 
-	JPH::BodyID PhysicsEngine::makeBodyID(HBodyID id)
+	JPH::BodyID PhysicsEngine::MakeBodyID(HBodyID id)
 	{
 		return JPH::BodyID(id.GetIndexAndSequenceNumber());
 	}
 
-	HBodyID PhysicsEngine::makeHBodyID(JPH::BodyID id)
+	HBodyID PhysicsEngine::MakeHBodyID(JPH::BodyID id)
 	{
 		return HBodyID(id.GetIndexAndSequenceNumber());
 	}
@@ -108,13 +108,13 @@ namespace Engine {
 
 		s_JoltData = new JoltData();
 
-		//s_JoltData->TemporariesAllocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
-		//s_JoltData->JobThreadPool = std::unique_ptr<JPH::JobSystemThreadPool> ( 
-		//	new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1)
-		//);
+		s_JoltData->TemporariesAllocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
+		s_JoltData->JobThreadPool = std::unique_ptr<JPH::JobSystemThreadPool> (
+			new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1)
+		);
 
-		this->m_temp_allocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
-		this->m_job_system = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1);
+		//this->m_temp_allocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
+		//this->m_job_system = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1);
 
 		m_physics_system = CreateRef<JPH::PhysicsSystem>();
 		(this->m_physics_system)->Init(
@@ -140,7 +140,6 @@ namespace Engine {
 	{
 		delete s_JoltData->TemporariesAllocator;
 		delete s_JoltData;
-		delete JPH::Factory::sInstance;
 
 		JPH::UnregisterTypes();
 
@@ -149,7 +148,7 @@ namespace Engine {
 		JPH::Factory::sInstance = nullptr;
 	}
 
-	HBodyID PhysicsEngine::createBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate)
 	{
 		// conversion
 		JPH::Vec3 dim = PhysicsEngine::makeVec3(dimensions);
@@ -189,10 +188,10 @@ namespace Engine {
 			box_id = (this->m_body_interface)->CreateAndAddBody(box_settings, JPH::EActivation::DontActivate);
 		}
 
-		return PhysicsEngine::makeHBodyID(box_id);
+		return PhysicsEngine::MakeHBodyID(box_id);
 	}
 
-	HBodyID PhysicsEngine::createSphere(float radius, HVec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateSphere(float radius, HVec3 position, HEMotionType movability, bool activate)
 	{
 		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		JPH::EMotionType mov = PhysicsEngine::makeEMotionType(movability);
@@ -223,12 +222,12 @@ namespace Engine {
 			sphere_id = (this->m_body_interface)->CreateAndAddBody(sphere_settings, JPH::EActivation::DontActivate);
 		}
 
-		return PhysicsEngine::makeHBodyID(sphere_id);
+		return PhysicsEngine::MakeHBodyID(sphere_id);
 	}
 
-	void PhysicsEngine::insertObjectByID(HBodyID id, bool activate)
+	void PhysicsEngine::InsertObjectByID(HBodyID id, bool activate)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 		if (activate)
 		{
 			(this->m_body_interface)->AddBody(jolt_id, JPH::EActivation::Activate);
@@ -239,9 +238,9 @@ namespace Engine {
 		}
 	}
 
-	void PhysicsEngine::setPosition(HBodyID id, HVec3 position, bool activate)
+	void PhysicsEngine::SetPosition(HBodyID id, HVec3 position, bool activate)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 
 		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		if (activate)
@@ -254,89 +253,93 @@ namespace Engine {
 		}
 	}
 
-	void PhysicsEngine::setLinearVelocity(HBodyID id, HVec3 velocity)
+	void PhysicsEngine::SetLinearVelocity(HBodyID id, HVec3 velocity)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 		JPH::Vec3 vel = PhysicsEngine::makeVec3(velocity);
 
 		(this->m_body_interface)->SetLinearVelocity(jolt_id, vel);
 	}
 
-	void PhysicsEngine::setAngularVelocity(HBodyID id, HVec3 velocity)
+	void PhysicsEngine::SetAngularVelocity(HBodyID id, HVec3 velocity)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 		JPH::Vec3 vel = PhysicsEngine::makeVec3(velocity);
 
 		(this->m_body_interface)->SetAngularVelocity(jolt_id, vel);
 	}
 
-	void PhysicsEngine::setLinearAndAngularVelocity(HBodyID id, HVec3 linaerVelocity, HVec3 angularVelocity)
+	void PhysicsEngine::SetLinearAndAngularVelocity(HBodyID id, HVec3 linaerVelocity, HVec3 angularVelocity)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 		JPH::Vec3 lVel = PhysicsEngine::makeVec3(linaerVelocity);
 		JPH::Vec3 aVel = PhysicsEngine::makeVec3(angularVelocity);
 
 		(this->m_body_interface)->SetLinearAndAngularVelocity(jolt_id, lVel, aVel);
 	}
 
-	void PhysicsEngine::optimizeBroadPhase()
+	void PhysicsEngine::OptimizeBroadPhase()
 	{
 		(this->m_physics_system)->OptimizeBroadPhase();
 	}
 
-	void PhysicsEngine::step(int integrationSubSteps)
+	void PhysicsEngine::Step(int integrationSubSteps)
 	{
 		(this->m_physics_system)->Update(
 			this->cDeltaTime,
 			this->cCollisionSteps,
 			integrationSubSteps,
-			(this->m_temp_allocator),
-			(this->m_job_system)
+			s_JoltData->TemporariesAllocator,
+			s_JoltData->JobThreadPool.get()
+			//(this->m_temp_allocator),
+			//(this->m_job_system)
 		);
 	}
 
-	void PhysicsEngine::step(int collisionSteps, int integrationSubSteps)
+	void PhysicsEngine::Step(int collisionSteps, int integrationSubSteps)
 	{
 		(this->m_physics_system)->Update(
 			this->cDeltaTime,
 			collisionSteps,
 			integrationSubSteps,
-			(this->m_temp_allocator),
-			(this->m_job_system)
+			s_JoltData->TemporariesAllocator,
+			s_JoltData->JobThreadPool.get()
+			//(this->m_temp_allocator),
+			//(this->m_job_system)
 		);
 	}
 
-	void PhysicsEngine::removeBody(HBodyID id)
+	void PhysicsEngine::RemoveBody(HBodyID id)
 	{
-		JPH::BodyID h_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID h_id = PhysicsEngine::MakeBodyID(id);
 		(this->m_body_interface)->RemoveBody(h_id);
 	}
 
-	void PhysicsEngine::destoryBody(HBodyID id)
+	void PhysicsEngine::DestoryBody(HBodyID id)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 
 		(this->m_body_interface)->DestroyBody(jolt_id);
 	}
 
-	bool PhysicsEngine::isActive(HBodyID id)
+	bool PhysicsEngine::IsActive(HBodyID id)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 
 		return (this->m_body_interface)->IsActive(jolt_id);
 	}
 
-	HVec3 PhysicsEngine::getCenterOfMassPosition(HBodyID id)
+	HVec3 PhysicsEngine::GetCenterOfMassPosition(HBodyID id)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 
 		JPH::RVec3 vec = (this->m_body_interface)->GetCenterOfMassPosition(jolt_id);
 		return PhysicsEngine::makeHVec3(vec);
 	}
 
-	HVec3 PhysicsEngine::getLinearVelocity(HBodyID id)
+	HVec3 PhysicsEngine::GetLinearVelocity(HBodyID id)
 	{
-		JPH::BodyID jolt_id = PhysicsEngine::makeBodyID(id);
+		JPH::BodyID jolt_id = PhysicsEngine::MakeBodyID(id);
 
 		JPH::Vec3 vec = (this->m_body_interface)->GetLinearVelocity(jolt_id);
 		return PhysicsEngine::makeHVec3(vec);
@@ -348,20 +351,20 @@ namespace Engine {
 		PhysicsEngine* engin = PhysicsEngine::Get();
 		
 		engin->Init(10);
-		HBodyID box_id = engin->createBox(HVec3(100.0f, 1.0f, 100.0f), HVec3(0.0, -1.0, 0.0), HEMotionType::Static, false);
-		//HBodyID sphere_id = engin->createSphere(0.5f, HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-		HBodyID sphere_id = engin->createBox(HVec3(1.0f, 1.0f, 1.0f), HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-		engin->setLinearVelocity(sphere_id, HVec3(0.0f, -5.0f, 0.0f));
-		engin->optimizeBroadPhase();
+		HBodyID box_id = engin->CreateBox(HVec3(100.0f, 1.0f, 100.0f), HVec3(0.0, -1.0, 0.0), HEMotionType::Static, false);
+		HBodyID sphere_id = engin->CreateSphere(0.5f, HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
+		//HBodyID sphere_id = engin->CreateBox(HVec3(1.0f, 1.0f, 1.0f), HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
+		engin->SetLinearVelocity(sphere_id, HVec3(0.0f, -5.0f, 0.0f));
+		engin->OptimizeBroadPhase();
 
 		int stepCounter = 0;
-		while (engin->isActive(sphere_id) && stepCounter < 200)
+		while (engin->IsActive(sphere_id) && stepCounter < 200)
 		{
 			++stepCounter;
-			HVec3 position = engin->getCenterOfMassPosition(sphere_id);
-			HVec3 velocity = engin->getLinearVelocity(sphere_id);
+			HVec3 position = engin->GetCenterOfMassPosition(sphere_id);
+			HVec3 velocity = engin->GetLinearVelocity(sphere_id);
 			std::cout << "Step " << stepCounter << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
-			engin->step(1);
+			engin->Step(1);
 			
 		}
 		std::cout << "Finished the tmp simulation" << std::endl;

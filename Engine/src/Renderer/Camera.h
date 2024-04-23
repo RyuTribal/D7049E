@@ -1,15 +1,19 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 
 namespace Engine {
 
-	enum CameraType {
-		ORTHOGRAPHIC,
-		PERSPECTIVE
+	enum CameraType
+	{
+		ORTHOGRAPHIC = 0,
+		PERSPECTIVE = 1
 	};
 
-	class Camera {
+	class Camera
+	{
 	public:
 		Camera();
 		Camera(CameraType type);
@@ -25,7 +29,7 @@ namespace Engine {
 		void SetYaw(float yaw) { m_Yaw = yaw; }
 		void SetNear(float near) { m_Near = near; }
 		void SetFar(float far) { m_Far = far; }
-		 
+
 		glm::vec3 GetUpDirection() const;
 		glm::vec3 GetRightDirection() const;
 		glm::vec3 GetForwardDirection() const;
@@ -69,11 +73,13 @@ namespace Engine {
 		void RecalculateViewMatrix();
 		void SetOrthographic();
 		void SetPerspective();
+		void UpdateOrientation();
 	private:
 		glm::mat4 m_ProjectionMatrix;
 		glm::mat4 m_ViewMatrix{ 1.f };
 		glm::mat4 m_ViewProjectionMatrix{ 1.f };
-
+		
+		glm::quat m_Orientation = { 0.f, 0.f, 0.f, 0.f };
 		glm::vec3 m_Position = { 0.f, 0.f, 0.f };
 		glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 		float m_Yaw = 0.0f;

@@ -10,11 +10,16 @@
 #include "Texture.h"
 #include "UniformBuffer.h"
 #include "Framebuffer.h"
+#include "Shader.h"
 
 namespace Engine
 {
 
 	struct GLFWwindow;
+
+	const int MAX_POINT_LIGHTS = 1000;
+
+	const int MAX_DIR_LIGHTS = 2;
 
 	struct PointLightInfo {
 		float constantAttenuation;
@@ -23,6 +28,14 @@ namespace Engine
 		float intensity;
 		glm::vec4 color; // vec4 necessary for GLSL allignment
 		glm::vec4 position;
+	};
+
+	struct DirectionalLightInfo
+	{
+		glm::vec3 padding = { 1.f, 1.f, 1.f }; // I honestly haven't come up with an answer as to why the data corrupts if I don't have this padding. Something to do with allignment
+		float intensity;
+		glm::vec4 color;
+		glm::vec4 direction;
 	};
 
 	struct VisibleIndex {
@@ -67,15 +80,27 @@ namespace Engine
 		Renderer();
 		~Renderer();
 
-		void SubmitObject(Mesh* mesh, Material* material);
+		void SubmitObject(Mesh* mesh);
 		void SubmitPointLight(PointLight* point_light) { m_PointLights.push_back(point_light); }
+		void SubmitDirectionalLight(DirectionalLight* light) { m_DirectionalLights.push_back(light); }
 
 		void BeginFrame(Camera* camera);
 
 		void DepthPrePass();
 		void CullLights();
 		void ShadeAllObjects();
-		void DrawIndexed(Mesh* mesh, Material* material);
+		void DrawIndexed(Mesh* mesh, bool use_material);
+
+
+		static Ref<Texture2D> GetWhiteTexture();
+		static Ref<Texture2D> GetBlackTexture();
+		static Ref<Texture2D> GetGrayTexture();
+		static Ref<Texture2D> GetBlueTexture();
+
+		static ShaderLibrary* GetShaderLibrary()
+		{
+			return &Get()->m_ShaderLibrary;
+		}
 
 		void EndFrame();
 
@@ -101,12 +126,15 @@ namespace Engine
 		void ResizeViewport(int width, int height);
 		void SetVSync(bool vsync);
 		void SetViewport(int width, int height);
+		void BindTextureUnit(TextureUnits unit) { m_RendererAPI.ActivateTextureUnit(unit); }
 	private:
 
 		void ResetStats();
 		void ReCreateFrameBuffers();
 		void UploadLightData();
 		void DrawHDRQuad();
+
+		ShaderLibrary m_ShaderLibrary{};
 
 		static Renderer* s_Instance;
 		Camera* m_CurrentCamera = nullptr;
@@ -116,13 +144,10 @@ namespace Engine
 
 		Ref<Framebuffer> m_DepthFramebuffer = nullptr;
 		Ref<ShaderStorageBuffer> m_LightsSSBO = nullptr;
+		Ref<ShaderStorageBuffer> m_DirLightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_VisibleLightsSSBO = nullptr;
 		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
 		Ref<Framebuffer> m_SceneFramebuffer = nullptr;
-
-		ShaderProgram m_DepthPrePassProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/depth_pre_pass");
-
-		ShaderProgram m_LightCullingProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/light_culling_shader");
 
 		int m_BackgroundColor[3] = { 0, 0, 0 };
 
@@ -131,12 +156,10 @@ namespace Engine
 		float current_window_width, current_window_height;
 
 		std::vector<Mesh*> m_Meshes{};
-		std::vector<Material*> m_Materials{};
 		std::vector<PointLight*> m_PointLights{};
+		std::vector<DirectionalLight*> m_DirectionalLights{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
-
-		ShaderProgram m_QuadProgram = ShaderProgram(std::string(ROOT_PATH) + "/shaders/forward_plus/hdr_shader");
 
 		const float exposure = 1.0f;
 

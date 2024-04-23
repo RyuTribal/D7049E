@@ -1,6 +1,6 @@
 #pragma once
 #include "pch.h"
-#include "Core.h"
+#include "Core/Base.h"
 #include "Renderer/RenderContext.h"
 #include "Events/Event.h"
 
@@ -20,6 +20,7 @@ namespace Engine {
 		bool Fullscreen;
 		bool ScreenMaximized;
 		FullscreenType FullScreenType;
+		bool Resizable = true;
 
 		WindowProps(const std::string& title = "Engine",
 			unsigned int width = 1280,

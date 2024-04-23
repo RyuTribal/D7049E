@@ -27,9 +27,17 @@ namespace Engine
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
+		std::string boldFontPath = "Resources/Fonts/opensans/static/OpenSans-Bold.ttf";
+		std::string regularFontPath = "Resources/Fonts/opensans/static/OpenSans-Regular.ttf";
 
-		io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/static/OpenSans-Bold.ttf", 18.0f);
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/static/OpenSans-Regular.ttf", 18.0f);
+		if (std::filesystem::exists(boldFontPath))
+		{
+			io.Fonts->AddFontFromFileTTF(boldFontPath.c_str(), 18.0f);
+		}
+		if (std::filesystem::exists(regularFontPath))
+		{
+			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFontPath.c_str(), 18.0f);
+		}
 
 		ImGui::StyleColorsDark();
 

@@ -34,14 +34,12 @@
 #include <glm/glm.hpp>
 #include <Jolt/Jolt.h>
 
+#include "Core/Base.h"
 #include "Core/Log.h"
-#include "Utils/DataStructures.h"
 #include "Core/Profiler.h"
 #include "Core/Timer.h"
-
+#include "Core/Buffer.h"
 #include "Core/UUID.h"
-
-#include "Core.h"
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>

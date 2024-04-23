@@ -10,12 +10,19 @@
 #include "Core/Log.h"
 #include "Core/Profiler.h"
 #include "Core/Timer.h"
+#include "Core/IO.h"
 
+
+// ------------- Assets ------------------
+#include "Assets/AssetTypes.h"
+#include "Assets/AssetImporter.h"
+#include "Assets/AssetManager.h"
+#include "Assets/TextureImporter.h"
 
 // ------------- Renderer ----------------
 #include "Renderer/Renderer.h"
-#include "Materials/Phong.h"
 #include "Lights/PointLight.h"
+#include "Lights/DirectionalLight.h"
 #include "Renderer/Texture.h"
 
 
@@ -24,11 +31,15 @@
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 
+// ---------------- UI -------------------
+#include "UI/FilePicker.h"
+
 // ---------------- Utils ----------------
-#include "Utils/DataStructures.h"
-#include "Utils/Random.h"
 #include "Math/Math.h"
 #include "ImGui/ImGuiLayer.h"
+#include "Project/Project.h"
 
+//---------------- Sound ----------------
+#include "Sound/Sound.h"
 
 // -----------------------------------------

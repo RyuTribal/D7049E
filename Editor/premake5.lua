@@ -23,6 +23,7 @@ project "Editor"
         "%{IncludeDir.Assimp}",
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
+        "%{wks.location}/Engine/vendor/SoLoud",
     }
 
     links
@@ -30,11 +31,17 @@ project "Editor"
         "Engine",
         "Glad",
         "%{Library.Tracy}",
+        
     }
 
     defines
     {
         "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\""
+    }
+
+    postbuildcommands
+    {
+        '{COPY} "%{wks.location}/Engine/vendor/assimp/bin/x64/assimp-vc143-mt.dll" "%{cfg.targetdir}"'
     }
 
     filter "system:windows"

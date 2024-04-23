@@ -5,6 +5,10 @@ namespace EditorPanels {
 	SceneGraph* SceneGraph::s_Instance = nullptr;
 	void SceneGraph::RenderImpl()
 	{
+		if (m_Scene->IsReloading())
+		{
+			return;
+		}
 		ImGui::Begin("Scene Hierarchy");
 
 		ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow;
@@ -222,7 +226,7 @@ namespace EditorPanels {
 
 			if (open)
 			{
-				uiFunction(component);
+				uiFunction(component, entity->GetHandle());
 				ImGui::TreePop();
 			}
 
@@ -260,16 +264,16 @@ namespace EditorPanels {
 		if (ImGui::BeginPopup("AddComponent"))
 		{
 			DisplayAddComponentEntry<CameraComponent>("Camera");
-			DisplayAddComponentEntry<MaterialComponent>("Material");
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
-
+			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
+			DisplayAddComponentEntry<SoundComponent>("Sound");
 			ImGui::EndPopup();
 		}
 
 		ImGui::PopItemWidth();
 
-		DrawComponent<TransformComponent>("Transform", entity, [](auto& component)
+		DrawComponent<TransformComponent>("Transform", entity, [](auto& component, auto entity)
 		{
 			DrawVec3Control("Translation", component->local_transform.translation);
 			glm::vec3 rotation = glm::degrees(component->local_transform.rotation);
@@ -278,13 +282,17 @@ namespace EditorPanels {
 			DrawVec3Control("Scale", component->local_transform.scale, 1.0f);
 		});
 
-		DrawComponent<CameraComponent>("Camera", entity, [](auto& component)
+		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, auto entity)
 		{
 			auto& camera = component->camera;
 
 			const char* projectionTypeStrings[] = { "Perspective", "Orthographic" };
 			const char* currentProjectionTypeString = camera->GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
-			if (ImGui::BeginCombo("Projection", currentProjectionTypeString))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Projection");
+			ImGui::NextColumn();
+			if (ImGui::BeginCombo("##projection", currentProjectionTypeString))
 			{
 				for (int i = 0; i < 2; i++)
 				{
@@ -301,50 +309,157 @@ namespace EditorPanels {
 
 				ImGui::EndCombo();
 			}
+			ImGui::Columns(1);
 			float perspectiveVerticalFov = glm::degrees(camera->GetFOVY());
-			if (ImGui::DragFloat("Vertical FOV", &perspectiveVerticalFov))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Vertical FOV");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##fov", &perspectiveVerticalFov))
 				camera->SetFovy(glm::radians(perspectiveVerticalFov));
 
+			ImGui::Columns(1);
 			float perspectiveNear = camera->GetNear();
-			if (ImGui::DragFloat("Near", &perspectiveNear))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Near");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##near", &perspectiveNear))
 				camera->SetNear(perspectiveNear);
-
+			ImGui::Columns(1);
 			float perspectiveFar = camera->GetFar();
-			if (ImGui::DragFloat("Far", &perspectiveFar))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Far");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##far", &perspectiveFar))
 				camera->SetFar(perspectiveFar);
+
+			ImGui::Columns(1);
 		});
 
 
-		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component)
+		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
 			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
-			ImGui::Text("Light color:");
-			ImGui::ColorEdit3("##light_color", color);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Color");
+			ImGui::NextColumn();
+			ImGui::ColorEdit3("##point_light_color", color);
 			light->SetColor(glm::vec3(color[0], color[1], color[2]));
+			ImGui::Columns(1);
 
 			float intensity = light->GetIntensity();
-			ImGui::Text("Intensity:");
-			ImGui::DragFloat("##light_intensity", &intensity, 0.1f);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Intensity");
+			ImGui::NextColumn();
+			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f);
 			light->SetIntensity(intensity);
+			ImGui::Columns(1);
 
 			float attenuations[3] = { light->GetConstantAttenuation(),  light->GetLinearAttenuation(), light->GetQuadraticAttenuation() };
-			ImGui::Text("Attenuations (constant, linear, quadratic):");
-			ImGui::DragFloat3("##light_attenuation", attenuations, 0.1f);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Attenuations (constant, linear, quadratic)");
+			ImGui::NextColumn();
+			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f);
 			light->SetConstantAttenuation(attenuations[0]);
 			light->SetLinearAttenuation(attenuations[1]);
 			light->SetQuadraticAttenuation(attenuations[2]);
+			ImGui::Columns(1);
+		});
+		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, auto entity)
+		{
+			auto& light = component->light;
+			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Color");
+			ImGui::NextColumn();
+			ImGui::ColorEdit3("##dir_light_color", color);
+			glm::vec3 new_color = glm::vec3(color[0], color[1], color[2]);
+			light->SetColor(new_color);
+			ImGui::Columns(1);
+
+			float intensity = light->GetIntensity();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Intensity");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f))
+			{
+				light->SetIntensity(intensity);
+			}
+			ImGui::Columns(1);
+
+			glm::vec3 curr_direction = light->GetDirection();
+			DrawVec3Control("Direction", curr_direction);
+
+			light->SetDirection(curr_direction);
+
 		});
 
-		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component)
+		DrawComponent<SoundComponent>("Sound", entity, [](auto& component, auto entity)
 		{
-			ImGui::Text("Nothing yet :(");
-		});
 
-		DrawComponent<MaterialComponent>("Material", entity, [](auto& component)
-		{
-			ImGui::Text("Nothing yet :(");
+			auto& sound = component->sound;
+			float volume[1] = { sound->GetGlobalVolume() };
+			ImGui::Text("Global volume:");
+			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
+			sound->SetGlobalVolume(volume[0]);
+
+
+			/*ImGui::Text("Sound:");
+			const char * soundfile = sound->GetSoundFilename();
+			char* soundfile2 = (char*)soundfile;
+			//bool looping = sound->GetSoundLoopingStatus(sound->GetSoundFilename());
+			ImGui::InputText("Filepath", soundfile2, IM_ARRAYSIZE(soundfile2));
+			//ImGui::Checkbox("Looping", &looping);
+			sound->AddGlobalSound(soundfile2);
+			/*if (ImGui::Button("Add Sound"))
+			{
+				sound->AddGlobalSound(soundfile, looping);
+			}*/
+			if (ImGui::Button("Play"))
+			{
+				sound->PlayGlobalSound(sound->GetSoundFilename());
+			}
 		});
+		
+
+		/*DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
+		{
+			ImGui::Columns(3);
+			ImGui::SetColumnWidth(0, 200.f);
+			ImGui::Text("Mesh File Path");
+			if (ImGui::IsItemHovered() && component->mesh)
+			{
+				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
+			}
+			ImGui::NextColumn();
+			ImGui::Text(component->mesh ? component->mesh->GetMetaData().MeshPath.c_str() : "No mesh picked");
+			if (ImGui::IsItemHovered() && component->mesh)
+			{
+				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
+			}
+			ImGui::NextColumn();
+			ImGui::PushID("MeshFilePathButton");
+			if (ImGui::Button("..."))
+			{
+				std::vector<std::vector<std::string>> filter = { {"3D object files", "FBX,fbx,glft"} };
+				std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
+				if (path != "")
+				{
+					Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh(path, &entity->GetID());
+					component->mesh = object_mesh;
+				}
+			}
+			ImGui::PopID();
+			ImGui::Columns(1);
+		});*/
     }
 
 

@@ -33,5 +33,6 @@ namespace Engine {
 
     private:
         uint32_t m_RendererID;
+		uint32_t m_Binding;
     };
 }

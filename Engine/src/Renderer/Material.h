@@ -2,14 +2,41 @@
 #include "ShaderProgram.h"
 
 namespace Engine {
-	class Material {
+	enum TextureSlots
+	{
+		Normal = 1,
+		Roughness = 2,
+		Metalness = 3,
+		Albedo = 5,
+	};
+
+	class Material
+	{
 	public:
-		virtual void ApplyMaterial() = 0;
-		virtual std::string& GetName() = 0;
+
+		Material(Ref<ShaderProgram> program);
+
+		void ApplyMaterial();
 
 		Ref<ShaderProgram> GetProgram() { return m_Program; }
+		void SetProgram(Ref<ShaderProgram> program) { m_Program = program; }
+
+		void Set(const std::string& name, float value);
+		void Set(const std::string& name, int value);
+		void Set(const std::string& name, uint32_t value);
+		void Set(const std::string& name, bool value);
+		void Set(const std::string& name, const glm::ivec2& value);
+		void Set(const std::string& name, const glm::ivec3& value);
+		void Set(const std::string& name, const glm::ivec4& value);
+		void Set(const std::string& name, const glm::vec2& value);
+		void Set(const std::string& name, const glm::vec3& value);
+		void Set(const std::string& name, const glm::vec4& value);
+		void Set(const std::string& name, const glm::mat3& value);
+		void Set(const std::string& name, const glm::mat4& value);
+		void Set(const std::string& name, const Ref<Texture2D>& texture, uint32_t slot);
 
 	protected:
 		Ref<ShaderProgram> m_Program;
+		std::unordered_map<uint32_t, Ref<Texture2D>> m_Textures;
 	};
 }

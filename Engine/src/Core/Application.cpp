@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Core.h"
+#include "Core/Base.h"
 #include "Application.h"
 
 #include "Renderer/Renderer.h"
@@ -14,11 +14,8 @@ namespace Engine
 		s_Instance = this;
 		m_Window = std::unique_ptr<Window>(Window::Create(props));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
-
 		Renderer::CreateRenderer();
-
 		m_ImGuiLayer = new ImGuiLayer();
-
 		PushOverlay(m_ImGuiLayer);
 	}
 

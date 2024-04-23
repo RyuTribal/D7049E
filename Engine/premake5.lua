@@ -15,6 +15,13 @@ project "Engine"
         "src/**.c",
         "vendor/glm/glm/**.hpp",
         "vendor/glm/glm/**.inl",
+        "vendor/yaml-cpp/src/**.cpp",
+        "vendor/yaml-cpp/src/**.h",
+        "vendor/yaml-cpp/include/**.h",
+        "vendor/filewatch/include/**.hpp",
+        "vendor/SoLoud/**.cpp",
+        "vendor/SoLoud/**.h",
+        "vendor/SoLoud/**.c",
 
     }
 
@@ -38,7 +45,8 @@ project "Engine"
         "%{Library.Tracy}",
         "Ws2_32",
         "Dbghelp",
-        "assimp-vc143-mt.lib"
+        "assimp-vc143-mt.lib",
+        "vendor/nativefiledialog-extended/lib/nfd.lib",
     }
 
     defines
@@ -48,12 +56,15 @@ project "Engine"
         "JPH_USE_LZCNT",
         "JPH_USE_TZCNT",
         "JPH_USE_FMADD",
+        "YAML_CPP_STATIC_DEFINE"
     }
 
     includedirs
     {
         "vendor/spdlog/include",
         "vendor/stb",
+        "vendor/",
+        "vendor/SoLoud",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.Glad}",
         "%{IncludeDir.ImGui}",
@@ -62,6 +73,9 @@ project "Engine"
         "%{IncludeDir.Jolt}/Jolt",
         "%{IncludeDir.Tracy}",
         "%{IncludeDir.Assimp}",
+        "%{IncludeDir.YamlCpp}",
+        "vendor/nativefiledialog-extended/src/include",
+        "vendor/filewatch/include",
         "src/",
     }
 

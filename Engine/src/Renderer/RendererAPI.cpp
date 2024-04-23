@@ -92,7 +92,7 @@ namespace Engine {
 	{
 		switch (severity)
 		{
-		case GL_DEBUG_SEVERITY_HIGH:         HVE_CORE_FATAL(message); return;
+		case GL_DEBUG_SEVERITY_HIGH:		 HVE_CORE_FATAL(message); return;
 		case GL_DEBUG_SEVERITY_MEDIUM:       HVE_CORE_ERROR(message);  return;
 		case GL_DEBUG_SEVERITY_LOW:          HVE_CORE_WARN(message);  return;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: HVE_CORE_TRACE(message);  return;
@@ -188,6 +188,11 @@ namespace Engine {
 	void RendererAPI::UnBindBuffer()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	void RendererAPI::SetDepthWriting(bool write)
+	{
+		glDepthMask(write ? GL_TRUE : GL_FALSE);
 	}
 
 	void RendererAPI::SetLineWidth(float width)

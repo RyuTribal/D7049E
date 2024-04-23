@@ -2,6 +2,8 @@
 #include "Registry.h"
 #include "Renderer/Camera.h"
 #include "EntityHandle.h"
+#include "SceneSerializer.h"
+#include <Assets/AssetMetadata.h>
 
 namespace Engine {
 
@@ -12,7 +14,52 @@ namespace Engine {
 		SceneNode(UUID entity_id) : m_ID(entity_id) {}
 		~SceneNode() = default;
 
+		SceneNode(const SceneNode& other)
+		{
+			m_ID = other.m_ID;
+			children.clear();
+			for (const auto& child : other.children)
+			{
+				children.emplace_back(std::make_unique<SceneNode>(*child));  // Deep copy each child
+			}
+		}
+
+		static void Copy(SceneNode* node, SceneNode* target)
+		{
+			if (node->children.size() < 1)
+			{
+				return;
+			}
+
+			for (size_t i = 0; i < node->children.size(); i++)
+			{
+				target->AddChild(node->GetID(), node->children[i]->GetID());
+				Copy(node->children[i].get(), target);
+			}
+		}
+
+		// Copy assignment operator
+		SceneNode& operator=(const SceneNode& other)
+		{
+			if (this == &other) return *this; // handle self assignment
+
+			m_ID = other.m_ID;
+			children.clear();
+			for (const auto& child : other.children)
+			{
+				children.emplace_back(std::make_unique<SceneNode>(*child));  // Deep copy each child
+			}
+			return *this;
+		}
+
 		bool AddChild(UUID parent_id, UUID entity_id) {
+			for (auto& child : children)
+			{
+				if (child->GetID() == entity_id) //Have to check it here to avoid duplicates
+				{
+					return true;
+				}
+			}
 			if (m_ID == parent_id) {
 				children.push_back(CreateScope<SceneNode>(entity_id));
 				return true;
@@ -58,6 +105,7 @@ namespace Engine {
 		}
 
 		UUID& GetID() { return m_ID; }
+		void SetID(UUID id) { m_ID = id; }
 		std::vector<Scope<SceneNode>>* GetChildren() { return &children; }
 
 	private:
@@ -65,12 +113,16 @@ namespace Engine {
 		std::vector<Scope<SceneNode>> children;
 	};
 
-	class Scene {
+	class Scene : public Asset {
 	public:
-		static std::pair<Ref<Scene>, EntityHandle*> CreateScene(std::string name = "A scene");
-		static std::pair<Ref<Scene>, EntityHandle*> CreateScene(Ref<Camera> starting_camera, std::string name = "A scene");
+		static Ref<Scene> CreateScene(std::string name = "A scene");
+		static Ref<Scene> LoadScene(AssetHandle handle, const AssetMetadata& metadata);
+		bool SaveScene(const std::filesystem::path& folder_path);
+		bool SaveScene();
 		Scene(std::string name);
 		~Scene();
+
+		void ReloadScene();
 
 		Registry* GetRegistry() { return &m_Registry; }
 
@@ -78,16 +130,20 @@ namespace Engine {
 		EntityHandle* CreateEntity(std::string name, EntityHandle* parent);
 		EntityHandle* CreateEntity(std::string name, UUID* parent);
 		EntityHandle* CreateEntity(std::string name, nullptr_t parent);
+
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, Entity* parent);
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, EntityHandle* parent);
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, UUID* parent);
+		EntityHandle* CreateEntityByUUID(UUID id, std::string name, nullptr_t parent);
+
 		void DestroyEntity(EntityHandle* id);
 		void DestroyEntity(UUID id);
 		void ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id);
 		void ReparentSceneNode(UUID* id, UUID* new_parent_id);
 
-		Entity* GetCurrentCameraEntity();
 		Camera* GetCurrentCamera();
 
-		void SetCurrentCamera(EntityHandle* camera_entity_id) { m_CurrentCamera = entities[camera_entity_id->GetID()]; }
-		void SetCurrentCamera(UUID camera_entity_id) { m_CurrentCamera = entities[camera_entity_id]; }
+		void SetCurrentCamera(Ref<Camera> camera);
 
 		void UpdateScene();
 
@@ -100,6 +156,13 @@ namespace Engine {
 		Entity* GetEntity(UUID& id);
 		Entity* GetEntity(EntityHandle* id);
 
+		void ForEachEntity(std::function<void(const UUID, const Ref<Entity>)> func) const;
+
+		static AssetType GetStaticType() { return AssetType::Scene; } // Good for templated functions
+		AssetType GetType() const { return GetStaticType(); }
+
+		bool IsReloading() { return m_IsReloading; }
+
 	private:
 
 		void FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent);
@@ -111,15 +174,17 @@ namespace Engine {
 	private:
 		UUID m_ID = UUID();
 
-		Ref<Entity> m_CurrentCamera;
+		Ref<Camera> m_CurrentCamera;
 
 		std::string m_Name;
 
 		Registry m_Registry{};
 
-		SceneNode m_RootSceneNode = SceneNode(m_ID);
+		SceneNode m_RootSceneNode = SceneNode(0);
 
 		std::unordered_map<UUID, Ref<Entity>> entities;
+
+		bool m_IsReloading = false;
 
 		friend class Entity;
 	};

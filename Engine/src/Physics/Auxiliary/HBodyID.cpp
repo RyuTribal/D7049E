@@ -22,7 +22,7 @@ namespace Engine {
 	}
 
 	/// Get index in body array
-	inline std::uint32_t HBodyID::GetIndex() const
+	std::uint32_t HBodyID::GetIndex() const
 	{
 		return mID & cMaxBodyIndex;
 	}
@@ -31,7 +31,7 @@ namespace Engine {
 	/// The sequence number can be used to check if a body ID with the same body index has been reused by another body.
 	/// It is mainly used in multi threaded situations where a body is removed and its body index is immediately reused by a body created from another thread.
 	/// Functions querying the broadphase can (after aquiring a body lock) detect that the body has been removed (we assume that this won't happen more than 128 times in a row).
-	inline std::uint8_t	HBodyID::GetSequenceNumber() const
+	std::uint8_t	HBodyID::GetSequenceNumber() const
 	{
 		return uint8_t(mID >> 24);
 	}
@@ -43,7 +43,7 @@ namespace Engine {
 	}
 
 	/// Check if the ID is valid
-	inline bool HBodyID::IsInvalid() const
+	bool HBodyID::IsInvalid() const
 	{
 		return mID == cInvalidBodyID;
 	}

@@ -21,13 +21,13 @@ namespace Engine {
 
 			explicit HBodyID(std::uint32_t inID, std::uint8_t inSequenceNumber);
 
-			inline std::uint32_t GetIndex() const;
+			std::uint32_t GetIndex() const;
 
-			inline std::uint8_t GetSequenceNumber() const;
+			std::uint8_t GetSequenceNumber() const;
 
 			std::uint32_t GetIndexAndSequenceNumber() const;
 
-			inline bool IsInvalid() const;
+			bool IsInvalid() const;
 
 			inline bool operator == (const HBodyID& inRHS) const;
 

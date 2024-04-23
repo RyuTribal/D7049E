@@ -153,7 +153,7 @@ namespace Engine {
 	{
 		// conversion
 		JPH::Vec3 dim = PhysicsEngine::makeVec3(dimensions);
-		JPH::RVec3 pos = PhysicsEngine::makeRVec3(dimensions);
+		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		JPH::EMotionType mov = PhysicsEngine::makeEMotionType(movability);
 
 		JPH::BoxShapeSettings box_shape_settings(dim);
@@ -166,14 +166,15 @@ namespace Engine {
 		JPH::ShapeRefC box_shape = box_shape_result.Get(); // We don't expect an error here, but you can check floor_shape_result for HasError() / GetError()
 
 
-		JPH::BodyCreationSettings* box_settings;
+		JPH::BodyCreationSettings box_settings;
 		if (movability == HEMotionType::Static)
 		{
-			box_settings = new JPH::BodyCreationSettings(new JPH::BoxShape(dim), pos, JPH::Quat::sIdentity(), mov, Layers::NON_MOVING);
+			box_settings = JPH::BodyCreationSettings(box_shape, pos, JPH::Quat::sIdentity(), mov, Layers::NON_MOVING);
 		}
 		else
 		{
-			box_settings = new JPH::BodyCreationSettings(box_shape, pos, JPH::Quat::sIdentity(), mov, Layers::MOVING);
+			box_settings = JPH::BodyCreationSettings(box_shape, pos, JPH::Quat::sIdentity(), mov, Layers::MOVING);
+
 			// Note: it is possible to have more than two layers but that has not been implemented yet
 		}
 
@@ -181,19 +182,18 @@ namespace Engine {
 		// Add it to the world
 		if (activate)
 		{
-			box_id = (this->m_body_interface)->CreateAndAddBody(*box_settings, JPH::EActivation::Activate);
+			box_id = (this->m_body_interface)->CreateAndAddBody(box_settings, JPH::EActivation::Activate);
 		}
 		else
 		{
-			box_id = (this->m_body_interface)->CreateAndAddBody(*box_settings, JPH::EActivation::DontActivate);
+			box_id = (this->m_body_interface)->CreateAndAddBody(box_settings, JPH::EActivation::DontActivate);
 		}
 
-		return PhysicsEngine::makeHBodyID(box_id);;
+		return PhysicsEngine::makeHBodyID(box_id);
 	}
 
 	HBodyID PhysicsEngine::createSphere(float radius, HVec3 position, HEMotionType movability, bool activate)
 	{
-		//conversion
 		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		JPH::EMotionType mov = PhysicsEngine::makeEMotionType(movability);
 
@@ -204,23 +204,23 @@ namespace Engine {
 			s_JoltData->LastErrorMessage = sphere_shape_result.GetError();
 		}
 		JPH::ShapeRefC sphere_shape = sphere_shape_result.Get();
-		JPH::BodyCreationSettings* sphere_settings;
+		JPH::BodyCreationSettings sphere_settings;
 		if (mov == JPH::EMotionType::Static)
 		{
-			sphere_settings = new JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::NON_MOVING);
+			sphere_settings = JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::NON_MOVING);
 		}
 		else
 		{
-			sphere_settings = new JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::MOVING);
+			sphere_settings = JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::MOVING);
 		}
 		JPH::BodyID sphere_id;
 		if (activate)
 		{
-			sphere_id = (this->m_body_interface)->CreateAndAddBody(*sphere_settings, JPH::EActivation::Activate);
+			sphere_id = (this->m_body_interface)->CreateAndAddBody(sphere_settings, JPH::EActivation::Activate);
 		}
 		else
 		{
-			sphere_id = (this->m_body_interface)->CreateAndAddBody(*sphere_settings, JPH::EActivation::DontActivate);
+			sphere_id = (this->m_body_interface)->CreateAndAddBody(sphere_settings, JPH::EActivation::DontActivate);
 		}
 
 		return PhysicsEngine::makeHBodyID(sphere_id);
@@ -348,42 +348,24 @@ namespace Engine {
 		PhysicsEngine* engin = PhysicsEngine::Get();
 		
 		engin->Init(10);
-		HBodyID box_id = engin->createBox(HVec3(100.0f, 1.0f, 100.0f), HVec3(0.0, -1.0, 0.0), HEMotionType::Static, true);
-		HBodyID sphere_id = engin->createSphere(0.5f, HVec3(0.0, 5.0, 0.0), HEMotionType::Dynamic, true);
-		engin->setLinearVelocity(sphere_id, HVec3(0.0f, 0.5f, 0.0f));
+		HBodyID box_id = engin->createBox(HVec3(100.0f, 1.0f, 100.0f), HVec3(0.0, -1.0, 0.0), HEMotionType::Static, false);
+		//HBodyID sphere_id = engin->createSphere(0.5f, HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
+		HBodyID sphere_id = engin->createBox(HVec3(1.0f, 1.0f, 1.0f), HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
+		engin->setLinearVelocity(sphere_id, HVec3(0.0f, -5.0f, 0.0f));
 		engin->optimizeBroadPhase();
 
 		int stepCounter = 0;
-		while (engin->isActive(sphere_id) && stepCounter < 100)
+		while (engin->isActive(sphere_id) && stepCounter < 200)
 		{
 			++stepCounter;
-			engin->step(1);
 			HVec3 position = engin->getCenterOfMassPosition(sphere_id);
 			HVec3 velocity = engin->getLinearVelocity(sphere_id);
 			std::cout << "Step " << stepCounter << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
+			engin->step(1);
 			
 		}
 		std::cout << "Finished the tmp simulation" << std::endl;
-		
-		/*	TODO: Rework this
-		PhysicsEngine engin(10);
-		engin.createBox(Vec3(100.0f, 1.0f, 100.0f), RVec3(0.0_r, -1.0_r, 0.0_r), EMotionType::Static, true);
-		BodyID sphere_id = engin.createSphere(0.5f, RVec3(0.0_r, 2.0_r, 0.0_r), EMotionType::Dynamic true);
-		engin.setLinearVelocity(sphere_id, Vec3(0.0f, -5.0f, 0.0f));
-		engin.optimizeBroadPhase();
 
-		int stepCounter = 0;
-		while (engin.isActive(sphere_id))
-		{
-			++stepCounter;
-			engin.step(1);
-			RVec3 position = engin.getCenterOfMassPosition(sphere_id);
-			Vec3 velocity = engin.getLinearVelocity(sphere_id);
-			cout << "Step " << stepCounter << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
-			
-		}
-		cout << "Finished the tmp simulation" << endl;
-		*/
 
 	}
 }

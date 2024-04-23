@@ -34,10 +34,11 @@ namespace Editor {
 		Ref<Scene> m_Context;
 
 		const float c_ZoomSpeed = 1.f;
-		float m_Speed = 10000.0f;
+		float m_SpeedFactor = 1000.0f;
+		float m_Speed = m_SpeedFactor;
 		glm::vec3 m_Velocity = { 0.f, 0.f, 0.f };
 		float m_AirFriction = 500.f;
-		float m_Sensitivity = 1.f;
+		float m_Sensitivity = 15.f;
 		const float m_SmoothingFactor = 0.9f;
 		const float m_InitialZoomFactor = 10.f;
 		std::map<int, bool> m_KeyStates;

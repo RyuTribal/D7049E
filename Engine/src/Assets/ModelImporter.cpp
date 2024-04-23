@@ -1,73 +1,56 @@
 #include "pch.h"
-#include "ModelLibrary.h"
-#include "TextureLibrary.h"
+#include "ModelImporter.h"
 #include "Renderer/Renderer.h"
+#include "Project/Project.h"
+#include "TextureImporter.h"
+#include "Serialization/YAMLSerializer.h"
 
-#include <stb_image.h>
+static const uint32_t s_MeshImportFlags =
+	aiProcess_CalcTangentSpace |        // Create binormals/tangents just in case
+	aiProcess_Triangulate |             // Make sure we're triangles
+	aiProcess_GenNormals |              // Make sure we have legit normals
+	aiProcess_GenUVCoords |             // Convert UVs if required 
+	//		aiProcess_OptimizeGraph |
+	aiProcess_OptimizeMeshes |          // Batch draws where possible
+	aiProcess_JoinIdenticalVertices |
+	aiProcess_LimitBoneWeights |        // If more than N (=4) bone weights, discard least influencing bones and renormalise sum to 1
+	aiProcess_ValidateDataStructure |   // Validation
+	aiProcess_PreTransformVertices | // this pre applies transformations which might mess up aniamtion data so possibly remove later
+	aiProcess_GlobalScale;
 
 namespace Engine {
-	ModelLibrary* ModelLibrary::s_Instance = nullptr;
 
-	Ref<AssetSource> ModelLibrary::LoadModel(const std::string& file_path)
+	Ref<MeshSource> ModelImporter::ImportSource(AssetHandle handle, const AssetMetadata& metadata)
 	{
-		if (!std::filesystem::exists(file_path))
+		Ref<MeshSource> meshSource = CreateRef<MeshSource>();
+		std::filesystem::path full_asset_path = Project::GetFullFilePath(metadata.FilePath);
+		HVE_CORE_INFO_TAG("Mesh loader", "Loading mesh: {0}", full_asset_path);
+
+		Assimp::Importer importer;
+		importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
+		const aiScene* scene = importer.ReadFile(full_asset_path.string(), s_MeshImportFlags);
+
+		if (!scene)
 		{
-			return nullptr;
-		}
-		const std::string file_ending = std::filesystem::path(file_path).extension().string();
-
-		if (file_ending != ".fbx" && file_ending != ".FBX" && file_ending != ".gltf" && file_ending != ".glb")
-		{
-			HVE_CORE_ERROR_TAG("Model Library", "Tried to load a model file of type {0}, which is not supported", file_ending);
-			return nullptr;
-		}
-		const std::string absolute_path = std::filesystem::absolute(file_path).string();
-		
-		HVE_CORE_TRACE_TAG("Model Library", "Opening file: {0}", absolute_path);
-
-		const aiScene* scene = m_Importer.ReadFile(absolute_path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace );
-
-
-		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-		
-			HVE_CORE_ERROR_TAG("Assimp", "Error: {0}", m_Importer.GetErrorString());
-		}
-
-		Ref<AssetSource> asset = CreateRef<AssetSource>();
-		asset->scene = scene;
-
-		m_Library[absolute_path] = asset;
-
-		return asset;
-	}
-
-	Ref<Mesh> ModelLibrary::CreateMesh(const std::string& file_path, UUID* entity)
-	{
-		Ref<AssetSource> mesh_asset = LoadModel(file_path);
-
-		if (mesh_asset == nullptr)
-		{
+			HVE_CORE_ERROR_TAG("Mesh", "Failed to load mesh file: {0}", full_asset_path.string());
 			return nullptr;
 		}
 
 		std::vector<MeshNode> nodes;
 		std::vector<Submesh> meshes;
 		std::vector<Ref<Material>> materials;
-
-		std::string absolute_path = std::filesystem::absolute(file_path).string();
-		const std::string directory = absolute_path.substr(0, absolute_path.find_last_of('/'));
+		const std::filesystem::path directory = full_asset_path.parent_path();
 
 		int vertex_count = 0, index_count = 0;
-		uint32_t root_node_index = ProcessNode(mesh_asset->scene->mRootNode, mesh_asset->scene, mesh_asset->transformed, nodes, meshes, vertex_count, index_count, entity, nullptr);
+		uint32_t root_node_index = ProcessNode(scene->mRootNode, scene, nodes, meshes, vertex_count, index_count);
 
 		// Materials
 		Ref<Texture2D> WhiteTexture = Renderer::GetWhiteTexture();
 		Ref<Texture2D> BlueTexture = Renderer::GetBlueTexture();
-		if (mesh_asset->scene->HasMaterials())
+		if (scene->HasMaterials())
 		{
-			auto scene = mesh_asset->scene;
-			materials.resize(mesh_asset->scene->mNumMaterials);
-			for (uint32_t i = 0; i < mesh_asset->scene->mNumMaterials; i++)
+			materials.resize(scene->mNumMaterials);
+			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
 			{
 				auto aiMaterial = scene->mMaterials[i];
 				auto aiMaterialName = aiMaterial->GetName();
@@ -114,18 +97,25 @@ namespace Engine {
 						spec.Format = ImageFormat::RGBA8;
 						spec.Width = aiTexEmbedded->mWidth;
 						spec.Height = aiTexEmbedded->mHeight;
-						Ref<Texture2D> texture = Texture2D::Create(spec);
-						texture->SetData(aiTexEmbedded->pcData, 1);
-						texture_id = TextureLibrary::Get()->LoadTexture(texture);
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
 					}
 					else
 					{
-						std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+						auto texturePath = directory /  aiTexPath.C_Str();
+						if (!std::filesystem::exists(texturePath))
+						{
+							HVE_CORE_TRACE_TAG("Model Library", "    Albedo map path = {0} --> NOT FOUND", texturePath);
+							texturePath = directory / texturePath.filename();
+						}
 						HVE_CORE_TRACE_TAG("Model Library", "    Albedo map path = {0}", texturePath);
-						texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+						auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
+						if (new_texture)
+						{
+							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
+						}
 					}
 
-					Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+					Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
 					if (texture && texture->IsLoaded())
 					{
 						material->Set("u_AlbedoTexture", texture, TextureSlots::Albedo);
@@ -158,18 +148,27 @@ namespace Engine {
 						spec.Format = ImageFormat::RGBA8;
 						spec.Width = aiTexEmbedded->mWidth;
 						spec.Height = aiTexEmbedded->mHeight;
-						Ref<Texture2D> texture = Texture2D::Create(spec);
-						texture->SetData(aiTexEmbedded->pcData, 1);
-						texture_id = TextureLibrary::Get()->LoadTexture(texture);
+						Ref<Texture2D> texture = Texture2D::Create(spec, aiTexEmbedded->pcData);
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
 					}
 					else
 					{
-						std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+						auto texturePath = directory / aiTexPath.C_Str();
+						if (!std::filesystem::exists(texturePath))
+						{
+							HVE_CORE_TRACE_TAG("Model Library", "    Normal map path = {0} --> NOT FOUND", texturePath);
+							texturePath = directory / texturePath.filename();
+						}
 						HVE_CORE_TRACE_TAG("Model Library", "    Normal map path = {0}", texturePath);
-						texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+						auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
+						if (new_texture)
+						{
+							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
+						}
 					}
 
-					Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+					Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
+
 					if (texture && texture->IsLoaded())
 					{
 						material->Set("u_NormalTexture", texture, TextureSlots::Normal);
@@ -202,18 +201,26 @@ namespace Engine {
 						spec.Format = ImageFormat::RGBA8;
 						spec.Width = aiTexEmbedded->mWidth;
 						spec.Height = aiTexEmbedded->mHeight;
-						Ref<Texture2D> texture = Texture2D::Create(spec);
-						texture->SetData(aiTexEmbedded->pcData, 1);
-						texture_id = TextureLibrary::Get()->LoadTexture(texture);
+						Ref<Texture2D> texture = Texture2D::Create(spec, aiTexEmbedded->pcData);
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
 					}
 					else
 					{
-						std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+						auto texturePath = directory / aiTexPath.C_Str();
+						if (!std::filesystem::exists(texturePath))
+						{
+							HVE_CORE_TRACE_TAG("Model Library", "    Roughness map path = {0} --> NOT FOUND", texturePath);
+							texturePath = directory / texturePath.filename();
+						}
 						HVE_CORE_TRACE_TAG("Model Library", "    Roughness map path = {0}", texturePath);
-						texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+						auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
+						if (new_texture)
+						{
+							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
+						}
 					}
 
-					Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+					Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
 					if (texture && texture->IsLoaded())
 					{
 						material->Set("u_RoughnessTexture", texture, TextureSlots::Roughness);
@@ -255,18 +262,26 @@ namespace Engine {
 								spec.Format = ImageFormat::RGBA8;
 								spec.Width = aiTexEmbedded->mWidth;
 								spec.Height = aiTexEmbedded->mHeight;
-								Ref<Texture2D> texture = Texture2D::Create(spec);
-								texture->SetData(aiTexEmbedded->pcData, 1);
-								texture_id = TextureLibrary::Get()->LoadTexture(texture);
+								Ref<Texture2D> texture = Texture2D::Create(spec, aiTexEmbedded->pcData);
+								texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
 							}
 							else
 							{
-								std::string texturePath = directory + '/' + std::string(aiTexPath.data);
+								auto texturePath = directory / aiTexPath.C_Str();
+								if (!std::filesystem::exists(texturePath))
+								{
+									HVE_CORE_TRACE_TAG("Model Library", "    Albedo map path = {0} --> NOT FOUND", texturePath);
+									texturePath = directory / texturePath.filename();
+								}
 								HVE_CORE_TRACE_TAG("Model Library", "    Metalness map path = {0}", texturePath);
-								texture_id = TextureLibrary::Get()->LoadTexture(texturePath);
+								auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
+								if (new_texture)
+								{
+									texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
+								}
 							}
 
-							Ref<Texture2D> texture = TextureLibrary::Get()->GetTexture(texture_id);
+							Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
 							if (texture && texture->IsLoaded())
 							{
 								material->Set("u_MetalnessTexture", texture, TextureSlots::Metalness);
@@ -305,58 +320,38 @@ namespace Engine {
 			materials.push_back(material);
 		}
 
-		Ref<Mesh> new_mesh = CreateRef<Mesh>(nodes, meshes, materials, root_node_index, vertex_count, index_count);
+		meshSource->SetNodes(nodes);
+		meshSource->SetSubmeshes(meshes);
+		meshSource->SetMaterials(materials);
 
-		MeshMetaData meta_data{};
-		meta_data.MeshPath = absolute_path;
-		//meta_data.ShaderPath = std::filesystem::absolute(shader_path).string(); // This part should be fixed with the creation of asset packs and such
-
-		new_mesh->SetMetaData(meta_data);
-
-		mesh_asset->transformed = true;
-
-		return new_mesh;
+		return meshSource;
 	}
 
-	uint32_t ModelLibrary::ProcessNode(aiNode* node, const aiScene* scene, bool transformed, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity, aiMatrix4x4* parent_matrix)
+	uint32_t ModelImporter::ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count)
 	{
 		MeshNode mesh_node{};
 		mesh_node.Name = node->mName.C_Str();
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			mesh_node.Submeshes.push_back(ProcessMesh(mesh, scene, mesh_destination, vertex_count, index_count, entity));
-			mesh_destination[mesh_node.Submeshes[mesh_node.Submeshes.size() - 1]].LocalTransform = ConvertMatrix(node->mTransformation);
-			if (parent_matrix != nullptr && !transformed)
-			{
-				mesh_destination[mesh_node.Submeshes[mesh_node.Submeshes.size() - 1]].WorldTransform = ConvertMatrix(*parent_matrix) * ConvertMatrix(node->mTransformation);
-			}
-			else
-			{
-				mesh_destination[mesh_node.Submeshes[mesh_node.Submeshes.size() - 1]].WorldTransform = ConvertMatrix(node->mTransformation);
-			}
+			mesh_node.Submeshes.push_back(ModelImporter::ProcessMesh(mesh, scene, mesh_destination, vertex_count, index_count));
 		}
 
-		if (parent_matrix != nullptr)
-		{
-			node->mTransformation = *parent_matrix * node->mTransformation;
-		}
-	
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
-			mesh_node.Children.push_back(ProcessNode(node->mChildren[i], scene, transformed, node_destination, mesh_destination, vertex_count, index_count, entity, &node->mTransformation));
+			mesh_node.Children.push_back(ModelImporter::ProcessNode(node->mChildren[i], scene, node_destination, mesh_destination, vertex_count, index_count));
 		}
 
 		node_destination.push_back(mesh_node);
 		return node_destination.size() - 1;
 	}
 
-	uint32_t ModelLibrary::ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count, UUID* entity)
+	uint32_t ModelImporter::ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count)
 	{
 		mesh_destination.push_back(Submesh());
 		mesh_destination[mesh_destination.size() - 1].MeshName = mesh->mName.C_Str();
 		mesh_destination[mesh_destination.size() - 1].MaterialIndex = mesh->mMaterialIndex;
-		HVE_CORE_TRACE_TAG("Mesh", "Meterial Index: {}", mesh->mMaterialIndex);
+		HVE_CORE_TRACE_TAG("Mesh", "Material Index: {}", mesh->mMaterialIndex);
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -384,7 +379,7 @@ namespace Engine {
 				vertex.bitangent.z = mesh->mBitangents[i].z;
 			}
 
-			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+			if (mesh->mTextureCoords[0])
 			{
 				vertex.texture_coordinates.x = mesh->mTextureCoords[0][i].x;
 				vertex.texture_coordinates.y = mesh->mTextureCoords[0][i].y;
@@ -393,8 +388,6 @@ namespace Engine {
 			{
 				vertex.texture_coordinates = glm::vec2(0.0f, 0.0f);
 			}
-
-			vertex.entity_id = entity != nullptr ? (int)*entity : -1;
 
 			vertices.push_back(vertex);
 		}
@@ -417,7 +410,6 @@ namespace Engine {
 			{ ShaderDataType::Float3, "a_normals" },
 			{ ShaderDataType::Float3, "a_tangent" },
 			{ ShaderDataType::Float3, "a_bitangent" },
-			{ ShaderDataType::Int, "a_entity_id"}
 			});
 		vertexBuffer->SetData(vertices.data(), vertices.size() * sizeof(Vertex));
 
@@ -432,7 +424,7 @@ namespace Engine {
 	}
 
 
-	glm::mat4 ModelLibrary::ConvertMatrix(const aiMatrix4x4& aiMat)
+	glm::mat4 ModelImporter::ConvertMatrix(const aiMatrix4x4& aiMat)
 	{
 		return {
 		aiMat.a1, aiMat.b1, aiMat.c1, aiMat.d1,

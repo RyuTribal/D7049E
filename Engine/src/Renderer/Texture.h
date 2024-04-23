@@ -1,6 +1,9 @@
 #pragma once
 #include <glad/gl.h>
 
+#include "Assets/Asset.h"
+#include "Core/Buffer.h"
+
 namespace Engine {
 	enum class ImageFormat
 	{
@@ -20,7 +23,7 @@ namespace Engine {
 		bool GenerateMips = true;
 	};
 
-	class Texture
+	class Texture : public Asset
 	{
 	public:
 		virtual ~Texture() = default;
@@ -31,9 +34,7 @@ namespace Engine {
 		virtual uint32_t GetHeight() const = 0;
 		virtual uint32_t GetRendererID() const = 0;
 
-		virtual const std::string& GetPath() const = 0;
-
-		virtual void SetData(void* data, uint32_t size) = 0;
+		virtual void SetData(Buffer data) = 0;
 
 		virtual void Bind(uint32_t slot = 0) const = 0;
 
@@ -44,15 +45,12 @@ namespace Engine {
 
 	class Texture2D : public Texture {
 	public:
-		static Ref<Texture2D> Create(const TextureSpecification& specification) {
-			return CreateRef<Texture2D>(specification);
-		}
-		static Ref<Texture2D> Create(const std::string& path) {
-			return CreateRef<Texture2D>(path);
+		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer data) {
+			return CreateRef<Texture2D>(specification, data);
 		}
 
-		Texture2D(const TextureSpecification& specification);
-		Texture2D(const std::string& path);
+		Texture2D(const TextureSpecification& specification, Buffer data);
+		Texture2D(Ref<Texture2D> other);
 		~Texture2D();
 
 		const TextureSpecification& GetSpecification() const { return m_Specification; }
@@ -60,10 +58,9 @@ namespace Engine {
 		uint32_t GetWidth() const { return m_Width; }
 		uint32_t GetHeight() const { return m_Height; }
 		uint32_t GetRendererID() const { return m_RendererID; }
+		void CopyTextureData(GLuint srcTextureID);
 
-		const std::string& GetPath() const { return m_Path; }
-
-		void SetData(void* data, uint32_t size);
+		void SetData(Buffer data);
 
 		void Bind(uint32_t slot = 0) const;
 
@@ -80,10 +77,13 @@ namespace Engine {
 		{
 			return m_RendererID == other.GetRendererID();
 		}
+
+
+		static AssetType GetStaticType() { return AssetType::Texture; } // Good for templated functions
+		AssetType GetType() const { return GetStaticType(); }
+
 	private:
 		TextureSpecification m_Specification;
-
-		std::string m_Path;
 		bool m_IsLoaded = false;
 		uint32_t m_Width, m_Height;
 		uint32_t m_RendererID;

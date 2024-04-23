@@ -2,9 +2,6 @@
 #include "Camera.h"
 #include <glm/gtc/matrix_transform.hpp>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/quaternion.hpp>
-
 namespace Engine {
 
 	Camera::Camera() : m_Type(CameraType::PERSPECTIVE)
@@ -14,28 +11,33 @@ namespace Engine {
 
 	Camera::Camera(CameraType type) : m_Type(type)
 	{
-		if (m_Type == CameraType::ORTHOGRAPHIC) {
+		if (m_Type == CameraType::ORTHOGRAPHIC)
+		{
 			SetOrthographic();
 		}
-		else if (m_Type == CameraType::PERSPECTIVE) {
+		else if (m_Type == CameraType::PERSPECTIVE)
+		{
 			SetPerspective();
 		}
 	}
 	void Camera::SetOrthographicSize(float size)
 	{
 		m_OrthographicSize = size;
-		if (m_Type == CameraType::ORTHOGRAPHIC) {
+		if (m_Type == CameraType::ORTHOGRAPHIC)
+		{
 			SetOrthographic();
 		}
 	}
 	void Camera::SetClippingRange(float near, float far)
 	{
-		m_Near = near; 
-		m_Far = far; 
-		if (m_Type == CameraType::PERSPECTIVE) {
+		m_Near = near;
+		m_Far = far;
+		if (m_Type == CameraType::PERSPECTIVE)
+		{
 			SetPerspective();
 		}
-		else if (m_Type == CameraType::ORTHOGRAPHIC) {
+		else if (m_Type == CameraType::ORTHOGRAPHIC)
+		{
 			SetOrthographic();
 		}
 	}
@@ -43,7 +45,8 @@ namespace Engine {
 	{
 		m_PerspectiveFOVY = glm::radians(fovy);
 
-		if (m_Type == CameraType::PERSPECTIVE) {
+		if (m_Type == CameraType::PERSPECTIVE)
+		{
 			SetPerspective();
 		}
 	}
@@ -51,10 +54,12 @@ namespace Engine {
 	{
 		m_AspectRatio = ratio;
 
-		if (m_Type == CameraType::PERSPECTIVE) {
+		if (m_Type == CameraType::PERSPECTIVE)
+		{
 			SetPerspective();
 		}
-		else if (m_Type == CameraType::ORTHOGRAPHIC) {
+		else if (m_Type == CameraType::ORTHOGRAPHIC)
+		{
 			SetOrthographic();
 		}
 	}
@@ -64,7 +69,8 @@ namespace Engine {
 		float deltaYaw = yawSign * delta.x * rotation_speed;
 		float deltaPitch = delta.y * rotation_speed;
 
-		if (!inverse_controls) {
+		if (!inverse_controls)
+		{
 			deltaYaw *= -1;
 			deltaPitch *= -1;
 		}
@@ -73,7 +79,8 @@ namespace Engine {
 	}
 	void Camera::ChangeCameraType(CameraType type)
 	{
-		if (type != m_Type) {
+		if (type != m_Type)
+		{
 			m_Type = type;
 			m_Type == CameraType::ORTHOGRAPHIC ? SetOrthographic() : SetPerspective();
 		}
@@ -103,23 +110,41 @@ namespace Engine {
 
 	void Camera::Rotate(const glm::vec2& delta, float rotation_speed, bool inverse_controls)
 	{
-		auto [deltaPitch, deltaYaw] = GetDeltaOrientation(delta, rotation_speed, inverse_controls);
+		float sign = inverse_controls ? -1.0f : 1.0f;
+
+		float deltaYaw = delta.x * rotation_speed * sign;
+		float deltaPitch = delta.y * rotation_speed * sign;
 
 		m_Yaw += deltaYaw;
 		m_Pitch += deltaPitch;
+
+		glm::quat pitchQuat = glm::angleAxis(deltaPitch, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::quat yawQuat = glm::angleAxis(deltaYaw, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		m_Orientation = glm::normalize(yawQuat * m_Orientation * pitchQuat);
+
+		CalculatePosition();
 	}
+
+	void Camera::LookAt(glm::vec3& center)
+	{
+		glm::vec3 direction = glm::normalize(center - m_Position);
+		m_Orientation = glm::quatLookAt(direction, glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+
+
 
 	void Camera::RotateWithVector(glm::vec3& rotation)
 	{
 
 	}
 
-	void Camera::LookAt(glm::vec3& center)
+	/*void Camera::LookAt(glm::vec3& center)
 	{
 		glm::vec3 direction = glm::normalize(center - CalculatePosition());
 		m_Pitch = asin(direction.y);
 		m_Yaw = atan2(direction.x, -direction.z);
-	}
+	}*/
 
 	glm::vec3 Camera::GetUpDirection() const
 	{
@@ -143,6 +168,6 @@ namespace Engine {
 
 	glm::quat Camera::GetOrientation() const
 	{
-		return glm::quat(glm::vec3(-m_Pitch, -m_Yaw, 0.0f));
+		return m_Orientation;
 	}
 }

@@ -1,15 +1,14 @@
 #include "EditorLayer.h"
 #include "Panels/Viewport.h"
 #include "Panels/SceneGraph.h"
+#include "Panels/ContentBrowser.h"
 #include <imgui/imgui_internal.h>
 
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
-		auto scene = Engine::SceneSerializer::Deserializer(m_Settings.RootPath + "/" + m_Settings.StartingScene);
-		m_Camera = Engine::CreateRef<EditorCamera>(scene);
-		scene->SetCurrentCamera(m_Camera->GetCamera());
-		m_Scene = scene;
+		HVE_ASSERT(m_Project->GetSettings().StartingScene != 0, "Starting scene is invalid!");
+		OpenScene(m_Project->GetSettings().StartingScene);
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
@@ -135,10 +134,25 @@ namespace Editor {
 		EditorPanels::SceneGraph::Render(m_Scene);
 
 		ImGui::Begin("Content Browser");
-
+			EditorPanels::ContentBrowser::Render(m_Scene);
 		ImGui::End();
 
+		ImGui::Begin("Viewport");
 		EditorPanels::Viewport::Render(m_Camera->GetCamera().get());
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				auto droppedPath = *(std::filesystem::path*)payload->Data;
+				HVE_CORE_INFO("Dropped file: {0}", droppedPath.string());
+				if (Project::GetActiveDesignAssetManager()->GetAssetTypeFromFileExtension(droppedPath.extension()) == AssetType::MeshSource)
+				{
+					CreateEntityFromMesh(droppedPath);
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+		ImGui::End();
 
 		ImGui::Begin("Stats");
 
@@ -205,15 +219,15 @@ namespace Editor {
 		{
 			m_Camera->UpdateKeyState(event.GetMouseButton(), true);
 		}
-		
-		if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused()) {
+		// Too janky gotta fix a ray caster instead
+		/*if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused()) {
 			auto [x, y] = EditorPanels::Viewport::GetMousePos();
 			int pixelData = Renderer::Get()->GetObjectFrameBuffer()->ReadPixel(1, x, y);
 			if (pixelData != -1 || EditorPanels::SceneGraph::GetSelectedEntity()->GetID() != (UUID)pixelData) {
 				EditorPanels::SceneGraph::SetSelectedEntity(pixelData);
 				EditorPanels::Viewport::ActivateGizmo();
 			}
-		}
+		}*/
 		return true;
 	}
 	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)
@@ -224,8 +238,30 @@ namespace Editor {
 		}
 		return false;
 	}
+	void EditorLayer::CreateEntityFromMesh(const std::filesystem::path& file_path)
+	{
+		auto handle = m_Scene->CreateEntity("New Mesh Entity", nullptr);
+		AssetHandle asset_handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(file_path);
+		Ref<MeshSource> mesh_source = AssetManager::GetAsset<MeshSource>(asset_handle);
+		Ref<Mesh> mesh = CreateRef<Mesh>(mesh_source);
+		MeshComponent mesh_comp{};
+		mesh_comp.mesh = mesh;
+		m_Scene->GetEntity(handle)->AddComponent<MeshComponent>(mesh_comp);
+	}
 	void EditorLayer::SaveScene()
 	{
-		SceneSerializer::Serializer(m_Settings.RootPath + m_Settings.AssetPath + "/Scenes/", m_Scene);
+		std::filesystem::path scene_file_path = m_Project->GetSettings().AssetPath / std::filesystem::path("Scenes");
+		if (AssetManager::GetMetadata(m_Scene->Handle))
+		{
+			scene_file_path = AssetManager::GetMetadata(m_Scene->Handle).FilePath;
+		}
+		m_Scene->SaveScene(Project::GetFullFilePath(scene_file_path));
+	}
+	void EditorLayer::OpenScene(AssetHandle handle)
+	{
+		auto scene = AssetManager::GetAsset<Scene>(handle);
+		m_Camera = Engine::CreateRef<EditorCamera>(scene);
+		scene->SetCurrentCamera(m_Camera->GetCamera());
+		m_Scene = scene;
 	}
 }

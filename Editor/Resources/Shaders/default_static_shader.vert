@@ -6,7 +6,6 @@ layout (location = 2) in vec2 a_texture_coords;
 layout (location = 3) in vec3 a_normals;
 layout (location = 4) in vec3 a_tangent;
 layout (location = 5) in vec3 a_bitangent;
-layout (location = 6) in int a_entity_id;
 
 uniform mat4 u_CameraView;
 uniform mat4 u_CameraProjection;
@@ -34,6 +33,5 @@ void main() {
 
     cameraPosition = u_CameraPos;
     texCoords = a_texture_coords;
-    v_EntityID = a_entity_id;
     vertex_color = a_colors;
 }

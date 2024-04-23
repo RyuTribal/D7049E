@@ -45,6 +45,8 @@ namespace Engine {
 		return std::make_unique<T>(std::forward<Args>(args)...);
 	}
 
+	using byte = uint8_t;
+
 	template<typename T>
 	using Ref = std::shared_ptr<T>;
 	template<typename T, typename ... Args>

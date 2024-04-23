@@ -37,6 +37,7 @@ namespace Editor {
 	void EditorCamera::Zoom(float offset)
 	{
 		m_Camera->Zoom(-offset * c_ZoomSpeed);
+		m_Speed = m_SpeedFactor * m_Camera->GetZoomDistance(); // This isnt very well thoughtout so maybe change in the future?
 	}
 	void EditorCamera::BuildVelocityVector(float delta_time)
 	{

@@ -60,8 +60,7 @@ namespace EditorPanels {
 		}
 
 		void RenderImpl(Camera* camera) {
-			ImGui::Begin("Viewport");
-
+		
 			auto [mx, my] = ImGui::GetMousePos();
 			mx -= m_ViewportBounds[0].x;
 			my -= m_ViewportBounds[0].y;
@@ -120,8 +119,6 @@ namespace EditorPanels {
 					tc->local_transform.scale = scale;
 				}
 			}
-
-			ImGui::End();
 		}
 
 		void OnKeyPressedImpl(int keycode) {

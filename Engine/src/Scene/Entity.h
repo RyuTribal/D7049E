@@ -45,6 +45,8 @@ namespace Engine {
 			return false;
 		}
 
+		void ChangeScene(Scene* scene) { m_Scene = scene; }
+
 		UUID& GetID() { return m_Handle.GetID(); }
 		EntityHandle* GetHandle() { return &m_Handle; }
 

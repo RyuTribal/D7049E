@@ -5,7 +5,6 @@ in vec4 vertex_color;
 in vec3 normal;
 in vec2 texCoords;
 in vec3 cameraPosition;
-in flat int v_EntityID;
 in mat3 TBN;
 
 struct PointLightInfo {
@@ -61,7 +60,6 @@ layout(binding = 1, std430) readonly buffer VisibleLightIndicesBuffer {
 } visibleLightIndicesBuffer;
 
 out vec4 fragColor;
-layout(location = 1) out int o_EntityID;
 
 uniform int numberOfTilesX;
 uniform int u_NumDirectionalLights;
@@ -123,7 +121,6 @@ void main() {
     vec3 color = ambient + Lo;
 
     fragColor = vec4(color, 1.0);
-    o_EntityID = v_EntityID;
 }
 
 

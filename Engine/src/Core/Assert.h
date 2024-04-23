@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core.h"
+#include "Base.h"
 #include "Log.h"
 
 #ifdef PLATFORM_WINDOWS

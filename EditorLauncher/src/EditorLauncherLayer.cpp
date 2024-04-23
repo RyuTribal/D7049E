@@ -79,8 +79,8 @@ namespace EditorLauncher {
 
 			ImGui::Columns(1);
 
-			bool success = false;
-			bool attempted_to_create = false;
+			static bool success = false;
+			static bool attempted_to_create = false;
 
 			if (ImGui::Button("Create"))
 			{
@@ -108,10 +108,10 @@ namespace EditorLauncher {
 
 		if (ImGui::Button("Open Project", ImVec2(-1, 0)))
 		{
-			std::string file_ending = Engine::Utils::GetFileEndings(Engine::ProjectAsset);
+			std::string file_ending = ".hveproject";
 			file_ending.erase(file_ending.begin()); // Have to remove the . for it to work
 			std::vector<std::vector<std::string>> filter = { {"Helios project files", file_ending} };
-			std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
+			std::filesystem::path path = std::filesystem::path(Engine::FilePicker::OpenFileExplorer(filter, false));
 			OpenProject(path);
 		}
 		ImGui::EndChild();
@@ -126,7 +126,7 @@ namespace EditorLauncher {
 	{
 		
 	}
-	void EditorLauncherLayer::OpenProject(std::string& project_path)
+	void EditorLauncherLayer::OpenProject(std::filesystem::path& project_path)
 	{
 		Engine::CommandArgs args{};
 		args.NewProcess = true;
@@ -134,7 +134,7 @@ namespace EditorLauncher {
 		args.SleepUntilFinished = false;
 		args.WorkingDir = std::string(EDITOR_WORKING_DIRECTORY);
 		HVE_INFO(args.WorkingDir);
-		std::string command = "\"" + std::string(EDITOR_EXECUTABLE_PATH) + "\" \"" + project_path + "\"";
+		std::string command = "\"" + std::string(EDITOR_EXECUTABLE_PATH) + "\" \"" + project_path.string() + "\"";
 		std::replace(command.begin(), command.end(), '/', '\\');
 		std::replace(args.WorkingDir.begin(), args.WorkingDir.end(), '/', '\\');
 		Engine::CommandLine::Create()->ExecuteCommand(command, args);

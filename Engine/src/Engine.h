@@ -14,8 +14,10 @@
 
 
 // ------------- Assets ------------------
-#include "Assets/ModelLibrary.h"
 #include "Assets/AssetTypes.h"
+#include "Assets/AssetImporter.h"
+#include "Assets/AssetManager.h"
+#include "Assets/TextureImporter.h"
 
 // ------------- Renderer ----------------
 #include "Renderer/Renderer.h"
@@ -29,16 +31,13 @@
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 
-// ---------------- Serializers ----------
-#include "Serialization/ProjectSerializer.h"
-#include "Serialization/SceneSerializer.h"
-
 // ---------------- UI -------------------
 #include "UI/FilePicker.h"
 
 // ---------------- Utils ----------------
 #include "Math/Math.h"
 #include "ImGui/ImGuiLayer.h"
+#include "Project/Project.h"
 
 
 // -----------------------------------------

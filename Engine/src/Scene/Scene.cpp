@@ -4,12 +4,49 @@
 #include "Entity.h"
 #include <glm/gtx/matrix_decompose.hpp>
 #include "Renderer/Renderer.h"
+#include "Assets/AssetManager.h"
 
 namespace Engine {
 
 	Ref<Scene> Scene::CreateScene(std::string name)
 	{
 		return CreateRef<Scene>(name);
+	}
+
+	Ref<Scene> Scene::LoadScene(AssetHandle handle, const AssetMetadata& metadata)
+	{
+		return SceneSerializer::Deserializer(metadata.FilePath);
+	}
+
+	void Scene::ReloadScene()
+	{
+		SaveScene();
+		AssetMetadata metadata = AssetManager::GetMetadata(Handle);
+		Ref<Scene> new_scene = SceneSerializer::Deserializer(metadata.FilePath);
+
+		this->m_Name = std::move(new_scene->m_Name);
+		this->m_Registry = std::move(new_scene->m_Registry);
+		this->m_RootSceneNode = std::move(new_scene->m_RootSceneNode);
+		this->entities = std::move(new_scene->entities);
+		this->m_IsReloading = true;
+
+		for (auto& entity : entities)
+		{
+			entity.second->ChangeScene(this);
+		}
+	}
+
+	bool Scene::SaveScene(const std::filesystem::path& folder_path)
+	{
+		SceneSerializer::Serializer(folder_path, this);
+
+		return true; // Handle not saving correctly
+	}
+
+	bool Scene::SaveScene()
+	{
+		SaveScene(AssetManager::GetMetadata(Handle).FilePath);
+		return true;
 	}
 
 
@@ -41,7 +78,8 @@ namespace Engine {
 
 	EntityHandle* Scene::CreateEntity(std::string name, nullptr_t parent)
 	{
-		return CreateEntity(name, &m_ID);
+		UUID root_id = 0;
+		return CreateEntity(name, &root_id);
 	}
 
 	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, Entity* parent)
@@ -58,15 +96,17 @@ namespace Engine {
 
 	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, nullptr_t parent)
 	{
-		return CreateEntityByUUID(id, name, &m_ID);
+		UUID root_id = 0;
+		return CreateEntityByUUID(id, name, &root_id);
 	}
 
 	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, UUID* parent)
 	{
-		m_RootSceneNode.AddChild(parent == nullptr ? m_ID : *parent, id);
+		UUID root_id = 0;
+		m_RootSceneNode.AddChild(parent == nullptr ? root_id : *parent, id);
 
 		m_Registry.Add<IDComponent>(id, IDComponent(id));
-		m_Registry.Add<ParentIDComponent>(id, ParentIDComponent(parent == nullptr ? m_ID : *parent));
+		m_Registry.Add<ParentIDComponent>(id, ParentIDComponent(parent == nullptr ? root_id : *parent));
 		m_Registry.Add<TagComponent>(id, TagComponent(name));
 		m_Registry.Add<TransformComponent>(id, TransformComponent());
 
@@ -143,6 +183,7 @@ namespace Engine {
 	}
 	void Scene::UpdateScene()
 	{
+		m_IsReloading = false;
 		UpdateTransforms();
 		DrawSystem();
 	}

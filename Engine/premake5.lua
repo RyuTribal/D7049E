@@ -18,6 +18,8 @@ project "Engine"
         "vendor/yaml-cpp/src/**.cpp",
         "vendor/yaml-cpp/src/**.h",
         "vendor/yaml-cpp/include/**.h",
+        "vendor/filewatch/include/**.hpp",
+
     }
 
     removefiles
@@ -69,6 +71,7 @@ project "Engine"
         "%{IncludeDir.Assimp}",
         "%{IncludeDir.YamlCpp}",
         "vendor/nativefiledialog-extended/src/include",
+        "vendor/filewatch/include",
         "src/",
     }
 

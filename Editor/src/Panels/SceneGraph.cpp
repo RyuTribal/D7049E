@@ -5,6 +5,10 @@ namespace EditorPanels {
 	SceneGraph* SceneGraph::s_Instance = nullptr;
 	void SceneGraph::RenderImpl()
 	{
+		if (m_Scene->IsReloading())
+		{
+			return;
+		}
 		ImGui::Begin("Scene Hierarchy");
 
 		ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow;
@@ -399,7 +403,7 @@ namespace EditorPanels {
 
 		});
 
-		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
+		/*DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
 		{
 			ImGui::Columns(3);
 			ImGui::SetColumnWidth(0, 200.f);
@@ -428,7 +432,7 @@ namespace EditorPanels {
 			}
 			ImGui::PopID();
 			ImGui::Columns(1);
-		});
+		});*/
     }
 
 

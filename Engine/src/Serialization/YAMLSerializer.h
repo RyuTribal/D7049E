@@ -5,6 +5,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <Assets/Asset.h>
 
 namespace YAML {
 
@@ -105,6 +106,24 @@ namespace YAML {
 			return true;
 		}
 	};
+
+	template<>
+	struct convert<Engine::AssetHandle>
+	{
+		static Node encode(const Engine::AssetHandle& rhs)
+		{
+			Node node;
+			node.push_back((uint64_t)rhs);
+			return node;
+		}
+
+		static bool decode(const Node& node, Engine::AssetHandle& rhs)
+		{
+			rhs = node.as<uint64_t>();
+			return true;
+		}
+	};
+
 
 	template<>
 	struct convert<choc::value::Value>

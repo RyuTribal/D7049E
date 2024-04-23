@@ -29,20 +29,16 @@ namespace Engine
 		default_texture_spec.Height = 1;
 
 		uint32_t whiteTextureData = 0xffffffff;
-		s_DefaultTextures->White = Texture2D::Create(default_texture_spec);
-		s_DefaultTextures->White->SetData(&whiteTextureData, sizeof(whiteTextureData));
+		s_DefaultTextures->White = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
 
 		uint32_t blackTextureData = 0xff000000;
-		s_DefaultTextures->Black = Texture2D::Create(default_texture_spec);
-		s_DefaultTextures->Black->SetData(&blackTextureData, sizeof(blackTextureData));
+		s_DefaultTextures->Black = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
 
 		uint32_t grayTextureData = 0xff808080;
-		s_DefaultTextures->Gray = Texture2D::Create(default_texture_spec);
-		s_DefaultTextures->Gray->SetData(&grayTextureData, sizeof(grayTextureData));
+		s_DefaultTextures->Gray = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
 
 		uint32_t blueTextureData = 0xffff8080;
-		s_DefaultTextures->Blue = Texture2D::Create(default_texture_spec);
-		s_DefaultTextures->Blue->SetData(&blueTextureData, sizeof(blueTextureData));
+		s_DefaultTextures->Blue = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
 
 
 		current_window_width = Application::Get().GetWindow().GetWidth();
@@ -58,7 +54,6 @@ namespace Engine
 		hdrSpec.Height = current_window_height;
 		hdrSpec.Attachments = {
 				FramebufferTextureFormat::RGBA16F,
-				FramebufferTextureFormat::RED_INTEGER,
 				FramebufferTextureFormat::DEPTH24STENCIL8
 		};
 		m_HDRFramebuffer = Engine::Framebuffer::Create(hdrSpec);
@@ -91,8 +86,8 @@ namespace Engine
 	{
 		HVE_PROFILE_FUNC();
 		m_Meshes.push_back(mesh);
-		m_Stats.vertices_count += mesh->VertexSize();
-		m_Stats.index_count += mesh->IndexSize();
+		m_Stats.vertices_count += mesh->GetMeshSource()->VertexSize();
+		m_Stats.index_count += mesh->GetMeshSource()->IndexSize();
 	}
 
     void Renderer::BeginFrame(Camera* camera)
@@ -158,7 +153,6 @@ namespace Engine
 	{
 		HVE_PROFILE_FUNC();
 		m_HDRFramebuffer->Bind();
-		m_HDRFramebuffer->ClearAttachment(1, -1);
 		m_RendererAPI.ClearAll();
 
 		for (size_t i = 0; i < m_Meshes.size(); i++) {
@@ -190,19 +184,19 @@ namespace Engine
 	void Renderer::DrawIndexed(Mesh* mesh, bool use_material)
 	{
 		HVE_PROFILE_FUNC();
-		for (size_t i = 0; i < mesh->GetSubmeshes().size(); i++)
+		for (size_t i = 0; i < mesh->GetMeshSource()->GetSubmeshes().size(); i++)
 		{
-			Ref<Material> material = mesh->GetMaterials()[mesh->GetSubmeshes()[i].MaterialIndex];
+			Ref<Material> material = mesh->GetMeshSource()->GetMaterials()[mesh->GetMeshSource()->GetSubmeshes()[i].MaterialIndex];
 			if (use_material)
 			{
 				material->Set("u_CameraPos", GetCamera()->CalculatePosition());
 				material->Set("u_CameraView", GetCamera()->GetView());
 				material->Set("u_CameraProjection", Renderer::Get()->GetCamera()->GetProjection());
-				material->Set("u_Transform", mesh->GetTransform() * mesh->GetSubmeshes()[i].WorldTransform);
+				material->Set("u_Transform", mesh->GetTransform() * mesh->GetMeshSource()->GetSubmeshes()[i].WorldTransform);
 				material->Set("u_NumDirectionalLights", (int)m_DirectionalLights.size());
 				material->ApplyMaterial();
 			}
-			m_RendererAPI.DrawIndexed(mesh->GetSubmeshes()[i].VertexArray);
+			m_RendererAPI.DrawIndexed(mesh->GetMeshSource()->GetSubmeshes()[i].VertexArray);
 			m_Stats.draw_calls++;
 		}
 	}

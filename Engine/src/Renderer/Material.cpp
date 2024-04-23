@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Material.h"
 #include "Renderer.h"
-#include "Assets/TextureLibrary.h"
 
 namespace Engine {
 	Material::Material(Ref<ShaderProgram> program) : m_Program(program)

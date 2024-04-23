@@ -1,17 +1,24 @@
 #include "pch.h"
 #include "SceneSerializer.h"
-#include "YAMLSerializer.h"
+#include "Serialization/YAMLSerializer.h"
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 #include "Assets/AssetTypes.h"
-#include "Assets/ModelLibrary.h"
+#include "Assets/ModelImporter.h"
+#include "Scene/Scene.h"
+#include "Assets/DesignAssetManager.h"
 
 namespace Engine{
-	void SceneSerializer::Serializer(const std::string& directory, Ref<Scene> scene)
+
+	void SceneSerializer::Serializer(const std::filesystem::path& directory, Scene* scene)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Scene" << YAML::Value << scene->GetName();
+		out << YAML::Key << "Scene";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Handle" << YAML::Value << scene->Handle;
+		out << YAML::Key << "Name" << YAML::Value << scene->GetName();
+		out << YAML::EndMap;
 
 		auto rootNode = scene->GetRootNode();
 		if (rootNode)
@@ -27,15 +34,25 @@ namespace Engine{
 		}
 
 		out << YAML::EndMap;
-		
-		std::filesystem::path dirPath(directory);
-		if (!std::filesystem::exists(dirPath))
+
+		std::filesystem::path filepath = directory;
+
+		if (filepath.has_extension())
 		{
-			std::filesystem::create_directories(dirPath);
+			filepath = filepath.parent_path();
+		}
+		
+		if (!std::filesystem::exists(filepath))
+		{
+			std::filesystem::create_directories(filepath);
 		}
 
 		// Full path for the file
-		std::string filepath = directory + scene->GetName() + Utils::GetFileEndings(AssetType::SceneAsset);
+		filepath = filepath / std::filesystem::path(scene->GetName() + DesignAssetManager::GetFileExtensionFromAssetType(AssetType::Scene));
+		if (!filepath.is_absolute())
+		{
+			filepath = Project::GetFullFilePath(filepath);
+		}
 		std::ofstream fout(filepath);
 		HVE_CORE_ASSERT(fout, "Failed to open file for writing: {0}", filepath);
 
@@ -45,18 +62,18 @@ namespace Engine{
 		HVE_CORE_TRACE_TAG("Scene Serializer", "Scene saved successfully to: {0}", filepath);
 		
 	}
-	Ref<Scene> SceneSerializer::Deserializer(const std::string& filepath)
+	Ref<Scene> SceneSerializer::Deserializer(const std::filesystem::path& filepath)
 	{
-		std::string file_path_cleaned = filepath;
-		std::replace(file_path_cleaned.begin(), file_path_cleaned.end(), '\\', '/');
-		YAML::Node root_node = YAML::LoadFile(file_path_cleaned);
+		std::string full_file_path = Project::GetFullFilePath(filepath).string();
+		YAML::Node root_node = YAML::LoadFile(full_file_path);
 		if (!root_node["Scene"]) 
 		{ 
-			HVE_CORE_ERROR_TAG("Scene Deserializer", "File {0}, is not a proper scene file", file_path_cleaned);
+			HVE_CORE_ERROR_TAG("Scene Deserializer", "File {0}, is not a proper scene file", filepath.string());
 			return nullptr;
 		};
 
-		std::string sceneName = root_node["Scene"].as<std::string>();
+		AssetHandle handle = root_node["Scene"]["Handle"].as<AssetHandle>(0);
+		std::string sceneName = root_node["Scene"]["Name"].as<std::string>();
 		Ref<Scene> new_scene = CreateRef<Scene>(sceneName);
 
 		if (root_node["Entities"])
@@ -72,7 +89,7 @@ namespace Engine{
 		return new_scene;
 	}
 
-	void SceneSerializer::TraverseTree(YAML::Emitter& out, SceneNode* scene_node, Ref<Scene> scene)
+	void SceneSerializer::TraverseTree(YAML::Emitter& out, SceneNode* scene_node, Scene* scene)
 	{
 		out << YAML::BeginMap;
 		SerializeEntity(out, scene->GetEntity(scene_node->GetID()));
@@ -158,7 +175,7 @@ namespace Engine{
 			auto mesh = entity->GetComponent<MeshComponent>()->mesh;
 			out << YAML::Key << "Mesh";
 			out << YAML::BeginMap;
-			out << YAML::Key << "FilePath" << YAML::Value << mesh->GetMetaData().MeshPath;
+			out << YAML::Key << "Handle" << YAML::Value << mesh->GetMeshSource()->Handle;
 			out << YAML::EndMap;
 		}
 	}
@@ -231,7 +248,8 @@ namespace Engine{
 		if (entity_node["Mesh"])
 		{
 			MeshComponent mesh_comp{};
-			mesh_comp.mesh = ModelLibrary::Get()->CreateMesh(entity_node["Mesh"]["FilePath"].as<std::string>(), &scene->GetEntity(entity)->GetID());
+			Ref<MeshSource> source = AssetManager::GetAsset<MeshSource>(entity_node["Mesh"]["Handle"].as<AssetHandle>(0));
+			mesh_comp.mesh = CreateRef<Mesh>(source);
 			scene->GetEntity(entity)->AddComponent<MeshComponent>(mesh_comp);
 		}
 

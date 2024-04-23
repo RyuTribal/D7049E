@@ -19,7 +19,7 @@ namespace EditorLauncher {
 		void OnEvent(Engine::Event& event) override;
 
 	private:
-		void OpenProject(std::string& project_path);
+		void OpenProject(std::filesystem::path& project_path);
 
 	private:
 		char name_buffer[256];

@@ -341,23 +341,28 @@ namespace EditorPanels {
 		DrawComponent<SoundComponent>("Sound", entity, [](auto& component)
 		{
 
-			//auto& sound = component->sound;
-			//float volume[1] = { sound->GetGlobalVolume() };
+			auto& sound = component->sound;
+			float volume[1] = { sound->GetGlobalVolume() };
 			ImGui::Text("Global volume:");
-			//ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
-			//sound->SetGlobalVolume(volume[0]);
+			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
+			sound->SetGlobalVolume(volume[0]);
 
-			/*float intensity = light->GetIntensity();
-			ImGui::Text("Intensity:");
-			ImGui::DragFloat("##light_intensity", &intensity, 0.1f);
-			light->SetIntensity(intensity);
 
-			float attenuations[3] = { light->GetConstantAttenuation(),  light->GetLinearAttenuation(), light->GetQuadraticAttenuation() };
-			ImGui::Text("Attenuations (constant, linear, quadratic):");
-			ImGui::DragFloat3("##light_attenuation", attenuations, 0.1f);
-			light->SetConstantAttenuation(attenuations[0]);
-			light->SetLinearAttenuation(attenuations[1]);
-			light->SetQuadraticAttenuation(attenuations[2]);*/
+			/*ImGui::Text("Sound:");
+			const char * soundfile = sound->GetSoundFilename();
+			char* soundfile2 = (char*)soundfile;
+			//bool looping = sound->GetSoundLoopingStatus(sound->GetSoundFilename());
+			ImGui::InputText("Filepath", soundfile2, IM_ARRAYSIZE(soundfile2));
+			//ImGui::Checkbox("Looping", &looping);
+			sound->AddGlobalSound(soundfile2);
+			/*if (ImGui::Button("Add Sound"))
+			{
+				sound->AddGlobalSound(soundfile, looping);
+			}*/
+			if (ImGui::Button("Play"))
+			{
+				sound->PlayGlobalSound(sound->GetSoundFilename());
+			}
 		});
 
 		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component)

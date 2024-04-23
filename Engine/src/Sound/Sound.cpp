@@ -21,7 +21,7 @@ namespace Engine {
 		//m_isInitialized = false;
 	}
 
-	bool Sound::PlayGlobalSound(const char* soundName, float relativeVolume)
+	bool Sound::AddGlobalSound(const char* soundName, bool looping)
 	{
 		if (!CheckFileExistance(m_soundPath + soundName))
 		{
@@ -30,13 +30,21 @@ namespace Engine {
 
 		m_soundfiles[soundName].load((m_soundPath + soundName).c_str());
 
-		m_playingSounds[soundName] = s_soloud->play(m_soundfiles[soundName], relativeVolume);
-
-		// Wait until sounds have finished
-		/*while (s_soloud.getActiveVoiceCount() > 0)
+		if (looping)
 		{
-			SoLoud::Thread::sleep(100);
-		}*/
+			m_soundfiles[soundName].setLooping(true);
+		}
+	}
+
+	bool Sound::PlayGlobalSound(const char* soundName, float relativeVolume)
+	{
+
+		if (m_soundfiles.find(soundName) == m_soundfiles.end())
+		{
+			return false;
+		}
+
+		m_playingSounds[soundName] = s_soloud->play(m_soundfiles[soundName], relativeVolume);
 
 		return true;
 
@@ -53,7 +61,7 @@ namespace Engine {
 		s_soloud->setGlobalVolume(globalVolume);
 	}
 
-	bool Sound::PlayBackgroundMusic(const char* soundName, float relativeVolume)
+	/*bool Sound::PlayBackgroundMusic(const char* soundName, float relativeVolume)
 	{
 		if (!CheckFileExistance(m_soundPath + soundName))
 		{
@@ -80,7 +88,7 @@ namespace Engine {
 		{
 			s_soloud->setVolume(m_backgroundMusic, relativeVolume);
 		}
-	}
+	}*/
 
 	float Sound::GetGlobalVolume()
 	{
@@ -91,6 +99,18 @@ namespace Engine {
 	int Sound::GetNumberOfPlayingSounds()
 	{
 		return s_soloud->getActiveVoiceCount();
+	}
+
+	const char* Sound::GetSoundFilename(int index)
+	{
+		//if (m_soundfiles.find(soundName) != m_soundfiles.end())
+		//return m_soundfiles.begin()->first.c_str();
+		return "Sound filename";
+	}
+
+	bool Sound::GetSoundLoopingStatus(const char* soundName)
+	{
+		return m_soundfiles[soundName].SHOULD_LOOP;
 	}
 
 	SoLoud::Soloud* Sound::s_soloud = new SoLoud::Soloud();

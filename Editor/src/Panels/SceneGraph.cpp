@@ -267,7 +267,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
-
+			DisplayAddComponentEntry<SoundComponent>("Sound");
 			ImGui::EndPopup();
 		}
 
@@ -371,7 +371,6 @@ namespace EditorPanels {
 			light->SetQuadraticAttenuation(attenuations[2]);
 			ImGui::Columns(1);
 		});
-
 		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
@@ -393,15 +392,43 @@ namespace EditorPanels {
 			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f))
 			{
 				light->SetIntensity(intensity);
-			}	
+			}
 			ImGui::Columns(1);
 
 			glm::vec3 curr_direction = light->GetDirection();
 			DrawVec3Control("Direction", curr_direction);
-			
+
 			light->SetDirection(curr_direction);
 
 		});
+
+		DrawComponent<SoundComponent>("Sound", entity, [](auto& component, auto entity)
+		{
+
+			auto& sound = component->sound;
+			float volume[1] = { sound->GetGlobalVolume() };
+			ImGui::Text("Global volume:");
+			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
+			sound->SetGlobalVolume(volume[0]);
+
+
+			/*ImGui::Text("Sound:");
+			const char * soundfile = sound->GetSoundFilename();
+			char* soundfile2 = (char*)soundfile;
+			//bool looping = sound->GetSoundLoopingStatus(sound->GetSoundFilename());
+			ImGui::InputText("Filepath", soundfile2, IM_ARRAYSIZE(soundfile2));
+			//ImGui::Checkbox("Looping", &looping);
+			sound->AddGlobalSound(soundfile2);
+			/*if (ImGui::Button("Add Sound"))
+			{
+				sound->AddGlobalSound(soundfile, looping);
+			}*/
+			if (ImGui::Button("Play"))
+			{
+				sound->PlayGlobalSound(sound->GetSoundFilename());
+			}
+		});
+		
 
 		/*DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
 		{

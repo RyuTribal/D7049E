@@ -5,7 +5,8 @@
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 #include "Lights/PointLight.h"
-#include <Lights/DirectionalLight.h>
+#include "Lights/DirectionalLight.h"
+#include "Sound/Sound.h"
 
 namespace Engine {
 
@@ -19,7 +20,9 @@ namespace Engine {
 		CameraComp,
 		PointLightComp,
 		DirectionalLightComp,
-		MeshComp
+		MeshComp,
+		MaterialComp,
+		SoundComp
 	};
 
 	struct Component {
@@ -167,6 +170,20 @@ namespace Engine {
 		const ComponentType Type() const override
 		{
 			return ComponentType::DirectionalLightComp;
+		}
+	};
+
+	struct SoundComponent : public Component
+	{
+		Ref<Sound> sound;
+
+		SoundComponent() { sound = CreateRef<Sound>(); };
+		SoundComponent(const SoundComponent&) = default;
+		SoundComponent(Ref<Sound> new_sound) : sound(new_sound) {}
+
+		const ComponentType Type() const override
+		{
+			return ComponentType::SoundComp;
 		}
 	};
 

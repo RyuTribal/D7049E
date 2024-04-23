@@ -19,6 +19,9 @@ project "Engine"
         "vendor/yaml-cpp/src/**.h",
         "vendor/yaml-cpp/include/**.h",
         "vendor/filewatch/include/**.hpp",
+        "vendor/SoLoud/**.cpp",
+        "vendor/SoLoud/**.h",
+        "vendor/SoLoud/**.c",
 
     }
 
@@ -61,6 +64,7 @@ project "Engine"
         "vendor/spdlog/include",
         "vendor/stb",
         "vendor/",
+        "vendor/SoLoud",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.Glad}",
         "%{IncludeDir.ImGui}",

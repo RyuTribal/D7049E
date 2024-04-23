@@ -39,5 +39,7 @@
 #include "ImGui/ImGuiLayer.h"
 #include "Project/Project.h"
 
+//---------------- Sound ----------------
+#include "Sound/Sound.h"
 
 // -----------------------------------------

@@ -15,6 +15,9 @@ project "Engine"
         "src/**.c",
         "vendor/glm/glm/**.hpp",
         "vendor/glm/glm/**.inl",
+        "vendor/SoLoud/**.cpp",
+        "vendor/SoLoud/**.h",
+        "vendor/SoLoud/**.c",
 
     }
 

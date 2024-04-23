@@ -341,11 +341,11 @@ namespace EditorPanels {
 		DrawComponent<SoundComponent>("Sound", entity, [](auto& component)
 		{
 
-			auto& sound = component->sound;
-			float volume[1] = { sound->GetGlobalVolume() };
+			//auto& sound = component->sound;
+			//float volume[1] = { sound->GetGlobalVolume() };
 			ImGui::Text("Global volume:");
-			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
-			sound->SetGlobalVolume(volume[0]);
+			//ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
+			//sound->SetGlobalVolume(volume[0]);
 
 			/*float intensity = light->GetIntensity();
 			ImGui::Text("Intensity:");

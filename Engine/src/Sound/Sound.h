@@ -19,10 +19,12 @@ namespace Engine {
 		void ChangeBackgroundMusicVolume(float relativeVolume, float fadingTime = 0.0f); // Separate BGM volume control, relative to global volume. fadingTime allows fading volume for e.g. subtly lowering BGM during dialogs
 		float GetGlobalVolume();
 		int GetNumberOfPlayingSounds();
+		static SoLoud::Soloud* s_soloud;
 
 	private:
 		std::string m_soundPath;
-		SoLoud::Soloud s_soloud;
+
+		bool m_isInitialized = false;
 
 		std::map<std::string, SoLoud::handle> m_playingSounds;
 		std::map < std::string, SoLoud::Wav> m_soundfiles;

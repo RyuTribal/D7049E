@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Core/Base.h"
 #include "Application.h"
+#include "Script/ScriptEngine.h"
 
 #include "Renderer/Renderer.h"
 
@@ -15,6 +16,7 @@ namespace Engine
 		m_Window = std::unique_ptr<Window>(Window::Create(props));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 		Renderer::CreateRenderer();
+		ScriptEngine::Init();
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 	}
@@ -36,6 +38,7 @@ namespace Engine
 	void Application::Close()
 	{
 		m_Running = false;
+		ScriptEngine::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer)

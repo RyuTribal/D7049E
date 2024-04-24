@@ -72,6 +72,7 @@ group "Dependencies"
 
 group "Core"
     include "Engine"
+    include "ScriptCore"
 
 group "Tools"
     include "Editor"

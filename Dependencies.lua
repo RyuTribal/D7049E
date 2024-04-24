@@ -7,14 +7,25 @@ IncludeDir["Jolt"] = "%{wks.location}/Engine/vendor/JoltPhysics/JoltPhysics"
 IncludeDir["Tracy"] = "%{wks.location}/Engine/vendor/tracy/tracy/public"
 IncludeDir["Assimp"] = "%{wks.location}/Engine/vendor/assimp/include"
 IncludeDir["YamlCpp"] = "%{wks.location}/Engine/vendor/yaml-cpp/include"
+IncludeDir["mono"] = "%{wks.location}/Engine/vendor/mono/include"
+
 
 rootPath = path.getabsolute(".")
 
 LibraryDir = {}
+LibraryDir["mono"] = "%{wks.location}/Engine/vendor/mono/lib/%{cfg.buildcfg}"
 
 Library = {}
 Library["Jolt"] = "JoltPhysics";
 Library["Tracy"] = "Tracy";
+Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
 
 Binaries = {}
+
+-- Platform specific libraries
+Library["WinSock"] = "Ws2_32.lib"
+Library["WinMM"] = "Winmm.lib"
+Library["WinVersion"] = "Version.lib"
+Library["BCrypt"] = "Bcrypt.lib"
+Library["DebugHelp"] = "Dbghelp.lib"
 

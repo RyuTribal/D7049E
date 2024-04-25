@@ -235,11 +235,11 @@ namespace Editor {
 			// HVE_INFO("Shot fired from {0} {1}", mouseX, mouseY);
 			auto [origin, direction] = CastRay(mouseX, mouseY);
 
-			/*Line line{};
+			Line line{};
 			line.start = origin;
 			line.end = direction;
 			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
-			m_DebugLines.push_back(line);*/ // Can be used for debugging
+			m_DebugLines.push_back(line); // Can be used for debugging
 
 			auto meshEntities = m_Scene->GetAllEntitiesByType<MeshComponent>();
 
@@ -262,13 +262,18 @@ namespace Editor {
 
 					float t;
 					Math::BoundingBox bounding_box = submesh.Bounds;
+					bounding_box.TransformBy(submesh.WorldTransform);
 					if (ray.IntersectsAABB(bounding_box, t))
 					{
 						const auto& triangleCache = component.mesh->GetMeshSource()->GetTriangleCache(submesh.Index);
 						for (const auto& triangle : triangleCache)
 						{
 
-							if (ray.IntersectsTriangle(triangle.V0.coordinates, triangle.V1.coordinates, triangle.V2.coordinates, t))
+							glm::vec3 transformedV0 = glm::vec3(submesh.WorldTransform * glm::vec4(triangle.V0.coordinates, 1.0));
+							glm::vec3 transformedV1 = glm::vec3(submesh.WorldTransform * glm::vec4(triangle.V1.coordinates, 1.0));
+							glm::vec3 transformedV2 = glm::vec3(submesh.WorldTransform * glm::vec4(triangle.V2.coordinates, 1.0));
+
+							if (ray.IntersectsTriangle(transformedV0, transformedV1, transformedV2, t))
 							{
 								selected_entities.push_back({ entity, t });
 								break;

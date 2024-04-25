@@ -166,6 +166,7 @@ namespace Engine
 
 	void Renderer::ShadeHDR()
 	{
+		HVE_PROFILE_FUNC();
 		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("hdr_shader");
 		shader->Activate();
 

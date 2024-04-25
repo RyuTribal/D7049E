@@ -7,6 +7,7 @@
 #include "Lights/PointLight.h"
 #include "Lights/DirectionalLight.h"
 #include "Sound/Sound.h"
+#include <Script/ScriptEngine.h>
 
 namespace Engine {
 
@@ -22,7 +23,8 @@ namespace Engine {
 		DirectionalLightComp,
 		MeshComp,
 		MaterialComp,
-		SoundComp
+		SoundComp,
+		ScriptComp
 	};
 
 	struct Component {
@@ -184,6 +186,21 @@ namespace Engine {
 		const ComponentType Type() const override
 		{
 			return ComponentType::SoundComp;
+		}
+	};
+
+	struct ScriptComponent : public Component
+	{
+		Ref<ScriptClass> script = nullptr;
+		std::string Name;
+
+		ScriptComponent() = default;
+		ScriptComponent(const ScriptComponent&) = default;
+		ScriptComponent(Ref<ScriptClass> new_script) : script(new_script) {}
+
+		const ComponentType Type() const override
+		{
+			return ComponentType::ScriptComp;
 		}
 	};
 

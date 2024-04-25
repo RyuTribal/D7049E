@@ -231,6 +231,7 @@ namespace Engine {
 
 	void Scene::UpdateTransforms()
 	{
+		HVE_PROFILE_FUNC();
 		glm::mat4 identityMatrix = glm::mat4(1.0f);
 
 		for (auto& child : *m_RootSceneNode.GetChildren()) {
@@ -240,6 +241,7 @@ namespace Engine {
 
 	void Scene::DrawSystem()
 	{
+		HVE_PROFILE_FUNC();
 		if (m_Registry.GetComponentRegistry<MeshComponent>() != nullptr) {
 			for (const auto& [id, value] : *m_Registry.GetComponentRegistry<MeshComponent>()) {
 				if (value.mesh != nullptr)

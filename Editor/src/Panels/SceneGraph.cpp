@@ -268,6 +268,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
 			DisplayAddComponentEntry<SoundComponent>("Sound");
+			DisplayAddComponentEntry<ScriptComponent>("Script");
 			ImGui::EndPopup();
 		}
 
@@ -280,6 +281,20 @@ namespace EditorPanels {
 			DrawVec3Control("Rotation", rotation);
 			component->local_transform.rotation = glm::radians(rotation);
 			DrawVec3Control("Scale", component->local_transform.scale, 1.0f);
+		});
+
+		DrawComponent<ScriptComponent>("Script", entity, [](auto& component, auto entity) {
+			/*static char buffer[64];
+			strcpy(buffer, component.Name.c_str());
+			auto& entity_map = ScriptEngine::GetEntityClasses();
+			if (ImGui::InputText("Class", buffer, sizeof(buffer)))
+			{
+				component.Name = buffer;
+			}
+			ImGui::BeginCombo("##filter", "", ImGuiComboFlags_NoPreview);
+
+
+			ImGui::EndCombo();*/
 		});
 
 		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, auto entity)

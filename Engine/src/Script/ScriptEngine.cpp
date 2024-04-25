@@ -5,7 +5,7 @@
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/object.h>
 
-// Ripped initialization code from: https://nilssondev.com/mono-guide/book/introduction.html
+// Ripped initialization code from: https://nilssondev.com/mono-guide/book/introduction.html. Thanks
 
 
 namespace Engine {
@@ -94,6 +94,8 @@ namespace Engine {
 
 		MonoAssembly* CoreAssembly = nullptr;
 		MonoImage* CoreAssemblyImage = nullptr;
+
+		std::unordered_map<std::string, Ref<ScriptClass>> EntityClasses;
 	};
 
 	ScriptData* s_Data = nullptr;
@@ -104,10 +106,13 @@ namespace Engine {
 		InitMono();
 		LoadAssembly("Resources/Scripts/ScriptCore.dll");
 
+		LoadAssemblyClasses(s_Data->CoreAssembly);
+
+
 		ScriptGlue::RegisterFunctions();
 
 		// Create c# object
-		MonoClass* assemlyclass = mono_class_from_name(s_Data->CoreAssemblyImage, "Engine", "Main");
+		/*MonoClass* assemlyclass = mono_class_from_name(s_Data->CoreAssemblyImage, "Engine", "Main");
 		MonoObject* instance = mono_object_new(s_Data->AppDomain, assemlyclass);
 		mono_runtime_object_init(instance);
 
@@ -121,12 +126,50 @@ namespace Engine {
 
 		void* param = message;
 
-		mono_runtime_invoke(print_custom_message_func, instance, &param, nullptr);
+		mono_runtime_invoke(print_custom_message_func, instance, &param, nullptr);*/
 	}
 	void ScriptEngine::Shutdown()
 	{
 		ShutdownMono();
 		delete s_Data;
+	}
+
+
+	void ScriptEngine::LoadAssemblyClasses(MonoAssembly* assembly)
+	{
+		s_Data->EntityClasses.clear(); // For reloading later
+
+		MonoImage* image = mono_assembly_get_image(assembly);
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
+			MonoClass* monoClass = mono_class_from_name(image, nameSpace, name);
+
+			MonoClass* entityClass = mono_class_from_name(image, "Helios", "Entity");
+
+			std::string fullName;
+			if (strlen(nameSpace) != 0)
+			{
+				fullName = fmt::format("{}.{}", nameSpace, name);
+			}
+			else
+			{
+				fullName = name;
+			}
+
+			bool isEntity = mono_class_is_subclass_of(monoClass, entityClass, false);
+			if (isEntity)
+			{
+				s_Data->EntityClasses[fullName] = CreateRef<ScriptClass>(nameSpace, name);
+			}
+		}
 	}
 
 	void ScriptEngine::LoadAssembly(const std::filesystem::path& filepath)
@@ -136,7 +179,11 @@ namespace Engine {
 
 		s_Data->CoreAssembly = Utils::LoadMonoAssembly(filepath);
 		s_Data->CoreAssemblyImage = mono_assembly_get_image(s_Data->CoreAssembly);
-		// Utils::PrintAssemblyTypes(s_Data->CoreAssembly);
+	}
+
+	std::unordered_map<std::string, Ref<ScriptClass>>& ScriptEngine::GetEntityClasses()
+	{
+		return s_Data->EntityClasses;
 	}
 
 
@@ -157,5 +204,49 @@ namespace Engine {
 		s_Data->AppDomain = nullptr;
 		mono_jit_cleanup(s_Data->RootDomain);
 		s_Data->RootDomain = nullptr;
+	}
+	MonoObject* ScriptEngine::InstantiateClass(MonoClass* mono_class)
+	{
+		MonoObject* instance = mono_object_new(s_Data->AppDomain, mono_class);
+		mono_runtime_object_init(instance);
+		return instance;
+	}
+
+
+	/// ScriptClass ///////////////////////////////////
+
+	ScriptClass::ScriptClass(const std::string& name_space, const std::string& class_name)
+	{
+		// m_MonoClass = mono_class_from_name(isCore ? s_Data->CoreAssemblyImage : s_Data->AppAssemblyImage, classNamespace.c_str(), className.c_str());
+	}
+
+	MonoObject* ScriptClass::Instantiate()
+	{
+		return ScriptEngine::InstantiateClass(m_MonoClass);
+	}
+	MonoMethod* ScriptClass::GetMethod(const std::string& name, int parameterCount)
+	{
+		return mono_class_get_method_from_name(m_MonoClass, name.c_str(), parameterCount);
+	}
+	MonoObject* ScriptClass::InvokeMethod(MonoObject* instance, MonoMethod* method, void** params)
+	{
+		MonoObject* exception = nullptr;
+		return mono_runtime_invoke(method, instance, params, &exception);
+	}
+	ScriptInstance::ScriptInstance(Ref<ScriptClass> script_class): m_ScriptClass(script_class)
+	{
+		m_Instance = script_class->Instantiate();
+		m_OnCreateMethod = script_class->GetMethod("OnCreate", 0);
+		m_OnUpdateMethod = script_class->GetMethod("OnUpdate", 1);
+	}
+	void ScriptInstance::InvokeOnCreate()
+	{
+		m_ScriptClass->InvokeMethod(m_Instance, m_OnCreateMethod);
+	}
+	void ScriptInstance::InvokeOnUpdate(float delta_time)
+	{
+		void* param = &delta_time;
+
+		m_ScriptClass->InvokeMethod(m_Instance, m_OnUpdateMethod, &param);
 	}
 }

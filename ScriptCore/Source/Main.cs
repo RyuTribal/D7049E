@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Engine
+namespace Helios
 {
 	public struct Vector3
 	{
@@ -21,6 +21,14 @@ namespace Engine
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void NativeLogVector(ref Vector3 parameter, out Vector3 destination);
+	}
+
+	public class Entity
+	{
+		public Entity()
+		{
+
+		}
 	}
 	public class Main
 	{

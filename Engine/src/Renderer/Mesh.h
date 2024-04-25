@@ -16,9 +16,15 @@ namespace Engine {
 		glm::vec3 bitangent = { 0.0f, 0.0f, 0.0f };
 	};
 
+	struct Triangle
+	{
+		Vertex V0, V1, V2;
+	};
+
 	class Submesh
 	{
 	public:
+		uint32_t Index = -1;
 		uint32_t MaterialIndex = -1;
 		Ref<VertexArray> VertexArray;
 
@@ -27,6 +33,8 @@ namespace Engine {
 		glm::mat4 WorldTransform{ 1.0f };
 
 		std::string MeshName;
+
+		Math::BoundingBox Bounds;
 	};
 
 	struct MeshNode
@@ -48,6 +56,10 @@ namespace Engine {
 		void SetNodes(std::vector<MeshNode> nodes) { m_Nodes = nodes; }
 		void SetSubmeshes(std::vector<Submesh> submeshes) { m_Submeshes = submeshes; }
 		void SetMaterials(std::vector<Ref<Material>> materials) { m_Materials = materials; }
+		const std::vector<Triangle> GetTriangleCache(uint32_t index) const { return m_TriangleCache.at(index); }
+		void AddTriangleCache(uint32_t index, Triangle triangle) { m_TriangleCache[index].push_back(triangle); }
+		Math::BoundingBox* GetBounds() { return &m_Bounds; }
+
 
 		static AssetType GetStaticType() { return AssetType::MeshSource; } // Good for templated functions
 		AssetType GetType() const { return GetStaticType(); }
@@ -55,9 +67,11 @@ namespace Engine {
 		std::vector<MeshNode> m_Nodes;
 		std::vector<Submesh> m_Submeshes;
 		std::vector<Ref<Material>> m_Materials;
+		std::unordered_map<uint32_t, std::vector<Triangle>> m_TriangleCache;
 		uint32_t m_RootNode;
 		int m_VertexCount = 0;
 		int m_IndexCount = 0;
+		Math::BoundingBox m_Bounds;
 	};
 
 	class Mesh: public Asset

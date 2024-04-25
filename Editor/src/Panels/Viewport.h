@@ -37,16 +37,15 @@ namespace EditorPanels {
 			return s_Instance->m_ViewportSize; 
 		}
 
+		static std::pair<glm::vec2&, glm::vec2&> GetViewportBounds()
+		{
+			Create();
+			return { s_Instance->m_ViewportBounds[0], s_Instance->m_ViewportBounds[1] };
+		}
+
 		static void OnKeyPressed(int keycode) {
 			Create();
 			s_Instance->OnKeyPressedImpl(keycode);
-		}
-
-		static void ActivateGizmo() {
-			Create();
-			if (s_Instance->m_GizmoType == -1) {
-				s_Instance->m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
-			}
 		}
 
 		static bool CanReadPixelData() {
@@ -54,41 +53,44 @@ namespace EditorPanels {
 			return (s_Instance->m_MouseX >= 0 && s_Instance->m_MouseY >= 0 && s_Instance->m_MouseX < (int)s_Instance->m_ViewportSize.x && s_Instance->m_MouseY < (int)s_Instance->m_ViewportSize.y);
 		}
 
-		static std::pair<int, int> GetMousePos() {
+		static std::pair<float, float> GetMousePos() {
 			Create();
-			return { s_Instance->m_MouseX, s_Instance->m_MouseY };
+			auto [mx, my] = ImGui::GetMousePos();
+			const auto& viewportBounds =  s_Instance->m_ViewportBounds;
+			mx -= viewportBounds[0].x;
+			my -= viewportBounds[0].y;
+			auto viewportWidth = viewportBounds[1].x - viewportBounds[0].x;
+			auto viewportHeight = viewportBounds[1].y - viewportBounds[0].y;
+
+			return { (mx / viewportWidth) * 2.0f - 1.0f, ((my / viewportHeight) * 2.0f - 1.0f) * -1.0f };
 		}
 
-		void RenderImpl(Camera* camera) {
-		
-			auto [mx, my] = ImGui::GetMousePos();
-			mx -= m_ViewportBounds[0].x;
-			my -= m_ViewportBounds[0].y;
-			my = m_ViewportSize.y - my;
-			m_MouseX = (int)mx;
-			m_MouseY = (int)my;
+		void RenderImpl(Camera* camera) 
+		{
 
 			m_Focused = ImGui::IsWindowFocused();
 			m_IsHovered = ImGui::IsWindowHovered();
 			uint32_t id = Engine::Renderer::Get()->GetSceneTextureID();
-			ImVec2 windowSize = ImGui::GetContentRegionAvail();
-			if (m_ViewportSize != *((glm::vec2*)&windowSize)) {
-				Engine::Renderer::Get()->ResizeViewport((uint32_t)windowSize.x, (uint32_t)windowSize.y);
-				m_ViewportSize = { windowSize.x, windowSize.y };
-			}
-			ImGui::Image((void*)(intptr_t)(id), ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2(0, 1), ImVec2(1, 0));
+			auto viewportOffset = ImGui::GetCursorPos();
+			auto viewportSize = ImGui::GetContentRegionAvail();
+			Engine::Renderer::Get()->ResizeViewport((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
+
+			// Render viewport image
+			ImGui::Image((void*)(intptr_t)(id), ImVec2{ viewportSize.x, viewportSize.y }, ImVec2(0, 1), ImVec2(1, 0));
+
+			auto windowSize = ImGui::GetWindowSize();
+			ImVec2 minBound = ImGui::GetWindowPos();
+
+			ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
+			m_ViewportBounds[0] = { minBound.x, minBound.y };
+			m_ViewportBounds[1] = { maxBound.x, maxBound.y };
 
 			Entity* selectedEntity = SceneGraph::GetSelectedEntity();
-			if (selectedEntity != nullptr && m_GizmoType != -1)
+			if (selectedEntity != nullptr)
 			{
 				ImGuizmo::SetOrthographic(false);
 				ImGuizmo::SetDrawlist();
 
-				auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-				auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-				auto viewportOffset = ImGui::GetWindowPos();
-				m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
-				m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
 				ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
 				const glm::mat4& cameraProjection = camera->GetProjection();
@@ -123,12 +125,6 @@ namespace EditorPanels {
 
 		void OnKeyPressedImpl(int keycode) {
 			switch (keycode) {
-			case KEY_Q:
-			{
-				if (!ImGuizmo::IsUsing())
-					m_GizmoType = -1;
-				break;
-			}
 			case KEY_W:
 			{
 				if (!ImGuizmo::IsUsing())
@@ -155,7 +151,7 @@ namespace EditorPanels {
 		glm::vec2 m_ViewportSize;
 		bool m_Focused;
 		bool m_IsHovered;
-		int m_GizmoType = -1;
+		int m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
 		glm::vec2 m_ViewportBounds[2];
 		int m_MouseX = 0, m_MouseY = 0;
 

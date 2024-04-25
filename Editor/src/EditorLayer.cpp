@@ -18,6 +18,11 @@ namespace Editor {
 		if (EditorPanels::Viewport::IsFocused()) {
 			m_Camera->Update(delta_time);
 		}
+		for (auto& line : m_DebugLines)
+		{
+			Renderer::Get()->SubmitLine(line);
+		}
+		
 		m_Scene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
 	}
@@ -163,9 +168,14 @@ namespace Editor {
 		ImGui::Text("Indices: %d", Renderer::Get()->GetStats()->index_count);
 
 		ImGui::End();
-
 		ImGui::Begin("Settings");
-
+		static bool ShouldDrawBoundingBoxes = false;
+		ImGui::Text("Draw Mesh Bounding Boxes");
+		ImGui::SameLine();
+		if (ImGui::Checkbox("##boundboxesdraw", &ShouldDrawBoundingBoxes))
+		{
+			Renderer::Get()->SetDrawBoundingBoxes(ShouldDrawBoundingBoxes);
+		}
 		ImGui::End();
 
 		ImGui::End();
@@ -220,14 +230,76 @@ namespace Editor {
 			m_Camera->UpdateKeyState(event.GetMouseButton(), true);
 		}
 		// Too janky gotta fix a ray caster instead
-		/*if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused()) {
-			auto [x, y] = EditorPanels::Viewport::GetMousePos();
-			int pixelData = Renderer::Get()->GetObjectFrameBuffer()->ReadPixel(1, x, y);
-			if (pixelData != -1 || EditorPanels::SceneGraph::GetSelectedEntity()->GetID() != (UUID)pixelData) {
-				EditorPanels::SceneGraph::SetSelectedEntity(pixelData);
-				EditorPanels::Viewport::ActivateGizmo();
+		if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsHovered()) {
+			auto [mouseX, mouseY] = EditorPanels::Viewport::GetMousePos();
+			// HVE_INFO("Shot fired from {0} {1}", mouseX, mouseY);
+			auto [origin, direction] = CastRay(mouseX, mouseY);
+
+			/*Line line{};
+			line.start = origin;
+			line.end = direction;
+			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+			m_DebugLines.push_back(line);*/ // Can be used for debugging
+
+			auto meshEntities = m_Scene->GetAllEntitiesByType<MeshComponent>();
+
+			std::vector<SelectionData> selected_entities{};
+
+			for (const auto& [entity, component] : *meshEntities)
+			{
+				if (!component.mesh)
+				{
+					continue;
+				}
+
+				for (const auto& submesh : component.mesh->GetMeshSource()->GetSubmeshes())
+				{
+					
+					Math::Ray ray = {
+						glm::inverse(submesh.WorldTransform) * glm::vec4(origin, 1.0f),
+						glm::inverse(glm::mat3(submesh.WorldTransform)) * direction
+					};
+
+					float t;
+					Math::BoundingBox bounding_box = submesh.Bounds;
+					if (ray.IntersectsAABB(bounding_box, t))
+					{
+						const auto& triangleCache = component.mesh->GetMeshSource()->GetTriangleCache(submesh.Index);
+						for (const auto& triangle : triangleCache)
+						{
+
+							if (ray.IntersectsTriangle(triangle.V0.coordinates, triangle.V1.coordinates, triangle.V2.coordinates, t))
+							{
+								selected_entities.push_back({ entity, t });
+								break;
+							}
+						}
+					}
+				}
+
 			}
-		}*/
+
+			std::sort(selected_entities.begin(), selected_entities.end(), [](auto& a, auto& b) { return a.Distance < b.Distance; });
+
+			if (selected_entities.size() > 0)
+			{
+				auto selected_entity = EditorPanels::SceneGraph::GetSelectedEntity();
+				if (selected_entity && selected_entity->GetHandle()->GetID() == selected_entities[0].entity.GetID())
+				{
+					EditorPanels::SceneGraph::SetSelectedEntity(0);
+				}
+				else
+				{
+					EditorPanels::SceneGraph::SetSelectedEntity(selected_entities[0].entity.GetID());
+				}
+			}
+			else
+			{
+				EditorPanels::SceneGraph::SetSelectedEntity(0);
+			}
+			
+
+		}
 		return true;
 	}
 	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)
@@ -238,6 +310,23 @@ namespace Editor {
 		}
 		return false;
 	}
+
+
+	std::pair<glm::vec3, glm::vec3> EditorLayer::CastRay(float mx, float my)
+	{
+		glm::vec4 mouseClipPos = { mx, my, -1.0f, 1.0f };
+		auto raw_camera = m_Camera->GetCamera();
+
+		auto inverseProj = glm::inverse(raw_camera->GetProjection());
+		auto inverseView = glm::inverse(glm::mat3(raw_camera->GetView()));
+
+		glm::vec4 ray = inverseProj * mouseClipPos;
+		glm::vec3 rayPos = raw_camera->CalculatePosition();
+		glm::vec3 rayDir = inverseView * glm::vec3(ray);
+
+		return { rayPos, rayDir };
+	}
+
 	void EditorLayer::CreateEntityFromMesh(const std::filesystem::path& file_path)
 	{
 		auto handle = m_Scene->CreateEntity("New Mesh Entity", nullptr);

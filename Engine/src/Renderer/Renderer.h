@@ -30,6 +30,13 @@ namespace Engine
 		glm::vec4 position;
 	};
 
+	struct Line
+	{
+		glm::vec3 start;
+		glm::vec3 end;
+		glm::vec4 color;
+	};
+
 	struct DirectionalLightInfo
 	{
 		glm::vec3 padding = { 1.f, 1.f, 1.f }; // I honestly haven't come up with an answer as to why the data corrupts if I don't have this padding. Something to do with allignment
@@ -80,16 +87,14 @@ namespace Engine
 		Renderer();
 		~Renderer();
 
-		void SubmitObject(Mesh* mesh);
-		void SubmitPointLight(PointLight* point_light) { m_PointLights.push_back(point_light); }
-		void SubmitDirectionalLight(DirectionalLight* light) { m_DirectionalLights.push_back(light); }
+		void SubmitObject(Ref<Mesh> mesh);
+		void SubmitPointLight(Ref<PointLight> point_light) { m_PointLights.push_back(point_light); }
+		void SubmitDirectionalLight(Ref<DirectionalLight> light) { m_DirectionalLights.push_back(light); }
+		void SubmitLine(Line line);
 
 		void BeginFrame(Camera* camera);
-
-		void DepthPrePass();
-		void CullLights();
-		void ShadeAllObjects();
-		void DrawIndexed(Mesh* mesh, bool use_material);
+		void DrawIndexed(Ref<Mesh> mesh, bool use_material);
+		void DrawLine(Line line);
 
 
 		static Ref<Texture2D> GetWhiteTexture();
@@ -127,12 +132,21 @@ namespace Engine
 		void SetVSync(bool vsync);
 		void SetViewport(int width, int height);
 		void BindTextureUnit(TextureUnits unit) { m_RendererAPI.ActivateTextureUnit(unit); }
+
+		void SetDrawBoundingBoxes(bool should_draw) { m_DrawBoundingBox = should_draw; }
+
 	private:
+
+		void DepthPrePass();
+		void CullLights();
+		void ShadeAllObjects();
+		void ShadeHDR();
 
 		void ResetStats();
 		void ReCreateFrameBuffers();
 		void UploadLightData();
 		void DrawHDRQuad();
+		void DrawBoudingBoxes();
 
 		ShaderLibrary m_ShaderLibrary{};
 
@@ -155,9 +169,10 @@ namespace Engine
 		
 		float current_window_width, current_window_height;
 
-		std::vector<Mesh*> m_Meshes{};
-		std::vector<PointLight*> m_PointLights{};
-		std::vector<DirectionalLight*> m_DirectionalLights{};
+		std::vector<Ref<Mesh>> m_Meshes{};
+		std::vector<Line> m_Lines{};
+		std::vector<Ref<PointLight>> m_PointLights{};
+		std::vector<Ref<DirectionalLight>> m_DirectionalLights{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
 
@@ -167,6 +182,8 @@ namespace Engine
 		GLuint m_QuadVBO;
 
 		RendererAPI m_RendererAPI{};
+
+		bool m_DrawBoundingBox = false;
 	};
 
 	// This is so the spd log library can print this data structure

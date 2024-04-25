@@ -159,6 +159,27 @@ namespace Engine {
 		vertexArray->Unbind();
 	}
 
+	void RendererAPI::DrawLine(const glm::vec3& start, const glm::vec3& end)
+	{
+		float vertices[6] = {
+		start.x, start.y, start.z,
+		end.x, end.y, end.z
+		};
+
+		Ref<VertexArray> VAO = VertexArray::Create();
+		uint32_t size = 6 * sizeof(float);
+		auto vertexBuffer = VertexBuffer::Create(size);
+		vertexBuffer->SetLayout({
+			{ ShaderDataType::Float3, "a_position" }});
+		vertexBuffer->SetData(&vertices, size);
+		VAO->AddVertexBuffer(vertexBuffer);
+
+		VAO->Bind();
+
+		glDrawArrays(GL_LINES, 0, 2);
+		VAO->Unbind();
+	}
+
 	void RendererAPI::UseShaderProgram(uint32_t id)
 	{
 		glUseProgram(id);

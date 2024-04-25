@@ -9,6 +9,13 @@ using namespace Engine;
 
 
 namespace Editor {
+
+	struct SelectionData
+	{
+		EntityHandle entity;
+		float Distance = 0.0f;
+	};
+
 	class EditorLayer : public Layer {
 	public:
 		EditorLayer(std::string projectPath) : Layer("Editor"), m_ProjectPath(projectPath) {
@@ -29,9 +36,13 @@ namespace Editor {
 
 		void CreateEntityFromMesh(const std::filesystem::path& file_path);
 
+
+
 	private:
 		void SaveScene();
 		void OpenScene(AssetHandle handle);
+
+		std::pair<glm::vec3, glm::vec3> CastRay(float mx, float my);
 
 	private:
 		Ref<Scene> m_Scene;
@@ -41,5 +52,7 @@ namespace Editor {
 		bool b_EditDockspace = true;
 		Ref<Framebuffer> m_SceneBuffer;
 		Ref<Project> m_Project;
+
+		std::vector<Line> m_DebugLines;
 	};
 }

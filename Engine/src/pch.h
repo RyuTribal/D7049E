@@ -40,6 +40,7 @@
 #include "Core/Timer.h"
 #include "Core/Buffer.h"
 #include "Core/UUID.h"
+#include "Math/Math.h"
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>

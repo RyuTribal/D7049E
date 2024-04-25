@@ -50,6 +50,7 @@ namespace Engine {
 
 		void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0);
 		void DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount);
+		void DrawLine(const glm::vec3& start, const glm::vec3& end);
 
 		void UseShaderProgram(uint32_t id);
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);

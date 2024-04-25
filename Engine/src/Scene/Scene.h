@@ -156,6 +156,12 @@ namespace Engine {
 		Entity* GetEntity(UUID& id);
 		Entity* GetEntity(EntityHandle* id);
 
+		template<typename T>
+		auto GetAllEntitiesByType()
+		{
+			return m_Registry.GetComponentRegistry<T>();
+		}
+
 		void ForEachEntity(std::function<void(const UUID, const Ref<Entity>)> func) const;
 
 		static AssetType GetStaticType() { return AssetType::Scene; } // Good for templated functions

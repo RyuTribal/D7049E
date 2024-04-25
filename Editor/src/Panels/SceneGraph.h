@@ -23,7 +23,7 @@ namespace EditorPanels {
 			return s_Instance->GetSelectedEntityImpl();
 		}
 
-		static void SetSelectedEntity(int id) {
+		static void SetSelectedEntity(UUID id) {
 			Create();
 			s_Instance->SetSelectedEntityImpl(id);
 		}
@@ -39,7 +39,7 @@ namespace EditorPanels {
 		void RenderImpl();
 		void DisplaySceneEntity(SceneNode* node);
 		Entity* GetSelectedEntityImpl() { return m_Scene->GetEntity(m_SelectionContext); }
-		void SetSelectedEntityImpl(int id){ m_SelectionContext = (UUID)id; }
+		void SetSelectedEntityImpl(UUID id){ m_SelectionContext = id; }
 		void DrawComponents();
 
 		template<typename T>

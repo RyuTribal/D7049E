@@ -245,7 +245,7 @@ namespace Engine {
 				if (value.mesh != nullptr)
 				{
 					value.mesh->SetTransform(m_Registry.Get<TransformComponent>(id)->world_transform.mat4());
-					Renderer::Get()->SubmitObject(value.mesh.get());
+					Renderer::Get()->SubmitObject(value.mesh);
 				}
 			}
 		}
@@ -254,7 +254,7 @@ namespace Engine {
 				if (m_Registry.Get<TransformComponent>(id) != nullptr) {
 					value.light->SetPosition(m_Registry.Get<TransformComponent>(id)->world_transform.translation);
 				}
-				Renderer::Get()->SubmitPointLight(value.light.get());
+				Renderer::Get()->SubmitPointLight(value.light);
 			}
 		}
 
@@ -262,7 +262,7 @@ namespace Engine {
 		{
 			for (const auto& [id, value] : *m_Registry.GetComponentRegistry<DirectionalLightComponent>())
 			{
-				Renderer::Get()->SubmitDirectionalLight(value.light.get());
+				Renderer::Get()->SubmitDirectionalLight(value.light);
 			}
 		}
 		Renderer::Get()->BeginDrawing();

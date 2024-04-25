@@ -74,6 +74,7 @@ namespace Engine
 		m_ShaderLibrary.Load("forward_plus_depth_pre_pass", "Resources/Shaders/depth_pre_pass");
 		m_ShaderLibrary.Load("forward_plus_light_culling", "Resources/Shaders/light_culling_shader");
 		m_ShaderLibrary.Load("hdr_shader", "Resources/Shaders/hdr_shader");
+		m_ShaderLibrary.Load("line_shader", "Resources/Shaders/line");
 
 		ReCreateFrameBuffers();
     }
@@ -82,7 +83,7 @@ namespace Engine
 		delete s_DefaultTextures;
     }
 
-	void Renderer::SubmitObject(Mesh* mesh)
+	void Renderer::SubmitObject(Ref<Mesh> mesh)
 	{
 		HVE_PROFILE_FUNC();
 		m_Meshes.push_back(mesh);
@@ -90,7 +91,12 @@ namespace Engine
 		m_Stats.index_count += mesh->GetMeshSource()->IndexSize();
 	}
 
-    void Renderer::BeginFrame(Camera* camera)
+	void Renderer::SubmitLine(Line line)
+	{
+		m_Lines.push_back(line);
+	}
+
+	void Renderer::BeginFrame(Camera* camera)
     {
 		HVE_PROFILE_FUNC();
 		auto& app = Application::Get();
@@ -120,7 +126,7 @@ namespace Engine
 		shader->Set("u_CameraView", m_CurrentCamera->GetView());
 		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
 		shader->Activate();
-		for (Mesh* mesh : m_Meshes) {
+		for (Ref<Mesh> mesh : m_Meshes) {
 			DrawIndexed(mesh, false);
 		}
 
@@ -152,23 +158,18 @@ namespace Engine
 	void Renderer::ShadeAllObjects()
 	{
 		HVE_PROFILE_FUNC();
-		m_HDRFramebuffer->Bind();
-		m_RendererAPI.ClearAll();
-
 		for (size_t i = 0; i < m_Meshes.size(); i++) {
 			DrawIndexed(m_Meshes[i], true);
 		}
+		
+	}
 
-		m_HDRFramebuffer->Unbind();
-
-
-		uint32_t color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
-
-		m_RendererAPI.ClearAll();
+	void Renderer::ShadeHDR()
+	{
 		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("hdr_shader");
 		shader->Activate();
 
-		color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
+		uint32_t color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
 		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE0);
 		m_RendererAPI.BindTexture(color_attachment);
 		shader->Set("exposure", exposure);
@@ -178,10 +179,9 @@ namespace Engine
 		m_RendererAPI.ClearAll();
 		DrawHDRQuad();
 		m_SceneFramebuffer->Unbind();
-		
 	}
 
-	void Renderer::DrawIndexed(Mesh* mesh, bool use_material)
+	void Renderer::DrawIndexed(Ref<Mesh> mesh, bool use_material)
 	{
 		HVE_PROFILE_FUNC();
 		for (size_t i = 0; i < mesh->GetMeshSource()->GetSubmeshes().size(); i++)
@@ -199,6 +199,16 @@ namespace Engine
 			m_RendererAPI.DrawIndexed(mesh->GetMeshSource()->GetSubmeshes()[i].VertexArray);
 			m_Stats.draw_calls++;
 		}
+	}
+
+	void Renderer::DrawLine(Line line)
+	{
+		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("line_shader");
+		shader->Set("u_CameraView", m_CurrentCamera->GetView());
+		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
+		shader->Set("u_Color", line.color);
+		shader->Activate();
+		m_RendererAPI.DrawLine(line.start, line.end);
 	}
 
 	Ref<Texture2D> Renderer::GetWhiteTexture()
@@ -226,7 +236,24 @@ namespace Engine
 		DepthPrePass();
 		UploadLightData();
 		CullLights();
+
+		m_HDRFramebuffer->Bind();
+		m_RendererAPI.ClearAll();
 		ShadeAllObjects();
+		if (m_DrawBoundingBox)
+		{
+			m_RendererAPI.SetDepthWriting(false);
+			DrawBoudingBoxes();
+			m_RendererAPI.SetDepthWriting(true);
+		}
+		for (const auto& line : m_Lines)
+		{
+			DrawLine(line);
+		}
+		m_HDRFramebuffer->Unbind();
+		m_RendererAPI.ClearAll();
+
+		ShadeHDR();
 	}
 
     void Renderer::EndFrame()
@@ -235,6 +262,7 @@ namespace Engine
 		m_Meshes.clear();
 		m_PointLights.clear();
 		m_DirectionalLights.clear();
+		m_Lines.clear();
     }
 
 	void Renderer::ReCreateFrameBuffers()
@@ -306,8 +334,53 @@ namespace Engine
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
 	}
+	void Renderer::DrawBoudingBoxes()
+	{
+		m_RendererAPI.SetLineWidth(2.f);
+		glm::vec4 color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		for (const auto& mesh : m_Meshes)
+		{
+			for (const auto& submesh : mesh->GetMeshSource()->GetSubmeshes())
+			{
+				Math::BoundingBox box = submesh.Bounds;
+				glm::vec3& min = box.Min;
+				glm::vec3& max = box.Max;
+
+				std::vector<glm::vec3> vertices = {
+					// Bottom
+					glm::vec3(min.x, min.y, min.z), glm::vec3(max.x, min.y, min.z),
+					glm::vec3(max.x, min.y, min.z), glm::vec3(max.x, min.y, max.z),
+					glm::vec3(max.x, min.y, max.z), glm::vec3(min.x, min.y, max.z),
+					glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, min.y, min.z),
+					// Top
+					glm::vec3(min.x, max.y, min.z), glm::vec3(max.x, max.y, min.z),
+					glm::vec3(max.x, max.y, min.z), glm::vec3(max.x, max.y, max.z),
+					glm::vec3(max.x, max.y, max.z), glm::vec3(min.x, max.y, max.z),
+					glm::vec3(min.x, max.y, max.z), glm::vec3(min.x, max.y, min.z),
+					// Sides
+					glm::vec3(min.x, min.y, min.z), glm::vec3(min.x, max.y, min.z),
+					glm::vec3(max.x, min.y, min.z), glm::vec3(max.x, max.y, min.z),
+					glm::vec3(max.x, min.y, max.z), glm::vec3(max.x, max.y, max.z),
+					glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, max.y, max.z)
+				};
+
+				for (size_t i = 0; i < vertices.size(); i += 2)
+				{
+					Line line{};
+					line.start = vertices[i];
+					line.end = vertices[i + 1];
+					line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					SubmitLine(line);
+				}
+			}
+		}
+	}
 	void Renderer::ResizeViewport(int width, int height)
 	{
+		if (width == current_window_width && height == current_window_height)
+		{
+			return;
+		}
 		current_window_width = width;
 		current_window_height = height ? height : 1;
 		m_CurrentCamera->SetAspectRatio(current_window_width / current_window_height);

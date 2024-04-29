@@ -45,7 +45,7 @@ project "EditorLauncher"
 
     postbuildcommands
     {
-        '{COPY} "%{wks.location}/Engine/vendor/assimp/bin/x64/assimp-vc143-mt.dll" "%{cfg.targetdir}"'
+        '{COPY} "%{wks.location}/Engine/vendor/assimp/shared/x64/assimp-vc143-mt.dll" "%{cfg.targetdir}"'
     }
 
     filter "system:windows"

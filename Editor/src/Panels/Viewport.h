@@ -7,6 +7,8 @@
 #include "SceneGraph.h"
 #include <glm/gtc/type_ptr.hpp>
 
+using namespace Engine;
+
 namespace EditorPanels {
 	class Viewport {
 	public:

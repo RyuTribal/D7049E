@@ -28,10 +28,10 @@ namespace Engine {
 			SetOrthographic();
 		}
 	}
-	void Camera::SetClippingRange(float near, float far)
+	void Camera::SetClippingRange(float near_value, float far_value)
 	{
-		m_Near = near;
-		m_Far = far;
+		m_Near = near_value;
+		m_Far = far_value;
 		if (m_Type == CameraType::PERSPECTIVE)
 		{
 			SetPerspective();

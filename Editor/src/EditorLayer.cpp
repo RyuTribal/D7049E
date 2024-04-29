@@ -33,6 +33,11 @@ namespace Editor {
 		
 		m_CurrentScene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
+
+		if (ScriptEngine::ShouldReload())
+		{
+			Project::ReloadScripts();
+		}
 	}
 
 	void EditorLayer::OnEvent(Engine::Event& event)

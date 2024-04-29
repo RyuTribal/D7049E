@@ -43,7 +43,6 @@
 #include "Math/Math.h"
 
 #ifdef PLATFORM_WINDOWS
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#undef near
-#undef far
 #endif

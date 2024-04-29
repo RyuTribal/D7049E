@@ -18,7 +18,6 @@ project "Engine"
         "vendor/yaml-cpp/src/**.cpp",
         "vendor/yaml-cpp/src/**.h",
         "vendor/yaml-cpp/include/**.h",
-        "vendor/filewatch/include/**.hpp",
         "vendor/SoLoud/**.cpp",
         "vendor/SoLoud/**.h",
         "vendor/SoLoud/**.c",

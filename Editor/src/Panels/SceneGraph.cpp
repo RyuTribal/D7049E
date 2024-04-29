@@ -1,6 +1,8 @@
 #include "SceneGraph.h"
 #include <imgui/imgui_internal.h>
 
+using namespace Engine;
+
 namespace EditorPanels {
 	SceneGraph* SceneGraph::s_Instance = nullptr;
 	void SceneGraph::RenderImpl()

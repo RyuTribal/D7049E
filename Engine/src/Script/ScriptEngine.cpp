@@ -7,11 +7,18 @@
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 #include "Project/Project.h"
+#include "FileWatch.hpp"
 
 // Ripped initialization code from: https://nilssondev.com/mono-guide/book/introduction.html. Thanks
 
 
 namespace Engine {
+
+#ifdef PLATFORM_WINDOWS
+	using WatcherString = std::wstring;
+#else
+	using WatcherString = std::string;
+#endif
 
 	namespace Utils {
 
@@ -109,6 +116,9 @@ namespace Engine {
 		std::unordered_map<UUID, Ref<ScriptInstance>> EntityInstances;
 
 		Scene* SceneContext = nullptr;
+		bool ShouldReload = false;
+
+		std::unique_ptr<filewatch::FileWatch<WatcherString>> WatcherHandle = nullptr;
 	};
 
 	ScriptData* s_Data = nullptr;
@@ -182,6 +192,10 @@ namespace Engine {
 		{
 			s_Data->AppAssemblyImage = mono_assembly_get_image(s_Data->AppAssembly);
 			LoadAssemblyClasses();
+			s_Data->WatcherHandle = std::make_unique<filewatch::FileWatch<WatcherString>>(filepath, [](const auto& file, filewatch::Event eventType)
+			{
+				s_Data->ShouldReload = true;
+			});
 		}
 	}
 
@@ -223,6 +237,11 @@ namespace Engine {
 		for(auto [entity_id, instance] : s_Data->EntityInstances){
 			instance->InvokeOnUpdate(delta_time);
 		}
+	}
+
+	bool ScriptEngine::ShouldReload()
+	{
+		return s_Data->ShouldReload;
 	}
 
 	std::unordered_map<UUID, Ref<ScriptInstance>>& ScriptEngine::GetEntityInstances()
@@ -308,6 +327,10 @@ namespace Engine {
 
 		// Retrieve and instantiate class
 		s_Data->EntityClass = ScriptClass("Helios", "Entity", true);
+
+		s_Data->ShouldReload = false;
+
+		HVE_CORE_WARN("Reloaded Scripts");
 	}
 
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> script_class, Entity* entity): m_ScriptClass(script_class)

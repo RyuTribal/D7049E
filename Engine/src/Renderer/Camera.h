@@ -27,8 +27,8 @@ namespace Engine {
 
 		void SetPitch(float pitch) { m_Pitch = pitch; }
 		void SetYaw(float yaw) { m_Yaw = yaw; }
-		void SetNear(float near) { m_Near = near; }
-		void SetFar(float far) { m_Far = far; }
+		void SetNear(float near_value) { m_Near = near_value; }
+		void SetFar(float far_value) { m_Far = far_value; }
 
 		glm::vec3 GetUpDirection() const;
 		glm::vec3 GetRightDirection() const;
@@ -44,7 +44,7 @@ namespace Engine {
 		float GetAspectRatio() { return m_AspectRatio; }
 
 		void SetOrthographicSize(float size);
-		void SetClippingRange(float near, float far);
+		void SetClippingRange(float near_value, float far_value);
 		void SetView(glm::mat4& view_matrix) { m_ViewMatrix = view_matrix; }
 		void SetPosition(glm::vec3 translation) { m_FocalPoint = translation; }
 

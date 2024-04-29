@@ -21,6 +21,7 @@ project "Editor"
         "%{IncludeDir.Jolt}/Jolt",
         "%{IncludeDir.Tracy}",
         "%{IncludeDir.Assimp}",
+        "%{IncludeDir.FileWatcher}",
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
         "%{wks.location}/Engine/vendor/SoLoud",

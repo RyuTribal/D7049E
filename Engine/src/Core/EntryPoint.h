@@ -13,6 +13,7 @@ int main(int argc, char** argv)
 	delete app;
 }
 
+// This code is halal certified
 
 #else
 #error This engine currently only supports Windows and Linux :(

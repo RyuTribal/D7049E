@@ -1,5 +1,6 @@
 #pragma once
 #include "ShaderProgram.h"
+#include <variant>
 
 namespace Engine {
 	enum TextureSlots
@@ -9,6 +10,17 @@ namespace Engine {
 		Metalness = 3,
 		Albedo = 5,
 	};
+
+	enum class MaterialUniforms
+	{
+		AlbedoColor,
+		Emission,
+		UseNormalMap,
+		Roughness,
+		Metalness
+	};
+
+	using UniformValue = std::variant<float, int, uint32_t, glm::ivec2, glm::ivec3, glm::ivec4, glm::vec2, glm::vec3, glm::vec4, glm::mat3, glm::mat4>;
 
 	class Material
 	{
@@ -38,5 +50,7 @@ namespace Engine {
 	protected:
 		Ref<ShaderProgram> m_Program;
 		std::unordered_map<uint32_t, Ref<Texture2D>> m_Textures;
+		std::unordered_map<std::string, UniformValue> m_Uniforms;
+
 	};
 }

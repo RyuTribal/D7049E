@@ -43,7 +43,6 @@ namespace Engine {
 
     class Registry {
     public:
-
         template<typename T>
         void Add(UUID entityId, T component) {
             const std::type_index typeIndex = std::type_index(typeid(T));

@@ -127,7 +127,7 @@ void _glfwWaitEventsNull(void);
 void _glfwWaitEventsTimeoutNull(double timeout);
 void _glfwPostEmptyEventNull(void);
 
-// Hazel
+// Helios
 void _glfwSetWindowTitlebarNull(_GLFWwindow* window, GLFWbool enabled);
 
 void _glfwGetCursorPosNull(_GLFWwindow* window, double* xpos, double* ypos);

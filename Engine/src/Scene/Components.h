@@ -11,63 +11,33 @@
 
 namespace Engine {
 
-	enum ComponentType {
-		ID,
-		ParentID,
-		Tag,
-		LocalTransform,
-		WorldTransform,
-		Transform,
-		CameraComp,
-		PointLightComp,
-		DirectionalLightComp,
-		MeshComp,
-		MaterialComp,
-		SoundComp,
-		ScriptComp
-	};
-
-	struct Component {
-		virtual const ComponentType Type() const = 0;
-	};
-
-	struct IDComponent : public Component {
+	struct IDComponent  {
 		UUID id;
 
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;
 		IDComponent(UUID new_id) : id(new_id){}
-
-		const ComponentType Type() const override {
-			return ComponentType::ID;
-		}
 	};
 
-	struct ParentIDComponent : public Component {
+	struct ParentIDComponent  {
 		UUID id;
 
 		ParentIDComponent() = default;
 		ParentIDComponent(const ParentIDComponent&) = default;
 		ParentIDComponent(UUID new_id) : id(new_id) {}
 
-		const ComponentType Type() const override {
-			return ComponentType::ParentID;
-		}
 	};
 
-	struct TagComponent : public Component {
+	struct TagComponent  {
 		std::string name = "Entity";
 
 		TagComponent() = default;
 		TagComponent(const TagComponent&) = default;
 		TagComponent(const std::string& name) : name(name) {}
 
-		const ComponentType Type() const override {
-			return ComponentType::Tag;
-		}
 	};
 
-	struct LocalTransformComponent : public Component {
+	struct LocalTransformComponent  {
 		glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
@@ -83,13 +53,9 @@ namespace Engine {
 				* Rotation
 				* glm::scale(glm::mat4(1.0f), scale);
 		}
-
-		const ComponentType Type() const override {
-			return ComponentType::LocalTransform;
-		}
 	};
 
-	struct WorldTransformComponent : public Component {
+	struct WorldTransformComponent  {
 		glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
@@ -105,103 +71,80 @@ namespace Engine {
 				* Rotation
 				* glm::scale(glm::mat4(1.0f), scale);
 		}
-
-		const ComponentType Type() const override {
-			return ComponentType::LocalTransform;
-		}
 	};
 
-	struct TransformComponent : public Component {
+	struct TransformComponent  {
 		WorldTransformComponent world_transform{};
 		LocalTransformComponent local_transform{};
 
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent(const glm::vec3& new_translation) : local_transform(new_translation) {}
-
-		const ComponentType Type() const override {
-			return ComponentType::Transform;
-		}
 	};
 
-	struct MeshComponent : public Component {
+	struct MeshComponent  {
 		Ref<Mesh> mesh;
 
 		MeshComponent() = default;
 		MeshComponent(const MeshComponent&) = default;
 		MeshComponent(Ref<Mesh> new_mesh) : mesh(new_mesh) {}
-
-		const ComponentType Type() const override {
-			return ComponentType::MeshComp;
-		}
 	};
 
 
-	struct CameraComponent : public Component {
-		Ref<Camera> camera;
+	struct CameraComponent  {
+		Camera camera{};
+		bool IsPrimary = false;
 
-		CameraComponent() { camera = CreateRef<Camera>(); };
+		CameraComponent() = default;
 		CameraComponent(const CameraComponent&) = default;
-		CameraComponent(Ref<Camera> new_camera) : camera(new_camera) {}
-
-		const ComponentType Type() const override {
-			return ComponentType::CameraComp;
-		}
+		CameraComponent(Camera new_camera) : camera(new_camera) {}
 	};
 
-	struct PointLightComponent : public Component {
-		Ref<PointLight> light;
+	struct PointLightComponent  {
+		PointLight light{};
 
-		PointLightComponent() { light = CreateRef<PointLight>(); };
+		PointLightComponent()  = default;
 		PointLightComponent(const PointLightComponent&) = default;
-		PointLightComponent(Ref<PointLight> new_light) : light(new_light) {}
-
-		const ComponentType Type() const override {
-			return ComponentType::PointLightComp;
-		}
+		PointLightComponent(PointLight new_light) : light(new_light) {}
 	};
 
-	struct DirectionalLightComponent : public Component
+	struct DirectionalLightComponent 
 	{
-		Ref<DirectionalLight> light;
+		DirectionalLight light;
 
-		DirectionalLightComponent() { light = CreateRef<DirectionalLight>(); };
+		DirectionalLightComponent() = default;
 		DirectionalLightComponent(const DirectionalLightComponent&) = default;
-		DirectionalLightComponent(Ref<DirectionalLight> new_light) : light(new_light) {}
-
-		const ComponentType Type() const override
-		{
-			return ComponentType::DirectionalLightComp;
-		}
+		DirectionalLightComponent(DirectionalLight new_light) : light(new_light) {}
 	};
 
-	struct SoundComponent : public Component
+	struct SoundComponent 
 	{
 		Ref<Sound> sound;
 
 		SoundComponent() { sound = CreateRef<Sound>(); };
 		SoundComponent(const SoundComponent&) = default;
 		SoundComponent(Ref<Sound> new_sound) : sound(new_sound) {}
-
-		const ComponentType Type() const override
-		{
-			return ComponentType::SoundComp;
-		}
 	};
 
-	struct ScriptComponent : public Component
+	struct ScriptComponent 
 	{
 		Ref<ScriptClass> script = nullptr;
-		std::string Name;
+		std::string Name = "";
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
 		ScriptComponent(Ref<ScriptClass> new_script) : script(new_script) {}
-
-		const ComponentType Type() const override
-		{
-			return ComponentType::ScriptComp;
-		}
 	};
+
+	template<typename... Component>
+	struct ComponentGroup
+	{
+	};
+
+	using AllComponents =
+		ComponentGroup< IDComponent, ParentIDComponent, TagComponent,
+		TransformComponent, MeshComponent, CameraComponent,
+		PointLightComponent, DirectionalLightComponent,
+		SoundComponent, ScriptComponent>;
 
 }

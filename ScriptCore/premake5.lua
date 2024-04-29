@@ -3,8 +3,14 @@ project "ScriptCore"
     staticruntime "off"
     language "C#"
     dotnetframework "4.7.2"
-    targetdir ("%{wks.location}/Editor/Resources/Scripts")
-    objdir ("%{wks.location}/Editor/Resources/Scripts/Intermediates")
+    targetdir (os.getenv("HVE_ROOT_DIR") .. "/Editor/Resources/Scripts")
+    objdir (os.getenv("HVE_ROOT_DIR") .. "/Editor/Resources/Scripts/Intermediates")
+    namespace "Helios"
+
+    links { 
+        os.getenv("HVE_ROOT_DIR") .. "/Editor/mono/lib/mono/4.5/System.Numerics",
+        os.getenv("HVE_ROOT_DIR") .. "/Editor/mono/lib/mono/4.5/System.Numerics.Vectors"
+    }
 
     files
     {
@@ -23,5 +29,3 @@ project "ScriptCore"
     filter "configurations:Dist"
         optimize "Full"
         symbols "Off"
-
-  

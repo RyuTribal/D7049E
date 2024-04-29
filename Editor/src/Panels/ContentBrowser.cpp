@@ -1,4 +1,7 @@
 #include "ContentBrowser.h"
+#include "EditorResources.h"
+
+using namespace Editor;
 
 namespace EditorPanels {
 	ContentBrowser* ContentBrowser::s_Instance = nullptr;
@@ -6,19 +9,8 @@ namespace EditorPanels {
 	ContentBrowser::ContentBrowser()
 	{
 		m_RootDirectory = Project::GetActive()->GetSettings().RootPath / Project::GetActive()->GetSettings().AssetPath;
+ 
 		m_CurrentDirectory = m_RootDirectory;
-
-		const std::vector<std::pair<std::string, std::string>> iconFiles = {
-			{".gltf", "GLTF.png"}, {".fbx", "FBX.png"}, {".FBX", "FBX.png"}, {".jpg", "JPG.png"},
-			{".jpeg", "JPG.png"}, {".png", "PNG.png"}, {".wav", "WAV.png"},
-			{".ogg", "OGG.png"}, {".mp3", "MP3.png"}, {".hvescn", "SCENE.png"},
-			{"default", "File.png"}, {"", "FOLDER.png"}, {"back", "BACK.png"}, {"unregistered", "UNREG.png"}
-		};
-
-		for (const auto& [ext, file] : iconFiles)
-		{
-			m_FileIcons[ext] = TextureImporter::ImportWithPath("Resources/Icons/" + file);
-		}
 	}
 
 	void ContentBrowser::RenderImpl()
@@ -31,7 +23,7 @@ namespace EditorPanels {
 		float availableHeight = ImGui::GetContentRegionAvail().y - footerHeight;
 
 		ImGui::BeginChild("DirectoryTreeScroll", ImVec2(0, availableHeight));
-		RenderDirectoryTree(m_RootDirectory, true);
+		 RenderDirectoryTree(m_RootDirectory, true);
 		ImGui::EndChild();
 
 		ImGui::NextColumn();
@@ -47,6 +39,7 @@ namespace EditorPanels {
 
 	void ContentBrowser::RenderDirectoryTree(const std::filesystem::path& directory, bool root_dir)
 	{
+		HVE_PROFILE_FUNC();
 		ImGuiTreeNodeFlags baseFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 
 		if (root_dir)
@@ -81,16 +74,24 @@ namespace EditorPanels {
 
 	void ContentBrowser::RenderTreeNode(const std::filesystem::directory_entry& entry, ImGuiTreeNodeFlags baseFlags)
 	{
-		if (!entry.is_directory() && !ShouldShowFile(entry.path()))
+		const auto& path = entry.path();
+
+		if (!m_DirectoryElements.contains(path.string()))
+		{
+			LoadDirectoryElement(path);
+		}
+
+		auto directory_element = m_DirectoryElements[path.string()];
+
+		if (m_ShowRegisteredAssetsOnly && !directory_element.IsDirectory && !directory_element.IsRegistered && path.extension() != ".cs")
 		{
 			return;
 		}
 
-		auto& path = entry.path();
 		auto filenameString = path.filename().string();
 		ImGuiTreeNodeFlags nodeFlags = baseFlags;
 
-		if (entry.is_directory())
+		if (directory_element.IsDirectory)
 		{
 			nodeFlags |= ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
 		}
@@ -106,7 +107,6 @@ namespace EditorPanels {
 
 		ImVec2 uv0 = ImVec2(0.0f, 1.0f);
 		ImVec2 uv1 = ImVec2(1.0f, 0.0f);
-		auto icon_id = entry.is_directory() ? m_FileIcons[""]->GetRendererID() : m_FileIcons["default"]->GetRendererID();
 
 		ImGui::PushID(path.string().c_str()); // Unique ID for the node
 		bool nodeOpen = ImGui::TreeNodeEx("##tree_browser_node", nodeFlags);
@@ -122,7 +122,7 @@ namespace EditorPanels {
 		HandleDragAndDrop(path);
 
 		ImGui::SameLine();
-		ImGui::Image((void*)(intptr_t)icon_id, ImVec2(16.f, 16.f), uv0, uv1);
+		ImGui::Image(directory_element.TextureID, ImVec2(16.f, 16.f), uv0, uv1);
 		ImGui::SameLine();
 		ImGui::Text("%s", filenameString.c_str());
 
@@ -140,6 +140,7 @@ namespace EditorPanels {
 
 	void ContentBrowser::RenderContentView()
 	{
+		HVE_PROFILE_FUNC();
 		SetupContentView();
 
 		for (const auto& entry : std::filesystem::directory_iterator(m_CurrentDirectory))
@@ -166,6 +167,23 @@ namespace EditorPanels {
 		return true;
 	}
 
+	void ContentBrowser::LoadDirectoryElement(const std::filesystem::path& path)
+	{
+		DirectoryElement new_element{};
+		new_element.FullFilePath = Project::GetFullFilePath(path);
+		new_element.IsRegistered = Project::GetActiveDesignAssetManager()->IsAssetRegistered(path);
+		new_element.IsDirectory = std::filesystem::is_directory(path);
+		if (new_element.IsDirectory || new_element.IsRegistered || path.extension() == ".cs")
+		{
+			new_element.TextureID = (ImTextureID)EditorResources::FileIcons[path.extension().string()]->GetRendererID();
+		}
+		else
+		{
+			new_element.TextureID = (ImTextureID)EditorResources::FileIcons["unregistered"]->GetRendererID();
+		}
+		m_DirectoryElements[path.string()] = new_element;
+	}
+
 	void ContentBrowser::SetupContentView()
 	{
 		ImGui::BeginChild("Content view");
@@ -180,28 +198,30 @@ namespace EditorPanels {
 
 	void ContentBrowser::RenderEntry(const std::filesystem::directory_entry& entry)
 	{
-		if (!entry.is_directory() && !ShouldShowFile(entry.path()))
+		const auto& path = entry.path();
+
+		if (!m_DirectoryElements.contains(path.string()))
+		{
+			LoadDirectoryElement(path);
+		}
+		auto directory_element = m_DirectoryElements[path.string()];
+		
+		if (m_ShowRegisteredAssetsOnly && !directory_element.IsDirectory && !directory_element.IsRegistered && path.extension() != ".cs")
 		{
 			return;
 		}
-		const auto& path = entry.path();
 		auto filenameStr = path.filename().stem().string();
 		auto extensionStr = path.extension().string();
 		ImGui::PushID(filenameStr.c_str());
 
 		ImVec2 uv0 = ImVec2(0.0f, 1.0f);
 		ImVec2 uv1 = ImVec2(1.0f, 0.0f);
-		uint32_t texture_id = m_FileIcons[extensionStr] ? m_FileIcons[extensionStr]->GetRendererID() : m_FileIcons["default"]->GetRendererID();
-		if (!entry.is_directory() && !Project::GetActiveDesignAssetManager()->IsAssetRegistered(entry.path()))
-		{
-			texture_id = m_FileIcons["unregistered"]->GetRendererID();
-		}
 
 		ImGui::BeginGroup();
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 
 		std::string full_name = filenameStr;
-		if (!entry.is_directory() && !Project::GetActiveDesignAssetManager()->IsAssetRegistered(entry.path()))
+		if (!directory_element.IsRegistered)
 		{
 			full_name += extensionStr;
 		}
@@ -217,7 +237,7 @@ namespace EditorPanels {
 		HandleContextMenu(path, filenameStr);
 
 		ImGui::SetCursorScreenPos(pos);
-		ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(texture_id)), ImVec2(m_ButtonSettings.ThumbnailSize, m_ButtonSettings.ThumbnailSize), uv0, uv1);
+		ImGui::Image(directory_element.TextureID, ImVec2(m_ButtonSettings.ThumbnailSize, m_ButtonSettings.ThumbnailSize), uv0, uv1);
 
 		ImGui::SetCursorScreenPos({ pos.x + (m_ButtonSettings.ThumbnailSize - text_width) * 0.5f, pos.y + m_ButtonSettings.ThumbnailSize + m_ButtonSettings.ImageButtonPadding });
 		if (!m_IsRenaming || m_RenamingPath != path)
@@ -274,13 +294,19 @@ namespace EditorPanels {
 			ImGui::EndDragDropSource();
 		}
 
-		if (std::filesystem::is_directory(path) && ImGui::BeginDragDropTarget())
+		if (ImGui::BeginDragDropTarget() && path.extension() != ".cs")
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 			{
 				auto droppedPath = *(const std::filesystem::path*)payload->Data;
 				std::filesystem::path newPath = path / droppedPath.filename();
 				std::filesystem::rename(droppedPath, newPath);
+				auto iter = m_DirectoryElements.find(droppedPath.string());
+				if (iter != m_DirectoryElements.end())
+				{
+					m_DirectoryElements.erase(iter);
+				}
+
 				if (!std::filesystem::is_directory(droppedPath) && Project::GetActiveDesignAssetManager()->IsAssetRegistered(droppedPath))
 				{
 					AssetHandle handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(droppedPath);
@@ -335,6 +361,12 @@ namespace EditorPanels {
 				else
 				{
 					std::filesystem::rename(m_RenamingPath, newPath);
+
+					auto iter = m_DirectoryElements.find(path.string());
+					if (iter != m_DirectoryElements.end())
+					{
+						m_DirectoryElements.erase(iter);
+					}	
 					m_IsRenaming = false;
 				}
 			}
@@ -351,7 +383,7 @@ namespace EditorPanels {
 		ImGui::BeginDisabled(m_CurrentDirectory == m_RootDirectory);
 		ImVec2 uv0 = ImVec2(0.0f, 1.0f);
 		ImVec2 uv1 = ImVec2(1.0f, 0.0f);
-		auto texture_id = m_FileIcons["back"]->GetRendererID();
+		auto texture_id = EditorResources::FileIcons["back"]->GetRendererID();
 
 		if (ImGui::ImageButton(reinterpret_cast<void*>(static_cast<intptr_t>(texture_id)), ImVec2(24.0f, 24.0f), uv0, uv1))
 		{

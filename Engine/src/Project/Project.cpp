@@ -2,6 +2,7 @@
 #include "Project.h"
 #include "UI/FilePicker.h"
 #include "Assets/DesignAssetManager.h"
+#include "Script/ScriptEngine.h"
 
 namespace Engine {
 	Ref<Project> Project::s_ActiveProject = nullptr;
@@ -27,6 +28,9 @@ namespace Engine {
 		ProjectSettings settings = ProjectSerializer::Deserializer(file_path);
 		s_ActiveProject = CreateRef<Project>(settings);
 		s_ActiveProject->GetDesignAssetManager()->DeserializeAssetRegistry();
+		std::filesystem::path assembly_full_path = settings.RootPath / settings.ScriptAssemblyPath;
+
+		ScriptEngine::LoadAppAssembly(assembly_full_path);
 
 		return s_ActiveProject;
 	}
@@ -46,5 +50,18 @@ namespace Engine {
 	std::filesystem::path Project::GetFullFilePath(const std::filesystem::path& relative_file_path)
 	{
 		return s_ActiveProject->GetSettings().RootPath / relative_file_path;
+	}
+	bool Project::ArePathsEqual(const std::filesystem::path& relative_file_path, const std::filesystem::path& another)
+	{
+		if (relative_file_path.is_absolute())
+		{
+			return relative_file_path == another;
+		}
+
+		return s_ActiveProject->m_Settings.RootPath / relative_file_path == another;
+	}
+	void Project::ReloadScripts()
+	{
+		ScriptEngine::ReloadAssembly(s_ActiveProject->m_Settings.RootPath / s_ActiveProject->m_Settings.ScriptAssemblyPath);
 	}
 }

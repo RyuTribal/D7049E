@@ -43,6 +43,9 @@ namespace EditorPanels {
 		void DrawComponents();
 
 		template<typename T>
+		static void ShowMapSearchPopup(std::unordered_map<std::string, T>& map, bool use_first, std::string* result_destination);
+
+		template<typename T>
 		void DisplayAddComponentEntry(const std::string& entryName);
 
 	private:

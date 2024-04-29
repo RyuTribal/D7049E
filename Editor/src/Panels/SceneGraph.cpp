@@ -263,12 +263,12 @@ namespace EditorPanels {
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
+			DisplayAddComponentEntry<ScriptComponent>("Script");
 			DisplayAddComponentEntry<CameraComponent>("Camera");
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
 			DisplayAddComponentEntry<SoundComponent>("Sound");
-			DisplayAddComponentEntry<ScriptComponent>("Script");
 			ImGui::EndPopup();
 		}
 
@@ -284,25 +284,107 @@ namespace EditorPanels {
 		});
 
 		DrawComponent<ScriptComponent>("Script", entity, [](auto& component, auto entity) {
-			/*static char buffer[64];
-			strcpy(buffer, component.Name.c_str());
-			auto& entity_map = ScriptEngine::GetEntityClasses();
-			if (ImGui::InputText("Class", buffer, sizeof(buffer)))
+
+			std::string class_name = component->Name.empty() ? "No class selected" : component->Name;
+			std::string title = fmt::format("Script class: {}", class_name );
+
+			ImGui::Text(title.c_str());
+
+			if (ImGui::Button("Select class"))
 			{
-				component.Name = buffer;
+				ImGui::OpenPopup("##ClassSearchPopup");
 			}
-			ImGui::BeginCombo("##filter", "", ImGuiComboFlags_NoPreview);
 
+			if (ImGui::BeginPopup("##ClassSearchPopup"))
+			{
+				static char buffer[64];
+				auto& map = ScriptEngine::GetEntityClasses();
+				static std::vector<std::string> filteredResults;
+				std::string searchText = buffer;
 
-			ImGui::EndCombo();*/
+				if (ImGui::InputText("##ClassPopupSearchBar", buffer, sizeof(buffer)))
+				{
+					std::transform(searchText.begin(), searchText.end(), searchText.begin(), ::tolower);
+					filteredResults.clear();
+					for (auto& elements : map)
+					{
+						if (searchText.empty())
+						{
+							filteredResults.push_back(elements.first);
+							continue;
+						}
+
+						std::string lowerClassName = elements.first;
+						std::transform(lowerClassName.begin(), lowerClassName.end(), lowerClassName.begin(), ::tolower);
+
+						if (lowerClassName.find(searchText) != std::string::npos)
+						{
+							filteredResults.push_back(elements.first);
+						}
+					}
+				}
+
+				if (filteredResults.size() < 1 && searchText.empty()) // So it fills the list in the beginning
+				{
+					for (auto& elements : map)
+					{
+						filteredResults.push_back(elements.first);
+					}
+				}
+
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				for (auto& result : filteredResults)
+				{
+					bool isSelected = (result == buffer);
+					if (ImGui::Selectable(result.c_str(), isSelected))
+					{
+						component->Name = result;
+						ImGui::CloseCurrentPopup();
+					}
+					if (isSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+
+				ImGui::EndPopup();
+			}
+			
 		});
 
-		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, auto entity)
+		static UUID primary_camera_ID = 0;
+
+		DrawComponent<CameraComponent>("Camera", entity, [&](auto& component, auto entity)
 		{
 			auto& camera = component->camera;
 
+			if (component->IsPrimary && primary_camera_ID == 0)
+			{
+				primary_camera_ID = entity->GetID();
+			}
+
+			bool is_primary = primary_camera_ID == entity->GetID();
+			component->IsPrimary = is_primary;
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Primary");
+			ImGui::NextColumn();
+			if (ImGui::Checkbox("##primary_camera", &is_primary))
+			{
+				if (is_primary)
+				{
+					primary_camera_ID = entity->GetID();
+				}
+				else
+				{
+					primary_camera_ID = 0;
+				}
+			}
+			ImGui::Columns(1);
+
+
 			const char* projectionTypeStrings[] = { "Perspective", "Orthographic" };
-			const char* currentProjectionTypeString = camera->GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
+			const char* currentProjectionTypeString = camera.GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Projection");
@@ -315,7 +397,7 @@ namespace EditorPanels {
 					if (ImGui::Selectable(projectionTypeStrings[i], isSelected))
 					{
 						currentProjectionTypeString = projectionTypeStrings[i];
-						camera->ChangeCameraType(i == 0 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
+						camera.ChangeCameraType(i == 0 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
 					}
 
 					if (isSelected)
@@ -325,95 +407,105 @@ namespace EditorPanels {
 				ImGui::EndCombo();
 			}
 			ImGui::Columns(1);
-			float perspectiveVerticalFov = glm::degrees(camera->GetFOVY());
+			float perspectiveVerticalFov = glm::degrees(camera.GetFOVY());
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Vertical FOV");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##fov", &perspectiveVerticalFov))
-				camera->SetFovy(glm::radians(perspectiveVerticalFov));
+				camera.SetFovy(glm::radians(perspectiveVerticalFov));
 
 			ImGui::Columns(1);
-			float perspectiveNear = camera->GetNear();
+			float perspectiveNear = camera.GetNear();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Near");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##near", &perspectiveNear))
-				camera->SetNear(perspectiveNear);
+				camera.SetNear(perspectiveNear);
 			ImGui::Columns(1);
-			float perspectiveFar = camera->GetFar();
+			float perspectiveFar = camera.GetFar();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Far");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##far", &perspectiveFar))
-				camera->SetFar(perspectiveFar);
+				camera.SetFar(perspectiveFar);
 
 			ImGui::Columns(1);
+
+			float camera_zoom = camera.GetZoomDistance();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Zoom");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##zoom", &camera_zoom))
+				camera.SetZoomDistance(camera_zoom);
+			ImGui::Columns(1);
+
 		});
 
 
 		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
-			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
+			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Color");
 			ImGui::NextColumn();
 			ImGui::ColorEdit3("##point_light_color", color);
-			light->SetColor(glm::vec3(color[0], color[1], color[2]));
+			light.SetColor(glm::vec3(color[0], color[1], color[2]));
 			ImGui::Columns(1);
 
-			float intensity = light->GetIntensity();
+			float intensity = light.GetIntensity();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
 			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f);
-			light->SetIntensity(intensity);
+			light.SetIntensity(intensity);
 			ImGui::Columns(1);
 
-			float attenuations[3] = { light->GetConstantAttenuation(),  light->GetLinearAttenuation(), light->GetQuadraticAttenuation() };
+			float attenuations[3] = { light.GetConstantAttenuation(),  light.GetLinearAttenuation(), light.GetQuadraticAttenuation() };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Attenuations (constant, linear, quadratic)");
 			ImGui::NextColumn();
 			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f);
-			light->SetConstantAttenuation(attenuations[0]);
-			light->SetLinearAttenuation(attenuations[1]);
-			light->SetQuadraticAttenuation(attenuations[2]);
+			light.SetConstantAttenuation(attenuations[0]);
+			light.SetLinearAttenuation(attenuations[1]);
+			light.SetQuadraticAttenuation(attenuations[2]);
 			ImGui::Columns(1);
 		});
 		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
-			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
+			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Color");
 			ImGui::NextColumn();
 			ImGui::ColorEdit3("##dir_light_color", color);
 			glm::vec3 new_color = glm::vec3(color[0], color[1], color[2]);
-			light->SetColor(new_color);
+			light.SetColor(new_color);
 			ImGui::Columns(1);
 
-			float intensity = light->GetIntensity();
+			float intensity = light.GetIntensity();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f))
 			{
-				light->SetIntensity(intensity);
+				light.SetIntensity(intensity);
 			}
 			ImGui::Columns(1);
 
-			glm::vec3 curr_direction = light->GetDirection();
+			glm::vec3 curr_direction = light.GetDirection();
 			DrawVec3Control("Direction", curr_direction);
 
-			light->SetDirection(curr_direction);
+			light.SetDirection(curr_direction);
 
 		});
 
@@ -477,6 +569,12 @@ namespace EditorPanels {
 		});*/
     }
 
+
+	template<typename T>
+	void EditorPanels::SceneGraph::ShowMapSearchPopup(std::unordered_map<std::string, T>& map, bool use_first, std::string* result_destination)
+	{
+
+	}
 
 	template<typename T>
 	void SceneGraph::DisplayAddComponentEntry(const std::string& entryName) {

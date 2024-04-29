@@ -4,6 +4,9 @@
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/object.h>
+#include "Scene/Entity.h"
+#include "Scene/Components.h"
+#include "Project/Project.h"
 
 // Ripped initialization code from: https://nilssondev.com/mono-guide/book/introduction.html. Thanks
 
@@ -94,8 +97,18 @@ namespace Engine {
 
 		MonoAssembly* CoreAssembly = nullptr;
 		MonoImage* CoreAssemblyImage = nullptr;
+		std::filesystem::path CoreAssemblyPath = "Resources/Scripts/ScriptCore.dll";
+
+		MonoAssembly* AppAssembly = nullptr;
+		MonoImage* AppAssemblyImage = nullptr;
+		std::filesystem::path AppAssemblyPath;
+
+		ScriptClass EntityClass;
 
 		std::unordered_map<std::string, Ref<ScriptClass>> EntityClasses;
+		std::unordered_map<UUID, Ref<ScriptInstance>> EntityInstances;
+
+		Scene* SceneContext = nullptr;
 	};
 
 	ScriptData* s_Data = nullptr;
@@ -104,29 +117,12 @@ namespace Engine {
 	{
 		s_Data = new ScriptData();
 		InitMono();
-		LoadAssembly("Resources/Scripts/ScriptCore.dll");
+		LoadAssembly(s_Data->CoreAssemblyPath);
 
-		LoadAssemblyClasses(s_Data->CoreAssembly);
-
-
+		ScriptGlue::RegisterComponents();
 		ScriptGlue::RegisterFunctions();
 
-		// Create c# object
-		/*MonoClass* assemlyclass = mono_class_from_name(s_Data->CoreAssemblyImage, "Engine", "Main");
-		MonoObject* instance = mono_object_new(s_Data->AppDomain, assemlyclass);
-		mono_runtime_object_init(instance);
-
-		MonoMethod* print_message_func = mono_class_get_method_from_name(assemlyclass, "PrintMessage", 0);
-
-		mono_runtime_invoke(print_message_func, instance, nullptr, nullptr);
-
-		MonoMethod* print_custom_message_func = mono_class_get_method_from_name(assemlyclass, "PrintCustomMessage", 1);
-
-		MonoString* message = mono_string_new(s_Data->AppDomain, "This param is sent from C++");
-
-		void* param = message;
-
-		mono_runtime_invoke(print_custom_message_func, instance, &param, nullptr);*/
+		s_Data->EntityClass = ScriptClass("Helios", "Entity", true);
 	}
 	void ScriptEngine::Shutdown()
 	{
@@ -135,12 +131,11 @@ namespace Engine {
 	}
 
 
-	void ScriptEngine::LoadAssemblyClasses(MonoAssembly* assembly)
+	void ScriptEngine::LoadAssemblyClasses()
 	{
 		s_Data->EntityClasses.clear(); // For reloading later
 
-		MonoImage* image = mono_assembly_get_image(assembly);
-		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_Data->AppAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
 
 		for (int32_t i = 0; i < numTypes; i++)
@@ -148,11 +143,10 @@ namespace Engine {
 			uint32_t cols[MONO_TYPEDEF_SIZE];
 			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
 
-			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
-			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
-			MonoClass* monoClass = mono_class_from_name(image, nameSpace, name);
-
-			MonoClass* entityClass = mono_class_from_name(image, "Helios", "Entity");
+			const char* nameSpace = mono_metadata_string_heap(s_Data->AppAssemblyImage, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* name = mono_metadata_string_heap(s_Data->AppAssemblyImage, cols[MONO_TYPEDEF_NAME]);
+			MonoClass* monoClass = mono_class_from_name(s_Data->AppAssemblyImage, nameSpace, name);
+			MonoClass* entityClass = mono_class_from_name(s_Data->CoreAssemblyImage, "Helios", "Entity");
 
 			std::string fullName;
 			if (strlen(nameSpace) != 0)
@@ -181,11 +175,75 @@ namespace Engine {
 		s_Data->CoreAssemblyImage = mono_assembly_get_image(s_Data->CoreAssembly);
 	}
 
+	void ScriptEngine::LoadAppAssembly(const std::filesystem::path& filepath)
+	{
+		s_Data->AppAssembly = Utils::LoadMonoAssembly(filepath);
+		if (s_Data->AppAssembly)
+		{
+			s_Data->AppAssemblyImage = mono_assembly_get_image(s_Data->AppAssembly);
+			LoadAssemblyClasses();
+		}
+	}
+
+	void ScriptEngine::OnRuntimeStart(Scene* scene)
+	{
+		s_Data->SceneContext = scene;
+	}
+
+	void ScriptEngine::OnRuntimeStop()
+	{
+		s_Data->SceneContext = nullptr;
+		s_Data->EntityInstances.clear();
+	}
+
+	bool ScriptEngine::EntityClassExists(const std::string& full_class_name)
+	{
+		return s_Data->EntityClasses.find(full_class_name) != s_Data->EntityClasses.end();
+	}
+
+	bool ScriptEngine::EntityInstanceExists(const UUID& entity_id)
+	{
+		return s_Data->EntityInstances.find(entity_id) != s_Data->EntityInstances.end();
+	}
+
+	void ScriptEngine::OnCreateEntityClass(Entity* entity)
+	{
+		const auto script_component = entity->GetComponent<ScriptComponent>();
+		if (script_component && EntityClassExists(script_component->Name))
+		{
+			s_Data->EntityInstances[entity->GetID()]
+				= CreateRef<ScriptInstance>(s_Data->EntityClasses[script_component->Name], entity);
+			s_Data->EntityInstances[entity->GetID()]->InvokeOnCreate();
+		}
+	}
+
+	void ScriptEngine::OnUpdate(float delta_time)
+	{
+		HVE_PROFILE_FUNC();
+		for(auto [entity_id, instance] : s_Data->EntityInstances){
+			instance->InvokeOnUpdate(delta_time);
+		}
+	}
+
+	std::unordered_map<UUID, Ref<ScriptInstance>>& ScriptEngine::GetEntityInstances()
+	{
+		return s_Data->EntityInstances;
+	}
+
 	std::unordered_map<std::string, Ref<ScriptClass>>& ScriptEngine::GetEntityClasses()
 	{
 		return s_Data->EntityClasses;
 	}
 
+	Scene* ScriptEngine::GetSceneContext()
+	{
+		return s_Data->SceneContext;
+	}
+
+	MonoImage* ScriptEngine::GetCoreAssemblyImage()
+	{
+		return s_Data->CoreAssemblyImage;
+	}
 
 	void ScriptEngine::InitMono()
 	{
@@ -215,9 +273,9 @@ namespace Engine {
 
 	/// ScriptClass ///////////////////////////////////
 
-	ScriptClass::ScriptClass(const std::string& name_space, const std::string& class_name)
+	ScriptClass::ScriptClass(const std::string& name_space, const std::string& class_name, bool is_core)
 	{
-		// m_MonoClass = mono_class_from_name(isCore ? s_Data->CoreAssemblyImage : s_Data->AppAssemblyImage, classNamespace.c_str(), className.c_str());
+		m_MonoClass = mono_class_from_name(is_core ? s_Data->CoreAssemblyImage : s_Data->AppAssemblyImage, name_space.c_str(), class_name.c_str());
 	}
 
 	MonoObject* ScriptClass::Instantiate()
@@ -233,20 +291,52 @@ namespace Engine {
 		MonoObject* exception = nullptr;
 		return mono_runtime_invoke(method, instance, params, &exception);
 	}
-	ScriptInstance::ScriptInstance(Ref<ScriptClass> script_class): m_ScriptClass(script_class)
+
+	void ScriptEngine::ReloadAssembly(const std::filesystem::path& app_assembly_path)
+	{
+		mono_domain_set(mono_get_root_domain(), false);
+
+		mono_domain_unload(s_Data->AppDomain);
+
+		s_Data->AppAssemblyPath = app_assembly_path;
+
+		LoadAssembly(s_Data->CoreAssemblyPath);
+		LoadAppAssembly(s_Data->AppAssemblyPath);
+		LoadAssemblyClasses();
+
+		ScriptGlue::RegisterComponents();
+
+		// Retrieve and instantiate class
+		s_Data->EntityClass = ScriptClass("Helios", "Entity", true);
+	}
+
+	ScriptInstance::ScriptInstance(Ref<ScriptClass> script_class, Entity* entity): m_ScriptClass(script_class)
 	{
 		m_Instance = script_class->Instantiate();
+		m_Constructor = s_Data->EntityClass.GetMethod(".ctor", 1);
 		m_OnCreateMethod = script_class->GetMethod("OnCreate", 0);
 		m_OnUpdateMethod = script_class->GetMethod("OnUpdate", 1);
+
+		// Call Entity constructor
+		
+		UUID entityID = entity->GetID();
+		void* param = &entityID;
+		m_ScriptClass->InvokeMethod(m_Instance, m_Constructor, &param);
+		
 	}
 	void ScriptInstance::InvokeOnCreate()
 	{
-		m_ScriptClass->InvokeMethod(m_Instance, m_OnCreateMethod);
+		if (m_OnCreateMethod)
+		{
+			m_ScriptClass->InvokeMethod(m_Instance, m_OnCreateMethod);
+		}
 	}
 	void ScriptInstance::InvokeOnUpdate(float delta_time)
 	{
-		void* param = &delta_time;
-
-		m_ScriptClass->InvokeMethod(m_Instance, m_OnUpdateMethod, &param);
+		if (m_OnUpdateMethod)
+		{
+			void* param = &delta_time;
+			m_ScriptClass->InvokeMethod(m_Instance, m_OnUpdateMethod, &param);
+		}
 	}
 }

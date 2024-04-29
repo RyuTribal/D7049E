@@ -135,15 +135,26 @@ namespace Engine{
 			out << YAML::EndMap;
 		}
 
+		if (entity->HasComponent<ScriptComponent>())
+		{
+			auto scriptcomp = entity->GetComponent<ScriptComponent>();
+			out << YAML::Key << "Script";
+			out << YAML::BeginMap;
+			out << YAML::Key << "ClassName" << YAML::Value << scriptcomp->Name;
+			out << YAML::EndMap;
+		}
+
 		if (entity->HasComponent<CameraComponent>())
 		{
-			auto camera = entity->GetComponent<CameraComponent>()->camera;
+			auto& camera = entity->GetComponent<CameraComponent>()->camera;
 			out << YAML::Key << "Camera";
 			out << YAML::BeginMap;
-			out << YAML::Key << "ProjectionType" << YAML::Value << (int)camera->GetType();
-			out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera->GetFOVY();
-			out << YAML::Key << "Near" << YAML::Value << camera->GetNear();
-			out << YAML::Key << "Far" << YAML::Value << camera->GetFar();
+			out << YAML::Key << "ProjectionType" << YAML::Value << (int)camera.GetType();
+			out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera.GetFOVY();
+			out << YAML::Key << "Near" << YAML::Value << camera.GetNear();
+			out << YAML::Key << "Far" << YAML::Value << camera.GetFar();
+			out << YAML::Key << "Zoom" << YAML::Value << camera.GetZoomDistance();
+			out << YAML::Key << "IsPrimary" << YAML::Value << entity->GetComponent<CameraComponent>()->IsPrimary;
 			out << YAML::EndMap;
 		}
 
@@ -152,10 +163,10 @@ namespace Engine{
 			auto light = entity->GetComponent<PointLightComponent>()->light;
 			out << YAML::Key << "PointLight";
 			out << YAML::BeginMap;
-			out << YAML::Key << "Color" << YAML::Value << light->GetColor();
-			out << YAML::Key << "Position" << YAML::Value << light->GetPosition();
-			out << YAML::Key << "Intensity" << YAML::Value << light->GetIntensity();
-			out << YAML::Key << "AttenuationFactors" << YAML::Value << glm::vec3(light->GetConstantAttenuation(), light->GetLinearAttenuation(), light->GetQuadraticAttenuation());
+			out << YAML::Key << "Color" << YAML::Value << light.GetColor();
+			out << YAML::Key << "Position" << YAML::Value << light.GetPosition();
+			out << YAML::Key << "Intensity" << YAML::Value << light.GetIntensity();
+			out << YAML::Key << "AttenuationFactors" << YAML::Value << glm::vec3(light.GetConstantAttenuation(), light.GetLinearAttenuation(), light.GetQuadraticAttenuation());
 			out << YAML::EndMap;
 		}
 
@@ -164,9 +175,9 @@ namespace Engine{
 			auto light = entity->GetComponent<DirectionalLightComponent>()->light;
 			out << YAML::Key << "DirectionalLight";
 			out << YAML::BeginMap;
-			out << YAML::Key << "Color" << YAML::Value << light->GetColor();
-			out << YAML::Key << "Direction" << YAML::Value << light->GetDirection();
-			out << YAML::Key << "Intensity" << YAML::Value << light->GetIntensity();
+			out << YAML::Key << "Color" << YAML::Value << light.GetColor();
+			out << YAML::Key << "Direction" << YAML::Value << light.GetDirection();
+			out << YAML::Key << "Intensity" << YAML::Value << light.GetIntensity();
 			out << YAML::EndMap;
 		}
 
@@ -181,7 +192,7 @@ namespace Engine{
 	}
 	void SceneSerializer::DeserializeEntity(YAML::Node entity_node, Ref<Scene> scene, UUID* parent_entity_id)
 	{
-		UUID entity_id = entity_node["Entity"].as<uint32_t>();
+		UUID entity_id = entity_node["Entity"].as<uint64_t>();
 		std::string name = "New Entity";
 		if (entity_node["Tag"])
 		{
@@ -210,11 +221,23 @@ namespace Engine{
 		if (entity_node["Camera"])
 		{
 			auto camera_component = CameraComponent{};
-			camera_component.camera = CreateRef<Camera>(entity_node["Camera"]["ProjectionType"].as<int>() == 1 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
-			camera_component.camera->SetFovy(entity_node["Camera"]["PerspectiveFOV"].as<float>());
-			camera_component.camera->SetNear(entity_node["Camera"]["Near"].as<float>());
-			camera_component.camera->SetFar(entity_node["Camera"]["Far"].as<float>());
+			camera_component.camera = Camera(entity_node["Camera"]["ProjectionType"].as<int>() == 1 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
+			camera_component.camera.SetFovy(entity_node["Camera"]["PerspectiveFOV"].as<float>());
+			camera_component.camera.SetNear(entity_node["Camera"]["Near"].as<float>());
+			camera_component.camera.SetFar(entity_node["Camera"]["Far"].as<float>());
+			if (entity_node["Camera"]["Zoom"])
+			{
+				camera_component.camera.SetZoomDistance(entity_node["Camera"]["Zoom"].as<float>());
+			}
+			camera_component.IsPrimary = entity_node["Camera"]["IsPrimary"].as<bool>();
 			scene->GetEntity(entity)->AddComponent<CameraComponent>(camera_component);
+		}
+
+		if (entity_node["Script"])
+		{
+			auto script_component = ScriptComponent{};
+			script_component.Name = entity_node["Script"]["ClassName"].as<std::string>();
+			scene->GetEntity(entity)->AddComponent<ScriptComponent>(script_component);
 		}
 
 		
@@ -222,26 +245,26 @@ namespace Engine{
 		if (entity_node["PointLight"])
 		{
 			auto light = PointLightComponent{};
-			light.light = CreateRef<PointLight>();
-			light.light->SetColor(entity_node["PointLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f)));
-			light.light->SetPosition(entity_node["PointLight"]["Position"].as<glm::vec3>(glm::vec3(0.0f)));
-			light.light->SetIntensity(entity_node["PointLight"]["Intensity"].as<float>());
+			light.light = PointLight();
+			light.light.SetColor(entity_node["PointLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f)));
+			light.light.SetPosition(entity_node["PointLight"]["Position"].as<glm::vec3>(glm::vec3(0.0f)));
+			light.light.SetIntensity(entity_node["PointLight"]["Intensity"].as<float>());
 			glm::vec3 attenuation_factors = entity_node["PointLight"]["AttenuationFactors"].as<glm::vec3>(glm::vec3(0.0f));
-			light.light->SetConstantAttenuation(attenuation_factors.x);
-			light.light->SetLinearAttenuation(attenuation_factors.y);
-			light.light->SetQuadraticAttenuation(attenuation_factors.z);
+			light.light.SetConstantAttenuation(attenuation_factors.x);
+			light.light.SetLinearAttenuation(attenuation_factors.y);
+			light.light.SetQuadraticAttenuation(attenuation_factors.z);
 			scene->GetEntity(entity)->AddComponent<PointLightComponent>(light);
 		}
 
 		if (entity_node["DirectionalLight"])
 		{
 			auto light = DirectionalLightComponent{};
-			light.light = CreateRef<DirectionalLight>();
+			light.light = DirectionalLight();
 			glm::vec3 color = entity_node["DirectionalLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f));
-			light.light->SetColor(color);
+			light.light.SetColor(color);
 			glm::vec3 direction = entity_node["DirectionalLight"]["Direction"].as<glm::vec3>(glm::vec3(0.0f));
-			light.light->SetDirection(direction);
-			light.light->SetIntensity(entity_node["DirectionalLight"]["Intensity"].as<float>());
+			light.light.SetDirection(direction);
+			light.light.SetIntensity(entity_node["DirectionalLight"]["Intensity"].as<float>());
 			scene->GetEntity(entity)->AddComponent<DirectionalLightComponent>(light);
 		}
 

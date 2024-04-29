@@ -1,59 +1,27 @@
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace Helios
 {
-	public struct Vector3
-	{
-		public float X, Y, Z;
 
-		public Vector3(float x, float y, float z)
+	public class Player : Entity
+	{
+		private TransformComponent m_Transform;
+		void OnCreate()
 		{
-			X = x; 
-			Y = y; 
-			Z = z;
-		}
-	}
-	public static class InternalCalls
-	{
-		[MethodImplAttribute(MethodImplOptions.InternalCall)]
-		internal extern static void NativeLog(string text, int parameter);
-
-		[MethodImplAttribute(MethodImplOptions.InternalCall)]
-		internal extern static void NativeLogVector(ref Vector3 parameter, out Vector3 destination);
-	}
-
-	public class Entity
-	{
-		public Entity()
-		{
-
-		}
-	}
-	public class Main
-	{
-		public float FloatVar { get; set; }
-		public Main()
-		{
-			Console.WriteLine("Constructor!");
-			InternalCalls.NativeLog("Aint no way", 123);
-
-			Vector3 pos = new Vector3(5, 1, 2);
-			Vector3 res;
-			InternalCalls.NativeLogVector(ref pos, out res);
-
-			Console.WriteLine($"{res.X}, {res.Y}, {res.Z}");
-
+			m_Transform = GetComponent<TransformComponent>();
+			m_Transform.Translation = new Vector3(1.0f);
+			Console.WriteLine($"Player {ID} created");
+			Console.WriteLine($"Has the transform component: {HasComponent<TransformComponent>()}");
 		}
 
-		public void PrintMessage()
+		void OnUpdate(float delta_time)
 		{
-			Console.WriteLine("Hello world from C#!");
-		}
-
-		public void PrintCustomMessage(string message)
-		{
-			Console.WriteLine($"C# says: {message}");
+			// Console.WriteLine($"Player updating, delta time {delta_time}");
+			Vector3 vector3 = m_Transform.Translation;
+			vector3.X += 1.0f * delta_time;
+			m_Transform.Translation = vector3;
 		}
 	}
 }

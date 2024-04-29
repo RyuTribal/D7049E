@@ -53,6 +53,12 @@ namespace EditorPanels {
 			return (s_Instance->m_MouseX >= 0 && s_Instance->m_MouseY >= 0 && s_Instance->m_MouseX < (int)s_Instance->m_ViewportSize.x && s_Instance->m_MouseY < (int)s_Instance->m_ViewportSize.y);
 		}
 
+		static void SetUsingEditor(bool is_using)
+		{
+			Create();
+			s_Instance->m_UsingEditor = is_using;
+		}
+
 		static std::pair<float, float> GetMousePos() {
 			Create();
 			auto [mx, my] = ImGui::GetMousePos();
@@ -86,7 +92,7 @@ namespace EditorPanels {
 			m_ViewportBounds[1] = { maxBound.x, maxBound.y };
 
 			Entity* selectedEntity = SceneGraph::GetSelectedEntity();
-			if (selectedEntity != nullptr)
+			if (selectedEntity != nullptr && m_UsingEditor)
 			{
 				ImGuizmo::SetOrthographic(false);
 				ImGuizmo::SetDrawlist();
@@ -124,25 +130,29 @@ namespace EditorPanels {
 		}
 
 		void OnKeyPressedImpl(int keycode) {
-			switch (keycode) {
-			case KEY_W:
+			if (m_Focused && m_IsHovered)
 			{
-				if (!ImGuizmo::IsUsing())
-					m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
-				break;
-			}
-			case KEY_E:
-			{
-				if (!ImGuizmo::IsUsing())
-					m_GizmoType = ImGuizmo::OPERATION::ROTATE;
-				break;
-			}
-			case KEY_R:
-			{
-				if (!ImGuizmo::IsUsing())
-					m_GizmoType = ImGuizmo::OPERATION::SCALE;
-				break;
-			}
+				switch (keycode)
+				{
+					case KEY_W:
+					{
+						if (!ImGuizmo::IsUsing())
+							m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
+						break;
+					}
+					case KEY_E:
+					{
+						if (!ImGuizmo::IsUsing())
+							m_GizmoType = ImGuizmo::OPERATION::ROTATE;
+						break;
+					}
+					case KEY_R:
+					{
+						if (!ImGuizmo::IsUsing())
+							m_GizmoType = ImGuizmo::OPERATION::SCALE;
+						break;
+					}
+				}
 			}
 		}
 
@@ -154,6 +164,6 @@ namespace EditorPanels {
 		int m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
 		glm::vec2 m_ViewportBounds[2];
 		int m_MouseX = 0, m_MouseY = 0;
-
+		bool m_UsingEditor = true;
 	};
 }

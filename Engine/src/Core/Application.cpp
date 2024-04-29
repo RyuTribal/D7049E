@@ -9,16 +9,20 @@ namespace Engine
 {
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application(WindowProps props)
+	Application::Application(WindowProps props, ApplicationProps app_props) : m_AppProps(app_props)
 	{
 		HVE_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 		m_Window = std::unique_ptr<Window>(Window::Create(props));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 		Renderer::CreateRenderer();
-		ScriptEngine::Init();
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
+
+		if (!m_AppProps.NoScripting)
+		{
+			ScriptEngine::Init();
+		}
 	}
 
 	void Application::OnEvent(Event& event)
@@ -38,7 +42,10 @@ namespace Engine
 	void Application::Close()
 	{
 		m_Running = false;
-		ScriptEngine::Shutdown();
+		if (!m_AppProps.NoScripting)
+		{
+			ScriptEngine::Shutdown();
+		}
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -69,6 +76,7 @@ namespace Engine
 			float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - last_frame).count();
 			last_frame = newTime;
 			double currentTime = std::chrono::duration<double>(newTime.time_since_epoch()).count();
+			m_FrameData.DeltaTime = frameTime;
 			Renderer::Get()->GetStats()->UpdateFPS(currentTime, frameTime);
 
 			if (!m_Minimized) {

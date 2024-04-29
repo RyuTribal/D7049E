@@ -22,7 +22,7 @@ namespace Engine {
 	};
 
 
-	Ref<Asset> DesignAssetManager::GetAsset(AssetHandle handle) const
+	Ref<Asset> DesignAssetManager::GetAsset(AssetHandle handle)
 	{
 		if (!IsAssetHandleValid(handle))
 		{
@@ -37,6 +37,8 @@ namespace Engine {
 		const AssetMetadata& metadata = GetMetadata(handle);
 
 		Ref<Asset> asset = AssetImporter::Import(handle, metadata);
+
+		m_LoadedAssets[handle] = asset;
 
 		if (!asset)
 		{
@@ -140,12 +142,8 @@ namespace Engine {
 	{
 		for (const auto& [handle, metadata] : m_AssetRegistry)
 		{
-			std::filesystem::path full_file_path = metadata.FilePath;
-			if (!metadata.FilePath.is_absolute())
-			{
-				full_file_path = Project::GetFullFilePath(metadata.FilePath);
-			}
-			if (full_file_path == file_path)
+			
+			if (Project::ArePathsEqual(metadata.FilePath, file_path))
 			{
 				return true;
 			}

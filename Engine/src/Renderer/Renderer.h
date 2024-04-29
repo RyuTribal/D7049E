@@ -88,8 +88,8 @@ namespace Engine
 		~Renderer();
 
 		void SubmitObject(Ref<Mesh> mesh);
-		void SubmitPointLight(Ref<PointLight> point_light) { m_PointLights.push_back(point_light); }
-		void SubmitDirectionalLight(Ref<DirectionalLight> light) { m_DirectionalLights.push_back(light); }
+		void SubmitPointLight(PointLight* point_light) { m_PointLights.push_back(point_light); }
+		void SubmitDirectionalLight(DirectionalLight* light) { m_DirectionalLights.push_back(light); }
 		void SubmitLine(Line line);
 
 		void BeginFrame(Camera* camera);
@@ -171,8 +171,8 @@ namespace Engine
 
 		std::vector<Ref<Mesh>> m_Meshes{};
 		std::vector<Line> m_Lines{};
-		std::vector<Ref<PointLight>> m_PointLights{};
-		std::vector<Ref<DirectionalLight>> m_DirectionalLights{};
+		std::vector<PointLight*> m_PointLights{};
+		std::vector<DirectionalLight*> m_DirectionalLights{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
 

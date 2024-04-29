@@ -24,6 +24,7 @@ project "Editor"
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
         "%{wks.location}/Engine/vendor/SoLoud",
+        "src/"
     }
 
     links

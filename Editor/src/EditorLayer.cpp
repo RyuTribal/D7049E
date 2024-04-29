@@ -13,7 +13,15 @@ namespace Editor {
 
 	void EditorLayer::OnUpdate(float delta_time)
 	{
-		Engine::Camera* curr_camera = m_Scene->GetCurrentCamera();
+		Engine::Camera* curr_camera = nullptr;
+		if (m_SceneState == SceneState::Play)
+		{
+			curr_camera = m_CurrentScene->GetPrimaryEntityCamera();
+		}
+		else
+		{
+			curr_camera = m_Camera->GetCamera().get();
+		}
 		Engine::Renderer::Get()->BeginFrame(curr_camera);
 		if (EditorPanels::Viewport::IsFocused()) {
 			m_Camera->Update(delta_time);
@@ -23,7 +31,7 @@ namespace Editor {
 			Renderer::Get()->SubmitLine(line);
 		}
 		
-		m_Scene->UpdateScene();
+		m_CurrentScene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
 	}
 
@@ -128,7 +136,19 @@ namespace Editor {
 
 			if (ImGui::BeginMenu("Edit"))
 			{
-				// Dont know yet, this is just more here for now
+				if (ImGui::MenuItem("Recreate Script Project"))
+				{
+					Project::CreateScriptProject();
+				}
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Project"))
+			{
+				if (ImGui::MenuItem("Reload Scripts"))
+				{
+					Project::ReloadScripts();
+				}
 				ImGui::EndMenu();
 			}
 
@@ -136,13 +156,14 @@ namespace Editor {
 		}
 
 
-		EditorPanels::SceneGraph::Render(m_Scene);
+		EditorPanels::SceneGraph::Render(m_CurrentScene);
 
 		ImGui::Begin("Content Browser");
-			EditorPanels::ContentBrowser::Render(m_Scene);
+			EditorPanels::ContentBrowser::Render(m_CurrentScene);
 		ImGui::End();
 
-		ImGui::Begin("Viewport");
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		EditorPanels::Viewport::Render(m_Camera->GetCamera().get());
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -158,6 +179,7 @@ namespace Editor {
 			ImGui::EndDragDropTarget();
 		}
 		ImGui::End();
+		ImGui::PopStyleVar(1);
 
 		ImGui::Begin("Stats");
 
@@ -178,8 +200,75 @@ namespace Editor {
 		}
 		ImGui::End();
 
+		UIToolBar();
+
 		ImGui::End();
 
+	}
+
+	void EditorLayer::UIToolBar()
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+		auto& colors = ImGui::GetStyle().Colors;
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(colors[ImGuiCol_ButtonHovered].x, colors[ImGuiCol_ButtonHovered].y, colors[ImGuiCol_ButtonHovered].z, 0.5f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(colors[ImGuiCol_ButtonHovered].x, colors[ImGuiCol_ButtonHovered].y, colors[ImGuiCol_ButtonHovered].z, 0.5f));
+
+		ImGui::Begin("##toolbar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		float size = ImGui::GetWindowHeight() - 4.0f;
+		/*size *= 2;
+		size -= 4.0f;*/
+		Ref<Texture2D> icon;
+
+		switch (m_SceneState)
+		{
+			case SceneState::Edit:
+				icon = EditorResources::FileIcons["play"];
+				EditorPanels::Viewport::SetUsingEditor(true);
+				break;
+			case SceneState::Play:
+				icon = EditorResources::FileIcons["stop"];
+				EditorPanels::Viewport::SetUsingEditor(false);
+				break;
+			default:
+				icon = EditorResources::FileIcons["play"];
+				EditorPanels::Viewport::SetUsingEditor(true);
+		}
+
+		ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x * 0.5f) - (size * 0.5f));
+		if (ImGui::ImageButton((ImTextureID)icon->GetRendererID(), ImVec2(size, size), ImVec2(0, 0), ImVec2(1, 1), 0))
+		{
+			if (m_SceneState == SceneState::Edit)
+			{
+				OnScenePlay();
+			}
+			else if (m_SceneState == SceneState::Play)
+			{
+				OnSceneStop();
+			}
+		}
+
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor(3);
+
+		ImGui::End();
+	}
+
+	void EditorLayer::OnScenePlay()
+	{
+		m_SceneState = SceneState::Play;
+
+		m_CurrentScene = Scene::Copy(m_EditorScene);
+
+		m_CurrentScene->OnRuntimeStart();
+	}
+
+	void EditorLayer::OnSceneStop()
+	{
+		m_SceneState = SceneState::Edit;
+		m_CurrentScene->OnRuntimeStop();
+		m_CurrentScene = m_EditorScene;
 	}
 
 	bool EditorLayer::OnKeyPress(Engine::KeyPressedEvent& event)
@@ -235,13 +324,13 @@ namespace Editor {
 			// HVE_INFO("Shot fired from {0} {1}", mouseX, mouseY);
 			auto [origin, direction] = CastRay(mouseX, mouseY);
 
-			Line line{};
+			/*Line line{};
 			line.start = origin;
 			line.end = direction;
 			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
-			m_DebugLines.push_back(line); // Can be used for debugging
+			m_DebugLines.push_back(line);*/ // Can be used for debugging
 
-			auto meshEntities = m_Scene->GetAllEntitiesByType<MeshComponent>();
+			auto meshEntities = m_CurrentScene->GetAllEntitiesByType<MeshComponent>();
 
 			std::vector<SelectionData> selected_entities{};
 
@@ -262,18 +351,13 @@ namespace Editor {
 
 					float t;
 					Math::BoundingBox bounding_box = submesh.Bounds;
-					bounding_box.TransformBy(submesh.WorldTransform);
 					if (ray.IntersectsAABB(bounding_box, t))
 					{
 						const auto& triangleCache = component.mesh->GetMeshSource()->GetTriangleCache(submesh.Index);
 						for (const auto& triangle : triangleCache)
 						{
 
-							glm::vec3 transformedV0 = glm::vec3(submesh.WorldTransform * glm::vec4(triangle.V0.coordinates, 1.0));
-							glm::vec3 transformedV1 = glm::vec3(submesh.WorldTransform * glm::vec4(triangle.V1.coordinates, 1.0));
-							glm::vec3 transformedV2 = glm::vec3(submesh.WorldTransform * glm::vec4(triangle.V2.coordinates, 1.0));
-
-							if (ray.IntersectsTriangle(transformedV0, transformedV1, transformedV2, t))
+							if (ray.IntersectsTriangle(triangle.V0.coordinates, triangle.V1.coordinates, triangle.V2.coordinates, t))
 							{
 								selected_entities.push_back({ entity, t });
 								break;
@@ -334,28 +418,28 @@ namespace Editor {
 
 	void EditorLayer::CreateEntityFromMesh(const std::filesystem::path& file_path)
 	{
-		auto handle = m_Scene->CreateEntity("New Mesh Entity", nullptr);
+		auto handle = m_CurrentScene->CreateEntity("New Mesh Entity", nullptr);
 		AssetHandle asset_handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(file_path);
 		Ref<MeshSource> mesh_source = AssetManager::GetAsset<MeshSource>(asset_handle);
 		Ref<Mesh> mesh = CreateRef<Mesh>(mesh_source);
 		MeshComponent mesh_comp{};
 		mesh_comp.mesh = mesh;
-		m_Scene->GetEntity(handle)->AddComponent<MeshComponent>(mesh_comp);
+		m_CurrentScene->GetEntity(handle)->AddComponent<MeshComponent>(mesh_comp);
 	}
 	void EditorLayer::SaveScene()
 	{
 		std::filesystem::path scene_file_path = m_Project->GetSettings().AssetPath / std::filesystem::path("Scenes");
-		if (AssetManager::GetMetadata(m_Scene->Handle))
+		if (AssetManager::GetMetadata(m_EditorScene->Handle))
 		{
-			scene_file_path = AssetManager::GetMetadata(m_Scene->Handle).FilePath;
+			scene_file_path = AssetManager::GetMetadata(m_EditorScene->Handle).FilePath;
 		}
-		m_Scene->SaveScene(Project::GetFullFilePath(scene_file_path));
+		m_EditorScene->SaveScene(Project::GetFullFilePath(scene_file_path));
 	}
 	void EditorLayer::OpenScene(AssetHandle handle)
 	{
 		auto scene = AssetManager::GetAsset<Scene>(handle);
 		m_Camera = Engine::CreateRef<EditorCamera>(scene);
-		scene->SetCurrentCamera(m_Camera->GetCamera());
-		m_Scene = scene;
+		m_CurrentScene = scene;
+		m_EditorScene = scene;
 	}
 }

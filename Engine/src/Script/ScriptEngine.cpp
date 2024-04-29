@@ -169,9 +169,39 @@ namespace Engine {
 			}
 
 			bool isEntity = mono_class_is_subclass_of(monoClass, entityClass, false);
-			if (isEntity)
+			if (!isEntity)
 			{
-				s_Data->EntityClasses[fullName] = CreateRef<ScriptClass>(nameSpace, name);
+				continue;
+			}
+
+			s_Data->EntityClasses[fullName] = CreateRef<ScriptClass>(nameSpace, name);
+
+			HVE_CORE_WARN("{} fields", name);
+			void* iterator = nullptr; // Mono why?
+			while (MonoClassField* field = mono_class_get_fields(monoClass, &iterator)) // it returns a nullptr when it doesnt have any more fields
+			{
+				const char* fieldName = mono_field_get_name(field);
+				MonoType* fieldType = mono_field_get_type(field);
+
+				MonoCustomAttrInfo* attrInfo = mono_custom_attrs_from_field(monoClass, field);
+
+				if (attrInfo)
+				{
+					for (int i = 0; i < attrInfo->num_attrs; ++i)
+					{
+						MonoObject* attr = mono_custom_attrs_get_attr(attrInfo, monoClass);
+						MonoClass* attrClass = mono_object_get_class(attr);
+						const char* attrName = mono_class_get_name(attrClass);
+
+						if (strcmp(attrName, "HVEEditableField") == 0)
+						{
+							HVE_CORE_WARN("    {}", fieldName);
+
+						}
+					}
+
+					mono_custom_attrs_free(attrInfo);
+				}
 			}
 		}
 	}

@@ -1,29 +1,35 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 
 namespace Engine {
 
-	enum CameraType {
-		ORTHOGRAPHIC,
-		PERSPECTIVE
+	enum CameraType
+	{
+		ORTHOGRAPHIC = 0,
+		PERSPECTIVE = 1
 	};
 
-	class Camera {
+	class Camera
+	{
 	public:
-		
+		Camera();
 		Camera(CameraType type);
 
 		const glm::vec3& GetPosition() const { return m_FocalPoint; }
 		float GetPitch() const { return m_Pitch; }
 		float GetYaw() const { return m_Yaw; }
+		float GetNear() { return m_Near; }
 		float GetFar() { return m_Far; }
 		float GetFOVY() { return glm::degrees(m_PerspectiveFOVY); }
 
 		void SetPitch(float pitch) { m_Pitch = pitch; }
 		void SetYaw(float yaw) { m_Yaw = yaw; }
+		void SetNear(float near) { m_Near = near; }
 		void SetFar(float far) { m_Far = far; }
-		 
+
 		glm::vec3 GetUpDirection() const;
 		glm::vec3 GetRightDirection() const;
 		glm::vec3 GetForwardDirection() const;
@@ -52,6 +58,7 @@ namespace Engine {
 		void SetFovy(float fovy);
 		void SetAspectRatio(float ratio);
 		void SetZoomDistance(float distance) { m_Distance = distance; }
+		void Zoom(float offset) { m_Distance += offset; }
 
 		std::pair<float, float> GetDeltaOrientation(const glm::vec2& delta, float rotation_speed, bool inverse_controls);
 
@@ -59,15 +66,20 @@ namespace Engine {
 		void UpdateCamera() { RecalculateViewMatrix(); }
 		glm::vec3 CalculatePosition() const;
 
+		bool IsRotationLocked() { return b_LockedRotation; }
+		void SetIsRotationLocked(bool locked) { b_LockedRotation = locked; }
+
 	private:
 		void RecalculateViewMatrix();
 		void SetOrthographic();
 		void SetPerspective();
+		void UpdateOrientation();
 	private:
 		glm::mat4 m_ProjectionMatrix;
 		glm::mat4 m_ViewMatrix{ 1.f };
 		glm::mat4 m_ViewProjectionMatrix{ 1.f };
-
+		
+		glm::quat m_Orientation = { 0.f, 0.f, 0.f, 0.f };
 		glm::vec3 m_Position = { 0.f, 0.f, 0.f };
 		glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 		float m_Yaw = 0.0f;
@@ -82,6 +94,8 @@ namespace Engine {
 		float m_PerspectiveFOVY = glm::radians(45.f);
 
 		float m_AspectRatio = 1280.f / 720.f;
+
+		bool b_LockedRotation = false;
 
 
 		CameraType m_Type;

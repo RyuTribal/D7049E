@@ -7,16 +7,12 @@ namespace Engine {
 
 	class Entity {
 	public:
-		Entity() : m_Name("Entity"), m_Scene(nullptr) {}
-		Entity(std::string& name, Scene* scene_ptr) : m_Name(name), m_Scene(scene_ptr) {
+		Entity() : m_Scene(nullptr) {}
+		Entity(Scene* scene_ptr) :  m_Scene(scene_ptr) {
 			m_Handle = EntityHandle(UUID());
 		}
-		Entity(UUID id, std::string& name, Scene* scene_ptr) : m_Handle(EntityHandle(id)), m_Name(name), m_Scene(scene_ptr) {}
-		~Entity() {
-			if (m_Scene != nullptr) {
-				m_Scene->DestroyEntity(m_Handle.GetID());
-			}
-		}
+		Entity(UUID id, Scene* scene_ptr) : m_Handle(EntityHandle(id)), m_Scene(scene_ptr) {}
+		~Entity() = default;
 
 
 		template<typename Type>
@@ -49,13 +45,13 @@ namespace Engine {
 			return false;
 		}
 
-		std::string& GetName() { return m_Name; }
-		UUID GetID() { return m_Handle.GetID(); }
+		void ChangeScene(Scene* scene) { m_Scene = scene; }
+
+		UUID& GetID() { return m_Handle.GetID(); }
 		EntityHandle* GetHandle() { return &m_Handle; }
 
 	private:
 		EntityHandle m_Handle;
-		std::string m_Name;
 
 		Scene* m_Scene;
 	};

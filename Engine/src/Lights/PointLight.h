@@ -26,8 +26,8 @@ namespace Engine {
 	private:
 		glm::vec3 m_Position = { 0.f, 0.f, 0.f };
 		float m_ConstantAttenuation = 1.f;
-		float m_LinearAttenuation = 0.7f;
-		float m_QuadraticAttenuation = 1.8f;
+		float m_LinearAttenuation = 0.07f;
+		float m_QuadraticAttenuation = 0.18f;
 
 		glm::vec3 m_Color = { 1.f, 1.f, 1.f };
 		float m_Intensity = 1.f;

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Core.h"
+#include "Core/Base.h"
 #include "Application.h"
 
 #include "Renderer/Renderer.h"
@@ -14,11 +14,8 @@ namespace Engine
 		s_Instance = this;
 		m_Window = std::unique_ptr<Window>(Window::Create(props));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
-
 		Renderer::CreateRenderer();
-
 		m_ImGuiLayer = new ImGuiLayer();
-
 		PushOverlay(m_ImGuiLayer);
 	}
 
@@ -26,6 +23,7 @@ namespace Engine
 	{
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClosed));
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResize));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();)
 		{
@@ -33,6 +31,11 @@ namespace Engine
 			if (event.Handled)
 				break;
 		}
+	}
+
+	void Application::Close()
+	{
+		m_Running = false;
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -59,33 +62,47 @@ namespace Engine
 		auto last_frame = std::chrono::high_resolution_clock::now();
 		while (m_Running)
 		{
-			auto width = GetWindow().GetWidth();
-			auto height = GetWindow().GetHeight();
 			auto newTime = std::chrono::high_resolution_clock::now();
 			float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - last_frame).count();
 			last_frame = newTime;
 			double currentTime = std::chrono::duration<double>(newTime.time_since_epoch()).count();
 			Renderer::Get()->GetStats()->UpdateFPS(currentTime, frameTime);
-			for (Layer* layer : m_LayerStack)
-			{
-				layer->OnUpdate(frameTime);
-			}
+
+			if (!m_Minimized) {
+
+				for (Layer* layer : m_LayerStack)
+				{
+					layer->OnUpdate(frameTime);
+				}
 
 
-			m_ImGuiLayer->Begin();
-			for (Layer* layer : m_LayerStack)
-			{
-				layer->OnImGuiRender();
+				m_ImGuiLayer->Begin();
+				for (Layer* layer : m_LayerStack)
+				{
+					layer->OnImGuiRender();
+				}
+				m_ImGuiLayer->End();
 			}
-			m_ImGuiLayer->End();
 
 			m_Window->OnUpdate();
+			HVE_PROFILE_MARK_FRAME;
 		}
 	}
 
 	bool Application::OnWindowClosed(WindowCloseEvent& e)
 	{
 		m_Running = false;
+		return false;
+	}
+	bool Application::OnWindowResize(WindowResizeEvent& e)
+	{
+		if (e.GetHeight() == 0 && e.GetWidth() == 0) {
+			m_Minimized = true;
+			return false;
+		}
+		m_Minimized = false;
+		Renderer::Get()->SetViewport(e.GetHeight(), e.GetWidth());
+
 		return false;
 	}
 }

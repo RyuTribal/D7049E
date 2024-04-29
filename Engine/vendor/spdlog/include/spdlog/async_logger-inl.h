@@ -4,7 +4,7 @@
 #pragma once
 
 #ifndef SPDLOG_HEADER_ONLY
-#    include <spdlog/async_logger.h>
+#include <spdlog/async_logger.h>
 #endif
 
 #include <spdlog/sinks/sink.h>
@@ -24,27 +24,29 @@ SPDLOG_INLINE spdlog::async_logger::async_logger(
 {}
 
 // send the log message to the thread pool
-SPDLOG_INLINE void spdlog::async_logger::sink_it_(const details::log_msg &msg){
-    SPDLOG_TRY{if (auto pool_ptr = thread_pool_.lock()){pool_ptr->post_log(shared_from_this(), msg, overflow_policy_);
-}
-else
+SPDLOG_INLINE void spdlog::async_logger::sink_it_(const details::log_msg &msg)
 {
-    throw_spdlog_ex("async log: thread pool doesn't exist anymore");
-}
-}
-SPDLOG_LOGGER_CATCH(msg.source)
+    if (auto pool_ptr = thread_pool_.lock())
+    {
+        pool_ptr->post_log(shared_from_this(), msg, overflow_policy_);
+    }
+    else
+    {
+        throw_spdlog_ex("async log: thread pool doesn't exist anymore");
+    }
 }
 
 // send flush request to the thread pool
-SPDLOG_INLINE void spdlog::async_logger::flush_(){
-    SPDLOG_TRY{if (auto pool_ptr = thread_pool_.lock()){pool_ptr->post_flush(shared_from_this(), overflow_policy_);
-}
-else
+SPDLOG_INLINE void spdlog::async_logger::flush_()
 {
-    throw_spdlog_ex("async flush: thread pool doesn't exist anymore");
-}
-}
-SPDLOG_LOGGER_CATCH(source_loc())
+    if (auto pool_ptr = thread_pool_.lock())
+    {
+        pool_ptr->post_flush(shared_from_this(), overflow_policy_);
+    }
+    else
+    {
+        throw_spdlog_ex("async flush: thread pool doesn't exist anymore");
+    }
 }
 
 //
@@ -60,7 +62,7 @@ SPDLOG_INLINE void spdlog::async_logger::backend_sink_it_(const details::log_msg
             {
                 sink->log(msg);
             }
-            SPDLOG_LOGGER_CATCH(msg.source)
+            SPDLOG_LOGGER_CATCH()
         }
     }
 
@@ -78,7 +80,7 @@ SPDLOG_INLINE void spdlog::async_logger::backend_flush_()
         {
             sink->flush();
         }
-        SPDLOG_LOGGER_CATCH(source_loc())
+        SPDLOG_LOGGER_CATCH()
     }
 }
 

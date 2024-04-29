@@ -1,8 +1,6 @@
 project "Editor"
     kind "ConsoleApp"
     staticruntime "off"
-    language "C++"
-    cppdialect "C++17"
 
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
@@ -19,26 +17,31 @@ project "Editor"
         "%{wks.location}/Engine/vendor/spdlog/include",
         "%{IncludeDir.glm}",
         "%{IncludeDir.Glad}",
+        "%{IncludeDir.Jolt}",
+        "%{IncludeDir.Jolt}/Jolt",
+        "%{IncludeDir.Tracy}",
+        "%{IncludeDir.Assimp}",
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
-        "vendor/assimp/include"
-    }
-
-    libdirs 
-    { 
-        "vendor/assimp/lib/x64" 
+        "%{wks.location}/Engine/vendor/SoLoud",
     }
 
     links
     {
         "Engine",
         "Glad",
-        "assimp-vc143-mt.lib"
+        "%{Library.Tracy}",
+        
     }
 
     defines
     {
         "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\""
+    }
+
+    postbuildcommands
+    {
+        '{COPY} "%{wks.location}/Engine/vendor/assimp/bin/x64/assimp-vc143-mt.dll" "%{cfg.targetdir}"'
     }
 
     filter "system:windows"

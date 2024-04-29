@@ -34,7 +34,7 @@ namespace Engine
             glGetShaderInfoLog(shader_ref, sizeof(infoLog), NULL, infoLog);
             glDeleteShader(shader_ref);
             shader_ref = 0;
-            HVE_CORE_ERROR("ERROR::SHADER_COMPILATION_ERROR of type: {} \n{} Perpetrator: {}", type, infoLog, path);
+            HVE_CORE_ERROR_TAG("Shader", "COMPILATION_ERROR of type: {} \n{} Perpetrator: {}", type, infoLog, path);
         }
     }
 }

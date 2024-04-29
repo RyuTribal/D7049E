@@ -5,19 +5,24 @@
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 #include "Lights/PointLight.h"
+#include "Lights/DirectionalLight.h"
+#include "Sound/Sound.h"
 
 namespace Engine {
 
 	enum ComponentType {
 		ID,
 		ParentID,
+		Tag,
 		LocalTransform,
 		WorldTransform,
 		Transform,
 		CameraComp,
 		PointLightComp,
+		DirectionalLightComp,
 		MeshComp,
-		MaterialComp
+		MaterialComp,
+		SoundComp
 	};
 
 	struct Component {
@@ -45,6 +50,18 @@ namespace Engine {
 
 		const ComponentType Type() const override {
 			return ComponentType::ParentID;
+		}
+	};
+
+	struct TagComponent : public Component {
+		std::string name = "Entity";
+
+		TagComponent() = default;
+		TagComponent(const TagComponent&) = default;
+		TagComponent(const std::string& name) : name(name) {}
+
+		const ComponentType Type() const override {
+			return ComponentType::Tag;
 		}
 	};
 
@@ -117,25 +134,11 @@ namespace Engine {
 		}
 	};
 
-	struct MaterialComponent : public Component {
-		Ref<Material> material;
-
-		MaterialComponent() = default;
-		MaterialComponent(const MaterialComponent&) = default;
-		MaterialComponent(Ref<Material> new_material) : material(new_material) {}
-
-		const ComponentType Type() const override {
-			return ComponentType::MaterialComp;
-		}
-	};
-
 
 	struct CameraComponent : public Component {
 		Ref<Camera> camera;
-		// Will conform to the entity's local transform rotation instead of it's own
-		bool lock_camera = true;
 
-		CameraComponent() = default;
+		CameraComponent() { camera = CreateRef<Camera>(); };
 		CameraComponent(const CameraComponent&) = default;
 		CameraComponent(Ref<Camera> new_camera) : camera(new_camera) {}
 
@@ -147,12 +150,40 @@ namespace Engine {
 	struct PointLightComponent : public Component {
 		Ref<PointLight> light;
 
-		PointLightComponent() = default;
+		PointLightComponent() { light = CreateRef<PointLight>(); };
 		PointLightComponent(const PointLightComponent&) = default;
 		PointLightComponent(Ref<PointLight> new_light) : light(new_light) {}
 
 		const ComponentType Type() const override {
 			return ComponentType::PointLightComp;
+		}
+	};
+
+	struct DirectionalLightComponent : public Component
+	{
+		Ref<DirectionalLight> light;
+
+		DirectionalLightComponent() { light = CreateRef<DirectionalLight>(); };
+		DirectionalLightComponent(const DirectionalLightComponent&) = default;
+		DirectionalLightComponent(Ref<DirectionalLight> new_light) : light(new_light) {}
+
+		const ComponentType Type() const override
+		{
+			return ComponentType::DirectionalLightComp;
+		}
+	};
+
+	struct SoundComponent : public Component
+	{
+		Ref<Sound> sound;
+
+		SoundComponent() { sound = CreateRef<Sound>(); };
+		SoundComponent(const SoundComponent&) = default;
+		SoundComponent(Ref<Sound> new_sound) : sound(new_sound) {}
+
+		const ComponentType Type() const override
+		{
+			return ComponentType::SoundComp;
 		}
 	};
 

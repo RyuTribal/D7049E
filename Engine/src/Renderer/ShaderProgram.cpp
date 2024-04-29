@@ -37,66 +37,6 @@ namespace Engine {
         }
 	}
 
-    void ShaderProgram::UploadMat4FloatData(const std::string& name, const glm::mat4& matrix)
-    {
-        GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
-        if (location != -1) {
-            glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
-        }
-        else {
-            std::string error_message = "Shader does not have a uniform " + name + "!";
-            THROW_CORE_ERROR(error_message);
-        }
-
-    }
-    void ShaderProgram::UploadVec3FloatData(const std::string& name, const glm::vec3& vector)
-    {
-        GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
-        if (location != -1) {
-            glUniform3fv(location, 1, glm::value_ptr(vector));
-        }
-        else {
-            std::string error_message = "Shader does not have a uniform " + name + "!";
-            THROW_CORE_ERROR(error_message);
-        }
-    }
-
-    void ShaderProgram::UploadFloatData(const std::string& name, float data)
-    {
-        GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
-        if (location != -1) {
-            glUniform1f(location, data);
-        }
-        else {
-            std::string error_message = "Shader does not have a uniform " + name + "!";
-            THROW_CORE_ERROR(error_message);
-        }
-    }
-
-    void ShaderProgram::UploadVec2IntData(const std::string& name, const glm::ivec2& vector)
-    {
-        GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
-        if (location != -1) {
-            glUniform2iv(location, 1, glm::value_ptr(vector));
-        }
-        else {
-            std::string error_message = "Shader does not have a uniform " + name + "!";
-            THROW_CORE_ERROR(error_message);
-        }
-    }
-
-    void ShaderProgram::UploadIntData(const std::string& name, int data)
-    {
-        GLint location = glGetUniformLocation(m_ShaderProgram, name.c_str());
-        if (location != -1) {
-            glUniform1i(location, data);
-        }
-        else {
-            std::string error_message = "Shader does not have a uniform " + name + "!";
-            THROW_CORE_ERROR(error_message);
-        }
-    }
-
     ShaderProgram::~ShaderProgram()
     {
         glDeleteProgram(m_ShaderProgram);
@@ -105,4 +45,121 @@ namespace Engine {
     {
         glUseProgram(m_ShaderProgram);
     }
+
+	void ShaderProgram::Deactivate()
+	{
+		glUseProgram(0);
+	}
+
+	void ShaderProgram::Set(const std::string& name, float value)
+	{
+		Activate();
+		glUniform1f(glGetUniformLocation(m_ShaderProgram, name.c_str()), value);
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, int value)
+	{
+		Activate();
+		glUniform1i(glGetUniformLocation(m_ShaderProgram, name.c_str()), value);
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, uint32_t value)
+	{
+		Activate();
+		glUniform1ui(glGetUniformLocation(m_ShaderProgram, name.c_str()), value);
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, bool value)
+	{
+		Activate();
+		glUniform1i(glGetUniformLocation(m_ShaderProgram, name.c_str()), (int)value);
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::ivec2& value)
+	{
+		Activate();
+		glUniform2iv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::ivec3& value)
+	{
+		Activate();
+		glUniform3iv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::ivec4& value)
+	{
+		Activate();
+		glUniform4iv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::vec2& value)
+	{
+		Activate();
+		glUniform2fv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::vec3& value)
+	{
+		Activate();
+		glUniform3fv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::vec4& value)
+	{
+		Activate();
+		glUniform4fv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::mat3& value)
+	{
+		Activate();
+		glUniformMatrix3fv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const glm::mat4& value)
+	{
+		Activate();
+		glUniformMatrix4fv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
+		Deactivate();
+	}
+
+	void ShaderProgram::Set(const std::string& name, const Ref<Texture2D>& texture, uint32_t slot)
+	{
+		Activate();
+		texture->Bind(slot);
+		glUniform1i(glGetUniformLocation(m_ShaderProgram, name.c_str()), slot);
+		Deactivate();
+	}
+
+	ShaderLibrary::ShaderLibrary()
+	{
+	}
+
+	ShaderLibrary::~ShaderLibrary()
+	{
+	}
+
+	void ShaderLibrary::Load(std::string_view name, const std::string& path)
+	{
+		HVE_CORE_ASSERT(m_Shaders.find(std::string(name)) == m_Shaders.end());
+		m_Shaders[std::string(name)] = ShaderProgram::Create(path);
+	}
+
+	const Ref<ShaderProgram>& ShaderLibrary::Get(const std::string& name) const
+	{
+		HVE_CORE_ASSERT(m_Shaders.find(name) != m_Shaders.end());
+		return m_Shaders.at(name);
+	}
 }

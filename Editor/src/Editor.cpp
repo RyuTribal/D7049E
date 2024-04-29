@@ -5,31 +5,30 @@
 class EditorApp : public Engine::Application
 {
 public:
-	EditorApp(Engine::WindowProps props) : Application(props)
+	EditorApp(Engine::WindowProps props, std::string projectPath) : Application(props)
 	{
-	    auto [camera_entity, scene] = Engine::Scene::CreateScene("Scene1");
-		entities[camera_entity->GetID()] = camera_entity;
-	    Engine::Renderer::Get()->SetBackgroundColor(128, 128, 128); //You can change the color here to see that it updates
-		PushLayer(new Editor::EditorLayer(scene));
+		PushLayer(new Editor::EditorLayer(projectPath));
 	}
 
 	~EditorApp()
 	{
 
 	}
-
-	std::unordered_map <Engine::UUID, Engine::Ref<Engine::Entity>> entities{}; //To make sure the entities are not garbage collected
 };
 
-Engine::Application* Engine::CreateApplication()
+Engine::Application* Engine::CreateApplication(int argc, char** argv)
 {
+
+	HVE_ASSERT(argc > 1, "No project selected. Please use the launcher to open a project!");
+	std::string projectPath = argv[1];
+	std::filesystem::path project_name = std::filesystem::path(projectPath).filename().stem();
 	WindowProps props{};
-	props.Title = "Editor";
+	props.Title = project_name.string() + " - Editor";
 	props.Width = 1280;
 	props.Height = 720;
 	props.Fullscreen = false;
 	props.FullScreenType = BORDERLESS;
 	props.ScreenMaximized = true;	
-	props.VSync = true; // Keep it for now so we can have faster movement I was too lazy to fix the mouse movement to properly work without vsync
-	return new EditorApp(props);
+	props.VSync = false;
+	return new EditorApp(props, projectPath);
 }

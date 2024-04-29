@@ -13,10 +13,16 @@ namespace Engine
 	}
 	void RenderContext::Init()
 	{
-		glfwMakeContextCurrent(m_WindowHandle);
+		HVE_PROFILE_FUNC();
 
+		glfwMakeContextCurrent(m_WindowHandle);
 		int status = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
 		HVE_CORE_ASSERT(status, "Failed to initialize Glad!");
+
+		HVE_CORE_TRACE("OpenGL Info:");
+		HVE_CORE_TRACE("Vendor: {0}", glGetString(GL_VENDOR));
+		HVE_CORE_TRACE("Renderer: {0}", glGetString(GL_RENDERER));
+		HVE_CORE_TRACE("Version: {0}", glGetString(GL_VERSION));
 
 		glEnable(GL_DEBUG_OUTPUT);
 	}

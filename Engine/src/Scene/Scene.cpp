@@ -4,19 +4,49 @@
 #include "Entity.h"
 #include <glm/gtx/matrix_decompose.hpp>
 #include "Renderer/Renderer.h"
+#include "Assets/AssetManager.h"
 
 namespace Engine {
 
-	std::pair<Ref<Entity>, Ref<Scene>> Scene::CreateScene(std::string name)
+	Ref<Scene> Scene::CreateScene(std::string name)
 	{
-		Ref<Scene> scene = CreateRef<Scene>(name);
-		Ref<Entity> default_camera_entity = scene->CreateEntity("Default scene camera", nullptr);
-		scene->SetCurrentCamera(default_camera_entity->GetID());
-		Ref<Camera> camera = CreateRef<Camera>(CameraType::PERSPECTIVE);
-		default_camera_entity->AddComponent<CameraComponent>(CameraComponent(camera));
-		Renderer::Get()->SetCamera(camera.get());
+		return CreateRef<Scene>(name);
+	}
 
-		return {default_camera_entity, scene};
+	Ref<Scene> Scene::LoadScene(AssetHandle handle, const AssetMetadata& metadata)
+	{
+		return SceneSerializer::Deserializer(metadata.FilePath);
+	}
+
+	void Scene::ReloadScene()
+	{
+		SaveScene();
+		AssetMetadata metadata = AssetManager::GetMetadata(Handle);
+		Ref<Scene> new_scene = SceneSerializer::Deserializer(metadata.FilePath);
+
+		this->m_Name = std::move(new_scene->m_Name);
+		this->m_Registry = std::move(new_scene->m_Registry);
+		this->m_RootSceneNode = std::move(new_scene->m_RootSceneNode);
+		this->entities = std::move(new_scene->entities);
+		this->m_IsReloading = true;
+
+		for (auto& entity : entities)
+		{
+			entity.second->ChangeScene(this);
+		}
+	}
+
+	bool Scene::SaveScene(const std::filesystem::path& folder_path)
+	{
+		SceneSerializer::Serializer(folder_path, this);
+
+		return true; // Handle not saving correctly
+	}
+
+	bool Scene::SaveScene()
+	{
+		SaveScene(AssetManager::GetMetadata(Handle).FilePath);
+		return true;
 	}
 
 
@@ -30,18 +60,66 @@ namespace Engine {
 			m_Registry.RemoveAllFromEntity(key);
 		}
 	}
-	Ref<Entity> Scene::CreateEntity(std::string name, Entity* parent) {
-		
+	EntityHandle* Scene::CreateEntity(std::string name, Entity* parent) {
+		return CreateEntity(name, parent->GetHandle());
+	}
+
+	EntityHandle* Scene::CreateEntity(std::string name, EntityHandle* parent)
+	{
+		UUID* id = &parent->GetID();
+		return CreateEntity(name, id);
+	}
+
+	EntityHandle* Scene::CreateEntity(std::string name, UUID* parent)
+	{
 		UUID new_id = UUID();
-		m_RootSceneNode.AddChild(parent == nullptr ? m_ID : parent->GetID(), new_id);
+		return CreateEntityByUUID(new_id, name, parent);
+	}
 
-		m_Registry.Add<ParentIDComponent>(new_id, ParentIDComponent(parent == nullptr ? m_ID : parent->GetID()));
+	EntityHandle* Scene::CreateEntity(std::string name, nullptr_t parent)
+	{
+		UUID root_id = 0;
+		return CreateEntity(name, &root_id);
+	}
 
-		Ref<Entity> new_entity = CreateRef<Entity>(new_id, name, this);
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, Entity* parent)
+	{
+		UUID* parent_id = &parent->GetID();
+		return CreateEntityByUUID(id, name, parent_id);
+	}
 
-		entities[new_id] = new_entity->GetHandle();
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, EntityHandle* parent)
+	{
+		UUID* parent_id = &parent->GetID();
+		return CreateEntityByUUID(id, name, parent_id);
+	}
 
-		return new_entity;
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, nullptr_t parent)
+	{
+		UUID root_id = 0;
+		return CreateEntityByUUID(id, name, &root_id);
+	}
+
+	EntityHandle* Scene::CreateEntityByUUID(UUID id, std::string name, UUID* parent)
+	{
+		UUID root_id = 0;
+		m_RootSceneNode.AddChild(parent == nullptr ? root_id : *parent, id);
+
+		m_Registry.Add<IDComponent>(id, IDComponent(id));
+		m_Registry.Add<ParentIDComponent>(id, ParentIDComponent(parent == nullptr ? root_id : *parent));
+		m_Registry.Add<TagComponent>(id, TagComponent(name));
+		m_Registry.Add<TransformComponent>(id, TransformComponent());
+
+		Ref<Entity> new_entity = CreateRef<Entity>(id, this);
+
+		entities[id] = new_entity;
+
+		return new_entity->GetHandle();
+	}
+
+	void Scene::DestroyEntity(EntityHandle* id)
+	{
+		DestroyEntity(id->GetID());
 	}
 
 	void Scene::DestroyEntity(UUID id)
@@ -49,6 +127,28 @@ namespace Engine {
 		m_RootSceneNode.RemoveChild(id, &m_RootSceneNode);
 		m_Registry.RemoveAllFromEntity(id);
 		entities.erase(id);
+	}
+
+	Entity* Scene::GetEntity(UUID& id)
+	{
+		auto it = entities.find(id);
+		if (it != entities.end()) {
+			return it->second.get();
+		}
+		return nullptr;
+	}
+
+	Entity* Scene::GetEntity(EntityHandle* id)
+	{
+		return GetEntity(id->GetID());
+	}
+
+	void Scene::ForEachEntity(std::function<void(const UUID, const Ref<Entity>)> func) const
+	{
+		for (const auto& [key, value] : entities)
+		{
+			func(key, value);
+		}
 	}
 
 	void Scene::FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent) {
@@ -62,18 +162,28 @@ namespace Engine {
 		}
 	}
 
-	void Scene::ReparentSceneNode(UUID id, UUID new_parent_id) {
-		m_RootSceneNode.RemoveChild(id, &m_RootSceneNode);
-		m_RootSceneNode.AddChild(new_parent_id, id);
-		HVE_CORE_WARN(m_RootSceneNode.GetChildren()->size());
+	void Scene::ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id) {
+		UUID* ent_id = &id->GetID();
+		UUID* parent_id = &new_parent_id->GetID();
+		ReparentSceneNode(ent_id, parent_id);
 	}
 
+	void Scene::ReparentSceneNode(UUID* id, UUID* new_parent_id)
+	{
+		m_RootSceneNode.RemoveChild(*id, &m_RootSceneNode);
+		m_RootSceneNode.AddChild(*new_parent_id, *id);
+	}
 
 	Camera* Scene::GetCurrentCamera(){
-		return m_Registry.Get<CameraComponent>(m_CurrentCamera)->camera.get();
+		return m_CurrentCamera.get();
 	}
-	void Scene::UpdateScene(int delta_time)
+	void Scene::SetCurrentCamera(Ref<Camera> camera)
 	{
+		m_CurrentCamera = camera;
+	}
+	void Scene::UpdateScene()
+	{
+		m_IsReloading = false;
 		UpdateTransforms();
 		DrawSystem();
 	}
@@ -101,8 +211,7 @@ namespace Engine {
 			if (m_Registry.Get<CameraComponent>(node->GetID()) != nullptr) {
 				m_Registry.Get<CameraComponent>(node->GetID())->camera->SetPosition(translation);
 
-				// Might remove this, kinda dumb to lock rotation to an object
-				if (m_Registry.Get<CameraComponent>(node->GetID())->lock_camera) {
+				if (m_Registry.Get<CameraComponent>(node->GetID())->camera->IsRotationLocked()) {
 					m_Registry.Get<CameraComponent>(node->GetID())->camera->SetPitch(-transform->local_transform.rotation.x);
 					m_Registry.Get<CameraComponent>(node->GetID())->camera->SetYaw(-transform->local_transform.rotation.y);
 				}
@@ -133,13 +242,11 @@ namespace Engine {
 	{
 		if (m_Registry.GetComponentRegistry<MeshComponent>() != nullptr) {
 			for (const auto& [id, value] : *m_Registry.GetComponentRegistry<MeshComponent>()) {
-				if (m_Registry.Get<TransformComponent>(id) != nullptr) {
+				if (value.mesh != nullptr)
+				{
 					value.mesh->SetTransform(m_Registry.Get<TransformComponent>(id)->world_transform.mat4());
+					Renderer::Get()->SubmitObject(value.mesh.get());
 				}
-				else {
-					value.mesh->SetTransform(glm::mat4(0.f)); // just a default one, adds no transform
-				}
-				Renderer::Get()->SubmitObject(value.mesh.get(), m_Registry.Get<MaterialComponent>(id)->material.get());
 			}
 		}
 		if (m_Registry.GetComponentRegistry<PointLightComponent>() != nullptr) {
@@ -151,6 +258,13 @@ namespace Engine {
 			}
 		}
 
+		if (m_Registry.GetComponentRegistry<DirectionalLightComponent>() != nullptr)
+		{
+			for (const auto& [id, value] : *m_Registry.GetComponentRegistry<DirectionalLightComponent>())
+			{
+				Renderer::Get()->SubmitDirectionalLight(value.light.get());
+			}
+		}
 		Renderer::Get()->BeginDrawing();
 	}
 

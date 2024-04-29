@@ -1,46 +1,24 @@
 #include "EditorLayer.h"
+#include "Panels/Viewport.h"
+#include "Panels/SceneGraph.h"
+#include "Panels/ContentBrowser.h"
+#include <imgui/imgui_internal.h>
 
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
-
-		checkerboard_tex = Engine::Texture2D::Create(ROOT_PATH + std::string("/assets/test.png"));
-
-		Cuboid cube{ 1.f, 1.f, 1.f };
-		Engine::Ref<Engine::Material> cube_material = Engine::CreateRef<Silver>();
-
-		Engine::Ref<Engine::Entity> cube_entity = scene->CreateEntity("Cube", nullptr);
-		Engine::TransformComponent cube_transform{ glm::vec3(0.f, 0.f, 0.f) };
-		cube_transform.local_transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
-
-		cube_entity->AddComponent<Engine::MeshComponent>(cube.GetMesh());
-		cube_entity->AddComponent<Engine::MaterialComponent>(cube_material);
-		cube_entity->AddComponent<Engine::TransformComponent>(cube_transform);
-
-		entities[cube_entity->GetID()] = cube_entity; // Prevent garbage collection
-
-
-		Engine::Ref<Engine::Entity> light_entity = scene->CreateEntity("Sun", nullptr);
-		Engine::Ref<Engine::PointLight> light = Engine::CreateRef<Engine::PointLight>(); // defaults to white
-		Engine::TransformComponent new_transform(glm::vec3(0.5f, 0.7f, 0.f));
-		Engine::PointLightComponent new_light(light);
-
-		light_entity->AddComponent<Engine::TransformComponent>(new_transform);
-		light_entity->AddComponent<Engine::PointLightComponent>(new_light);
-
-		entities[light_entity->GetID()] = light_entity;
+		HVE_ASSERT(m_Project->GetSettings().StartingScene != 0, "Starting scene is invalid!");
+		OpenScene(m_Project->GetSettings().StartingScene);
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
 	{
-		Engine::Camera* curr_camera = scene->GetCurrentCamera();
+		Engine::Camera* curr_camera = m_Scene->GetCurrentCamera();
 		Engine::Renderer::Get()->BeginFrame(curr_camera);
-		smoothedDeltaTime = smoothingFactor * smoothedDeltaTime + (1.0f - smoothingFactor) * delta_time;
-		UpdateMovement();
-		if (!HasMovement()) {
-			ApplyFriction();
+		if (EditorPanels::Viewport::IsFocused()) {
+			m_Camera->Update(delta_time);
 		}
-		scene->UpdateScene(delta_time);
+		m_Scene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
 	}
 
@@ -48,157 +26,242 @@ namespace Editor {
 	{
 		Engine::EventDispatcher dispatcher(event);
 
-		dispatcher.Dispatch<Engine::KeyPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyPress));
-		dispatcher.Dispatch<Engine::KeyReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyRelease));
-		dispatcher.Dispatch<Engine::MouseButtonPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonPressed));
-		dispatcher.Dispatch<Engine::MouseButtonReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonReleased));
-		dispatcher.Dispatch<Engine::MouseMovedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseMoved));
+		dispatcher.Dispatch<KeyPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyPress));
+		dispatcher.Dispatch<KeyReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnKeyRelease));
+		dispatcher.Dispatch<MouseButtonPressedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonPressed));
+		dispatcher.Dispatch<MouseButtonReleasedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseButtonReleased));
+		dispatcher.Dispatch<MouseMovedEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnMouseMoved));
+		dispatcher.Dispatch<MouseScrolledEvent>(BIND_EVENT_FN(Editor::EditorLayer::OnScrolled));
 	}
 
 	void EditorLayer::OnImGuiRender()
 	{
-		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-		ImGui::Begin("Settings");
-		if (ImGui::Button("Toggle Fullscreen")) {
-			bool is_fullscreen = Engine::Application::Get().GetWindow().GetFullScreen();
-			Engine::Application::Get().GetWindow().SetFullScreen(!is_fullscreen, Engine::BORDERLESS);
+		static bool dockspaceOpen = true;
+		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+		static bool opt_fullscreen_persistant = true;
+		bool opt_fullscreen = opt_fullscreen_persistant;
+
+
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+
+		if (!b_EditDockspace) {
+			dockspace_flags |= ImGuiDockNodeFlags_NoUndocking;
 		}
+
+		if (opt_fullscreen)
+		{
+			ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->Pos);
+			ImGui::SetNextWindowSize(viewport->Size);
+			ImGui::SetNextWindowViewport(viewport->ID);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+		}
+
+
+		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+			window_flags |= ImGuiWindowFlags_NoBackground;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
+		ImGui::PopStyleVar();
+
+		if (opt_fullscreen)
+			ImGui::PopStyleVar(2);
+
+		ImGuiIO& io = ImGui::GetIO();
+		ImGuiStyle& style = ImGui::GetStyle();
+		float minWinSizeX = style.WindowMinSize.x;
+		style.WindowMinSize.x = 370.0f;
+		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+		{
+			ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+		}
+
+		style.WindowMinSize.x = minWinSizeX;
+
+		if (ImGui::BeginMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("New Project...", "Ctrl+P"))
+				{
+
+				}
+				if (ImGui::MenuItem("Open Project...", "Ctrl+O"))
+				{
+
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
+				{
+
+				}
+
+				if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+				{
+					SaveScene();
+				}
+
+				//if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+				//{
+				// Dont know if we will need this
+				//}
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Exit"))
+					Engine::Application::Get().Close();
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Edit"))
+			{
+				// Dont know yet, this is just more here for now
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenuBar();
+		}
+
+
+		EditorPanels::SceneGraph::Render(m_Scene);
+
+		ImGui::Begin("Content Browser");
+			EditorPanels::ContentBrowser::Render(m_Scene);
 		ImGui::End();
 
 		ImGui::Begin("Viewport");
-		uint32_t id = Engine::Renderer::Get()->GetSceneTextureID();
-		ImVec2 windowSize = ImGui::GetContentRegionAvail();
-		if (m_ViewportSize != *((glm::vec2*)&windowSize)) {
-			Engine::Renderer::Get()->ResizeViewport((uint32_t)windowSize.x, (uint32_t)windowSize.y);
-			m_ViewportSize = { windowSize.x, windowSize.y };
+		EditorPanels::Viewport::Render(m_Camera->GetCamera().get());
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				auto droppedPath = *(std::filesystem::path*)payload->Data;
+				HVE_CORE_INFO("Dropped file: {0}", droppedPath.string());
+				if (Project::GetActiveDesignAssetManager()->GetAssetTypeFromFileExtension(droppedPath.extension()) == AssetType::MeshSource)
+				{
+					CreateEntityFromMesh(droppedPath);
+				}
+			}
+			ImGui::EndDragDropTarget();
 		}
-		ImGui::Image((void*)(intptr_t)(id), ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2(0, 1), ImVec2(1, 0));
 		ImGui::End();
 
-		ImGui::ShowMetricsWindow();
+		ImGui::Begin("Stats");
 
-	}
+		ImGui::Text("Renderer Stats:");
+		ImGui::Text("FPS: %f", Renderer::Get()->GetStats()->frames_per_second);
+		ImGui::Text("Draw Calls: %d", Renderer::Get()->GetStats()->draw_calls);
+		ImGui::Text("Vertices: %d", Renderer::Get()->GetStats()->vertices_count);
+		ImGui::Text("Indices: %d", Renderer::Get()->GetStats()->index_count);
 
-	void EditorLayer::SetDelta()
-	{
-		if (firstClick) {
-			currentMouseOrientation.x = Engine::Input::GetMouseX();
-			currentMouseOrientation.y = Engine::Input::GetMouseY();
-			firstClick = false;
-		}
+		ImGui::End();
 
-		deltaMouseOrientation = glm::vec2(0.f, 0.f);
-		deltaMouseOrientation.x = Engine::Input::GetMouseX();
-		deltaMouseOrientation.y = Engine::Input::GetMouseY();
-		deltaMouseOrientation = currentMouseOrientation - deltaMouseOrientation;
-		currentMouseOrientation = { 0.f, 0.f };
-		currentMouseOrientation.x = Engine::Input::GetMouseX();
-		currentMouseOrientation.y = Engine::Input::GetMouseY();
-	}
+		ImGui::Begin("Settings");
 
-	bool EditorLayer::HasMovement()
-	{
-		if (keyStates[KEY_W]) {
-			return true;
-		}
-		else if (keyStates[KEY_S]) {
-			return true;
-		}
-		else if (keyStates[KEY_A]) {
-			return true;
-		}
-		else if (keyStates[KEY_D]) {
-			return true;
-		}
-		return false;
+		ImGui::End();
+
+		ImGui::End();
+
 	}
 
 	bool EditorLayer::OnKeyPress(Engine::KeyPressedEvent& event)
 	{
-		UpdateKeyState(event.GetKeyCode(), true);
-		if (HasMovement()) {
-			BuildVelocityVector();
+
+		bool control = Input::IsKeyPressed(KEY_LEFT_CONTROL) || Input::IsKeyPressed(KEY_RIGHT_CONTROL);
+		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
+
+		if (shift) {
+			m_Camera->UpdateKeyState(event.GetKeyCode(), true);
+		}
+		else if (control)
+		{
+			if (event.GetKeyCode() == KEY_S)
+			{
+				SaveScene();
+			}
+		}
+		else {
+			EditorPanels::Viewport::OnKeyPressed(event.GetKeyCode());
 		}
 		return true;
 	}
 
 	bool EditorLayer::OnKeyRelease(Engine::KeyReleasedEvent& event)
 	{
-		UpdateKeyState(event.GetKeyCode(), false);
+		m_Camera->UpdateKeyState(event.GetKeyCode(), false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseButtonReleased(Engine::MouseButtonReleasedEvent& event)
 	{
-		if (event.GetMouseButton() == MOUSE_BUTTON_RIGHT) {
-			mouseIsPressed = false;
-			Engine::Input::SetLockMouseMode(false);
-		}
+		m_Camera->UpdateKeyState(event.GetMouseButton(), false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseMoved(Engine::MouseMovedEvent& event)
 	{
-		if (mouseIsPressed) {
-			SetDelta();
-		}
+		m_Camera->PanCamera();
 		return true;
-	}
-
-	void EditorLayer::BuildVelocityVector()
-	{
-		auto camera = scene->GetCurrentCamera();
-		velocity = glm::vec3(0.0f);
-
-		if (keyStates[KEY_W]) {
-			velocity += mouseIsPressed ? camera->GetForwardDirection() * speed : glm::vec3(0.0f, speed, 0.0f);
-		}
-		if (keyStates[KEY_S]) {
-			velocity += mouseIsPressed ? -(camera->GetForwardDirection() * speed) : glm::vec3(0.0f, -speed, 0.0f);
-		}
-		if (keyStates[KEY_A]) {
-			velocity += mouseIsPressed ? -(camera->GetRightDirection() * speed) : glm::vec3(-speed, 0.0f, 0.0f);
-		}
-		if (keyStates[KEY_D]) {
-			velocity += mouseIsPressed ? camera->GetRightDirection() * speed : glm::vec3(speed, 0.0f, 0.0f);
-		}
 	}
 
 	bool EditorLayer::OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event)
 	{
-		if (event.GetMouseButton() == MOUSE_BUTTON_RIGHT) {
-			mouseIsPressed = true;
-			firstClick = true;
-			Engine::Input::SetLockMouseMode(true);
+		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
+		if (EditorPanels::Viewport::IsHovered())
+		{
+			m_Camera->UpdateKeyState(event.GetMouseButton(), true);
 		}
+		// Too janky gotta fix a ray caster instead
+		/*if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused()) {
+			auto [x, y] = EditorPanels::Viewport::GetMousePos();
+			int pixelData = Renderer::Get()->GetObjectFrameBuffer()->ReadPixel(1, x, y);
+			if (pixelData != -1 || EditorPanels::SceneGraph::GetSelectedEntity()->GetID() != (UUID)pixelData) {
+				EditorPanels::SceneGraph::SetSelectedEntity(pixelData);
+				EditorPanels::Viewport::ActivateGizmo();
+			}
+		}*/
 		return true;
 	}
-
-	void EditorLayer::UpdateKeyState(int keyCode, bool isPressed)
+	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)
 	{
-		keyStates[keyCode] = isPressed;
+		if (EditorPanels::Viewport::IsHovered())
+		{
+			m_Camera->Zoom(event.GetYOffset());
+		}
+		return false;
 	}
-
-	void EditorLayer::UpdateMovement()
+	void EditorLayer::CreateEntityFromMesh(const std::filesystem::path& file_path)
 	{
-		auto camera = scene->GetCurrentCamera();
-
-		if (mouseIsPressed) {
-			camera->Rotate(deltaMouseOrientation * smoothedDeltaTime, sensitivity, false);
-			deltaMouseOrientation = { 0.f, 0.f };
-		}
-
-		if (velocity != glm::vec3(0.0f)) {
-			camera->Move(velocity * smoothedDeltaTime);
-		}
+		auto handle = m_Scene->CreateEntity("New Mesh Entity", nullptr);
+		AssetHandle asset_handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(file_path);
+		Ref<MeshSource> mesh_source = AssetManager::GetAsset<MeshSource>(asset_handle);
+		Ref<Mesh> mesh = CreateRef<Mesh>(mesh_source);
+		MeshComponent mesh_comp{};
+		mesh_comp.mesh = mesh;
+		m_Scene->GetEntity(handle)->AddComponent<MeshComponent>(mesh_comp);
 	}
-
-	void EditorLayer::ApplyFriction()
+	void EditorLayer::SaveScene()
 	{
-		velocity *= 1.0 - air_friction;
-
-		if (glm::length(velocity) < 0.01f) {
-			velocity = glm::vec3(0.0f);
+		std::filesystem::path scene_file_path = m_Project->GetSettings().AssetPath / std::filesystem::path("Scenes");
+		if (AssetManager::GetMetadata(m_Scene->Handle))
+		{
+			scene_file_path = AssetManager::GetMetadata(m_Scene->Handle).FilePath;
 		}
+		m_Scene->SaveScene(Project::GetFullFilePath(scene_file_path));
+	}
+	void EditorLayer::OpenScene(AssetHandle handle)
+	{
+		auto scene = AssetManager::GetAsset<Scene>(handle);
+		m_Camera = Engine::CreateRef<EditorCamera>(scene);
+		scene->SetCurrentCamera(m_Camera->GetCamera());
+		m_Scene = scene;
 	}
 }

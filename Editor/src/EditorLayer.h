@@ -1,61 +1,45 @@
 #pragma once
 #include <Engine.h>
 #include <imgui/imgui.h>
-#include "Primitives/Cuboid.h"
-#include "Materials/Silver.h"
+#include "EditorCamera.h"
 #include <map>
 
 
-namespace Editor {
-	class EditorLayer : public Engine::Layer {
-	public:
-		EditorLayer(Engine::Ref<Engine::Scene> scene) : Layer("Test"), scene(scene) {
+using namespace Engine;
 
+
+namespace Editor {
+	class EditorLayer : public Layer {
+	public:
+		EditorLayer(std::string projectPath) : Layer("Editor"), m_ProjectPath(projectPath) {
+			m_Project = Project::Load(m_ProjectPath);
 		}
 		~EditorLayer() = default;
 
 		void OnAttach() override;
 		void OnUpdate(float delta_time) override;
-		void OnEvent(Engine::Event& event) override;
+		void OnEvent(Event& event) override;
 		void OnImGuiRender() override;
-		void SetDelta();
-		bool HasMovement();
-		bool OnKeyPress(Engine::KeyPressedEvent& event);
-		bool OnKeyRelease(Engine::KeyReleasedEvent& event);
-		bool OnMouseButtonReleased(Engine::MouseButtonReleasedEvent& event);
-		bool OnMouseMoved(Engine::MouseMovedEvent& event);
-		void BuildVelocityVector();
-		bool OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event);
-		void UpdateKeyState(int keyCode, bool isPressed);
-		void UpdateMovement();
-		void ApplyFriction();
+		bool OnKeyPress(KeyPressedEvent& event);
+		bool OnKeyRelease(KeyReleasedEvent& event);
+		bool OnMouseButtonReleased(MouseButtonReleasedEvent& event);
+		bool OnMouseMoved(MouseMovedEvent& event);
+		bool OnMouseButtonPressed(MouseButtonPressedEvent& event);
+		bool OnScrolled(MouseScrolledEvent& event);
+
+		void CreateEntityFromMesh(const std::filesystem::path& file_path);
 
 	private:
-		Engine::Ref<Engine::Scene> scene;
-		std::unordered_map <Engine::UUID, Engine::Ref<Engine::Entity>> entities{}; //To make sure the entities are not garbage collected
+		void SaveScene();
+		void OpenScene(AssetHandle handle);
 
-		const float MAX_FRAME_TIME = 0.01667;
-
-		float speed = 1.0f;
-
-		glm::vec3 velocity = { 0.f, 0.f, 0.f };
-
-		float air_friction = 0.1f;
-
-		float sensitivity = 0.1f;
-
-		float smoothedDeltaTime = 0.0f;
-		const float smoothingFactor = 0.9f;
-
-		std::map<int, bool> keyStates;
-		bool mouseIsPressed = false;
-		bool firstClick = true;
-
-		glm::vec2 deltaMouseOrientation = { 0.f, 0.f };
-		glm::vec2 currentMouseOrientation = { 0.f, 0.f };
-
-		glm::vec2 m_ViewportSize;
-
-		Engine::Ref<Engine::Texture2D> checkerboard_tex = nullptr;
+	private:
+		Ref<Scene> m_Scene;
+		std::string m_ProjectPath;
+		Ref<EditorCamera> m_Camera;
+		std::vector<EntityHandle*> entities{};
+		bool b_EditDockspace = true;
+		Ref<Framebuffer> m_SceneBuffer;
+		Ref<Project> m_Project;
 	};
 }

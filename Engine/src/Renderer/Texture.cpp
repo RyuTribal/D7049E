@@ -1,10 +1,6 @@
 #include "pch.h"
 #include "Texture.h"
 
-#define STBI_NO_SIMD
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 namespace Engine {
 	namespace Utils {
 
@@ -34,7 +30,7 @@ namespace Engine {
 
 	}
 
-	Texture2D::Texture2D(const TextureSpecification& specification)
+	Texture2D::Texture2D(const TextureSpecification& specification, Buffer data)
 		: m_Specification(specification), m_Width(m_Specification.Width), m_Height(m_Specification.Height)
 	{
 		
@@ -61,57 +57,52 @@ namespace Engine {
 			glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		}
-	}
-
-	Texture2D::Texture2D(const std::string& path)
-		: m_Path(path)
-	{
-		
-
-		int width, height, channels;
-		stbi_set_flip_vertically_on_load(1);
-		stbi_uc* data = nullptr;
-		{
-			data = stbi_load(path.c_str(), &width, &height, &channels, 0);
-		}
 
 		if (data)
 		{
-			m_IsLoaded = true;
-
-			m_Width = width;
-			m_Height = height;
-
-			GLenum internalFormat = 0, dataFormat = 0;
-			if (channels == 4)
-			{
-				internalFormat = GL_RGBA8;
-				dataFormat = GL_RGBA;
-			}
-			else if (channels == 3)
-			{
-				internalFormat = GL_RGB8;
-				dataFormat = GL_RGB;
-			}
-
-			m_InternalFormat = internalFormat;
-			m_DataFormat = dataFormat;
-
-			HVE_CORE_ASSERT(internalFormat & dataFormat, "Format not supported!");
-
-			glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
-			glTextureStorage2D(m_RendererID, 1, internalFormat, m_Width, m_Height);
-
-			glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-			glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-			glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, dataFormat, GL_UNSIGNED_BYTE, data);
-
-			stbi_image_free(data);
+			SetData(data);
 		}
+	}
+
+	Texture2D::Texture2D(Ref<Texture2D> other)
+		: m_Specification(other->GetSpecification()), m_Width(other->m_Width), m_Height(other->m_Height)
+	{
+		m_InternalFormat = Utils::HeliosImageFormatToGLInternalFormat(m_Specification.Format);
+		m_DataFormat = Utils::HeliosImageFormatToGLDataFormat(m_Specification.Format);
+
+		glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
+		glTextureStorage2D(m_RendererID, 1, m_InternalFormat, m_Width, m_Height);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		CopyTextureData(other->m_RendererID);
+		m_IsLoaded = true;
+	}
+
+	void Texture2D::CopyTextureData(GLuint srcTextureID)
+	{
+		GLuint fbo;
+		glGenFramebuffers(1, &fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, srcTextureID, 0);
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			HVE_CORE_ERROR_TAG("Texture", "Framebuffer is not complete!");
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glDeleteFramebuffers(1, &fbo);
+			return;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, m_RendererID);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, m_Width, m_Height);
+
+		// Clean up
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDeleteFramebuffers(1, &fbo);
 	}
 
 	Texture2D::~Texture2D()
@@ -121,11 +112,12 @@ namespace Engine {
 		glDeleteTextures(1, &m_RendererID);
 	}
 
-	void Texture2D::SetData(void* data, uint32_t size)
+	void Texture2D::SetData(Buffer data)
 	{
 		uint32_t bpp = m_DataFormat == GL_RGBA ? 4 : 3;
-		HVE_CORE_ASSERT(size == m_Width * m_Height * bpp, "Data must be entire texture!");
-		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
+		HVE_CORE_ASSERT(data.Size == m_Width * m_Height * bpp, "Data must be entire texture!");
+		m_IsLoaded = true;
+		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data.Data);
 	}
 
 	void Texture2D::Bind(uint32_t slot) const

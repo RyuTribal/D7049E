@@ -57,6 +57,8 @@ namespace Engine {
 		void ActivateTextureUnit(TextureUnits unit);
 		void BindTexture(uint32_t texture_id);
 		void UnBindTexture(uint32_t texture_id);
+		void UnBindBuffer();
+		void SetDepthWriting(bool write);
 
 		void SetLineWidth(float width);
 	};

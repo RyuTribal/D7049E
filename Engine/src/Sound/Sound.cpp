@@ -1,5 +1,9 @@
+#include <pch.h>
 #include "Sound.h"
 
+#include <soloud.h>
+#include <soloud_thread.h>
+#include <soloud_wav.h>
 #include <soloud_audiosource.h>
 #include <iostream>
 
@@ -7,7 +11,7 @@ namespace Engine {
 	Sound::Sound(std::string soundDirectory, float globalVolume)
 	{
 		m_soundPath = soundDirectory;
-		s_soloud->setGlobalVolume(globalVolume);
+		//s_soloud->setGlobalVolume(globalVolume);
 		if (!m_isInitialized)
 		{
 			s_soloud->init();
@@ -21,30 +25,31 @@ namespace Engine {
 		//m_isInitialized = false;
 	}
 
-	bool Sound::AddGlobalSound(const char* soundName, bool looping)
+	bool Sound::AddGlobalSound(const char* soundPath, bool looping)
 	{
-		if (!CheckFileExistance(m_soundPath + soundName))
+		if (m_soundfile.load(soundPath) != 0)
 		{
+			HVE_CORE_WARN("Could not find soundfile at path " + m_soundPath + soundPath);
 			return false;
 		}
-
-		m_soundfiles[soundName].load((m_soundPath + soundName).c_str());
+		HVE_CORE_INFO("Loaded soundfile at path " + m_soundPath + soundPath);
 
 		if (looping)
 		{
-			m_soundfiles[soundName].setLooping(true);
+			m_soundfile.setLooping(true);
 		}
 	}
 
-	bool Sound::PlayGlobalSound(const char* soundName, float relativeVolume)
+	bool Sound::PlayGlobalSound(float relativeVolume)
 	{
 
-		if (m_soundfiles.find(soundName) == m_soundfiles.end())
+		/*if (m_soundfile.get)
 		{
 			return false;
-		}
+		}*/
 
-		m_playingSounds[soundName] = s_soloud->play(m_soundfiles[soundName], relativeVolume);
+		m_playingSound = s_soloud->play(m_soundfile, relativeVolume);
+
 
 		return true;
 
@@ -103,14 +108,17 @@ namespace Engine {
 
 	const char* Sound::GetSoundFilename(int index)
 	{
-		//if (m_soundfiles.find(soundName) != m_soundfiles.end())
-		//return m_soundfiles.begin()->first.c_str();
-		return "Sound filename";
+		/*if (m_soundfile.find(soundName) != m_soundfiles.end())
+		{
+			return m_soundfiles.begin()->first.c_str();
+		}*/
+		
+		return "sound";
 	}
 
 	bool Sound::GetSoundLoopingStatus(const char* soundName)
 	{
-		return m_soundfiles[soundName].SHOULD_LOOP;
+		return m_soundfile.SHOULD_LOOP;
 	}
 
 	SoLoud::Soloud* Sound::s_soloud = new SoLoud::Soloud();

@@ -412,21 +412,29 @@ namespace EditorPanels {
 			sound->SetGlobalVolume(volume[0]);
 
 
-			/*ImGui::Text("Sound:");
-			const char * soundfile = sound->GetSoundFilename();
-			char* soundfile2 = (char*)soundfile;
+			ImGui::Text("Sound:");
+
 			//bool looping = sound->GetSoundLoopingStatus(sound->GetSoundFilename());
-			ImGui::InputText("Filepath", soundfile2, IM_ARRAYSIZE(soundfile2));
+			//std::string soundfile{ "file" };
+			//ImGui::InputText("Filepath", &soundfile);
 			//ImGui::Checkbox("Looping", &looping);
-			sound->AddGlobalSound(soundfile2);
-			/*if (ImGui::Button("Add Sound"))
+			//sound->AddGlobalSound(soundfile2);
+			if (ImGui::Button("Add Sound"))
 			{
-				sound->AddGlobalSound(soundfile, looping);
-			}*/
+				std::vector<std::vector<std::string>> filter = { {"Audio files", "ogg,mp3,wav"} };
+				std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
+				if (path != "")
+				{
+					sound->AddGlobalSound(path.c_str());
+				}
+				
+			}
 			if (ImGui::Button("Play"))
 			{
-				sound->PlayGlobalSound(sound->GetSoundFilename());
+				sound->PlayGlobalSound();
 			}
+
+			ImGui::Text(std::to_string(sound->GetNumberOfPlayingSounds()).c_str());
 		});
 		
 

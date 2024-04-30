@@ -136,6 +136,30 @@ namespace Engine {
 		ScriptComponent(Ref<ScriptClass> new_script) : script(new_script) {}
 	};
 
+	/// Physics stuff
+
+	struct BoxColliderComponent
+	{
+		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
+		glm::vec3 Offset = { 0.f, 0.f, 0.f };
+
+		BoxColliderComponent() = default;
+		BoxColliderComponent(const BoxColliderComponent&) = default;
+		BoxColliderComponent(glm::vec3 half_size) : HalfSize(half_size) {}
+		BoxColliderComponent(glm::vec3 half_size, glm::vec3 offset) : HalfSize(half_size), Offset(offset) {}
+	};
+
+	struct SphereColliderComponent
+	{
+		float Radius = 0.5f;
+		glm::vec3 Offset = { 0.f, 0.f, 0.f };
+
+		SphereColliderComponent() = default;
+		SphereColliderComponent(const SphereColliderComponent&) = default;
+		SphereColliderComponent(float radius) : Radius(Radius) {}
+		SphereColliderComponent(float radius, glm::vec3 offset) : Radius(radius), Offset(offset) {}
+	};
+
 	template<typename... Component>
 	struct ComponentGroup
 	{

@@ -232,6 +232,18 @@ namespace Engine {
 				ScriptEngine::OnCreateEntityClass(GetEntity(entity_id));
 			}
 		}
+
+		auto box_colliders = m_Registry.GetComponentRegistry<BoxColliderComponent>();
+		if (box_colliders)
+		{
+			for (auto& [entity_id, box_collider] : *box_colliders)
+			{
+				PhysicsEngine::CreateBox();
+			}
+		}
+
+		Physics::OnRuntimeStart();
+
 	}
 
 	void Scene::OnRuntimeStop()
@@ -282,6 +294,7 @@ namespace Engine {
 		if (m_SceneState == SceneRunType::Runtime)
 		{
 			ScriptEngine::OnUpdate(Application::Get().GetFrameData().DeltaTime);
+			PhysicsEngine::Step(Application::Get().GetFrameData().DeltaTime);
 		}
 
 		UpdateTransforms();

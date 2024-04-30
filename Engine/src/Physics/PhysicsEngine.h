@@ -158,7 +158,6 @@ namespace Engine {
 		}
 		void Init(int allocationSize);
 		void Shutdown();
-		void Update();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
 		HBodyID CreateBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
 		HBodyID CreateSphere(float radius, HVec3 position, HEMotionType movability, bool activate);
@@ -213,8 +212,6 @@ namespace Engine {
 		//static HVec3 makeHVec3(JPH::RVec3 arr);
 		static JPH::EMotionType makeEMotionType(HEMotionType movability);
 		static HEMotionType makeHEMotionType(JPH::EMotionType movability);
-		static JPH::BodyID MakeBodyID(HBodyID id);
-		static HBodyID MakeHBodyID(JPH::BodyID id);
 
 
 	};

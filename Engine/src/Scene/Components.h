@@ -5,6 +5,7 @@
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 #include "Lights/PointLight.h"
+#include "Physics/PhysicsEngine.h"
 
 namespace Engine {
 
@@ -18,7 +19,8 @@ namespace Engine {
 		CameraComp,
 		PointLightComp,
 		MeshComp,
-		MaterialComp
+		MaterialComp,
+		PhysicsComp
 	};
 
 	struct Component {
@@ -164,6 +166,20 @@ namespace Engine {
 
 		const ComponentType Type() const override {
 			return ComponentType::PointLightComp;
+		}
+	};
+
+	struct PhysicsComponent : public Component
+	{
+		Ref<PhysicsEngine> physics;
+
+		PhysicsComponent() { physics = CreateRef<PhysicsEngine>(); };
+		PhysicsComponent(const PhysicsComponent&) = default;
+		PhysicsComponent(Ref<PhysicsEngine> new_physics) : physics(new_physics) {}
+		
+		const ComponentType Type() const override
+		{
+			return ComponentType::PhysicsComp;
 		}
 	};
 

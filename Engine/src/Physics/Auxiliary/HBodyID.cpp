@@ -2,25 +2,39 @@
 #include "HBodyID.h"
 
 namespace Engine {
-	HBodyID::HBodyID() :
-			mID(cInvalidBodyID)
+
+	HBodyID::HBodyID(JPH::BodyID value)
 	{
+		if (sID == UINT32_MAX)
+		{
+			HVE_CONSOLE_LOG_ERROR("The BodyID counter has gotten too large");
+		}
+		this->mID = sID++;
+		s_idMap[this->mID] = value;
 	}
 
-	/// Construct from index and sequence number combined in a single uint32_t (use with care!)
-	HBodyID::HBodyID(std::uint32_t inID) : mID(inID)
+	uint32_t HBodyID::InsertNewID(JPH::BodyID value)
 	{
-		//JPH_ASSERT((inID & cBroadPhaseBit) == 0 || inID == cInvalidBodyID); // Check bit used by broadphase
-		HVE_ASSERT((inID & cBroadPhaseBit) == 0 || inID == cInvalidBodyID);
+		if (sID == UINT32_MAX)
+		{
+			HVE_CONSOLE_LOG_ERROR("The BodyID counter has gotten too large");
+		}
+		s_idMap[sID] = value;
+		return sID++;
 	}
 
-	/// Construct from index and sequence number
-	HBodyID::HBodyID(std::uint32_t inID, std::uint8_t inSequenceNumber) : mID((uint32_t(inSequenceNumber) << 24) | inID)
+	JPH::BodyID HBodyID::GetBodyID(uint32_t id)
 	{
-		//JPH_ASSERT(inID < cMaxBodyIndex); // Should not use bit pattern for invalid ID and should not use the broadphase bit
-		HVE_ASSERT(inID < cMaxBodyIndex);
+		return s_idMap[id];
 	}
 
+	JPH::BodyID HBodyID::GetBodyID()
+	{
+		return s_idMap[this->mID];
+	}
+
+	
+	/*
 	/// Get index in body array
 	std::uint32_t HBodyID::GetIndex() const
 	{
@@ -41,34 +55,8 @@ namespace Engine {
 	{
 		return mID;
 	}
+	*/
 
-	/// Check if the ID is valid
-	bool HBodyID::IsInvalid() const
-	{
-		return mID == cInvalidBodyID;
-	}
 
-	/// Equals check
-	inline bool	HBodyID::operator == (const HBodyID& inRHS) const
-	{
-		return mID == inRHS.mID;
-	}
 
-	/// Not equals check
-	inline bool HBodyID::operator != (const HBodyID& inRHS) const
-	{
-		return mID != inRHS.mID;
-	}
-
-	/// Smaller than operator, can be used for sorting bodies
-	inline bool HBodyID::operator < (const HBodyID& inRHS) const
-	{
-		return mID < inRHS.mID;
-	}
-
-	/// Greater than operator, can be used for sorting bodies
-	inline bool HBodyID::operator > (const HBodyID& inRHS) const
-	{
-		return mID > inRHS.mID;
-	}
 }

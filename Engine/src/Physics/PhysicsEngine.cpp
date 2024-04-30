@@ -6,15 +6,29 @@
 
 namespace Engine {
 
-	
-
-
 	struct JoltData
 	{
 		JPH::TempAllocator* TemporariesAllocator;
 		std::unique_ptr<JPH::JobSystemThreadPool> JobThreadPool;
 
 		std::string LastErrorMessage = "";
+
+		JPH::uint cMaxBodies = 65536;
+
+		JPH::uint cNumBodyMutexes = 0;
+
+		JPH::uint cMaxBodyPairs = 65536;
+
+		JPH::uint cMaxContactConstraints = 10240;
+
+		//float cDeltaTime = 1.0f / 60.0f;	// 60 Hz
+
+		int collisionSteps = 1;
+
+		int integrationSubSteps = 1;
+
+		bool hasOptimized = false;
+		int numberOfBodies = 0;
 	};
 
 	static JoltData* s_JoltData = nullptr;
@@ -108,10 +122,10 @@ namespace Engine {
 
 		m_physics_system = CreateRef<JPH::PhysicsSystem>();
 		(this->m_physics_system)->Init(
-			this->cMaxBodies,
-			this->cNumBodyMutexes,
-			this->cMaxBodyPairs,
-			this->cMaxContactConstraints,
+			s_JoltData->cMaxBodies,
+			s_JoltData->cNumBodyMutexes,
+			s_JoltData->cMaxBodyPairs,
+			s_JoltData->cMaxContactConstraints,
 			this->m_broad_phase_layer_interface,
 			this->m_object_vs_broadphase_layer_filter,
 			this->m_object_vs_object_layer_filter
@@ -178,6 +192,8 @@ namespace Engine {
 			box_id = (this->m_body_interface)->CreateAndAddBody(box_settings, JPH::EActivation::DontActivate);
 		}
 
+		s_JoltData->numberOfBodies++;
+		s_JoltData->hasOptimized = false;
 		return HBodyID(box_id);
 	}
 
@@ -212,6 +228,8 @@ namespace Engine {
 			sphere_id = (this->m_body_interface)->CreateAndAddBody(sphere_settings, JPH::EActivation::DontActivate);
 		}
 
+		s_JoltData->numberOfBodies++;
+		s_JoltData->hasOptimized = false;
 		return HBodyID(sphere_id);
 	}
 
@@ -271,31 +289,22 @@ namespace Engine {
 	void PhysicsEngine::OptimizeBroadPhase()
 	{
 		(this->m_physics_system)->OptimizeBroadPhase();
+		s_JoltData->hasOptimized = true;
 	}
 
-	void PhysicsEngine::Step(int integrationSubSteps)
+	void PhysicsEngine::Step(float deltaTime)
 	{
-		(this->m_physics_system)->Update(
-			this->cDeltaTime,
-			this->cCollisionSteps,
-			integrationSubSteps,
-			s_JoltData->TemporariesAllocator,
-			s_JoltData->JobThreadPool.get()
-			//(this->m_temp_allocator),
-			//(this->m_job_system)
-		);
-	}
+		if (!s_JoltData->hasOptimized)
+		{
+			this->OptimizeBroadPhase();
+		}
 
-	void PhysicsEngine::Step(int collisionSteps, int integrationSubSteps)
-	{
 		(this->m_physics_system)->Update(
-			this->cDeltaTime,
-			collisionSteps,
-			integrationSubSteps,
+			deltaTime,
+			s_JoltData->collisionSteps,
+			s_JoltData->integrationSubSteps,
 			s_JoltData->TemporariesAllocator,
 			s_JoltData->JobThreadPool.get()
-			//(this->m_temp_allocator),
-			//(this->m_job_system)
 		);
 	}
 
@@ -310,6 +319,15 @@ namespace Engine {
 		JPH::BodyID jolt_id = id.GetBodyID();
 
 		(this->m_body_interface)->DestroyBody(jolt_id);
+	}
+
+	void PhysicsEngine::DestoryAllBodies()
+	{
+		JPH::BodyID jolt_id = HBodyID::GetBodyID(0);
+
+		(this->m_body_interface)->DestroyBodies(&jolt_id, s_JoltData->numberOfBodies);
+		s_JoltData->numberOfBodies = 0;
+		HBodyID::EmptyMap();
 	}
 
 	bool PhysicsEngine::IsActive(HBodyID id)
@@ -333,6 +351,18 @@ namespace Engine {
 
 		JPH::Vec3 vec = (this->m_body_interface)->GetLinearVelocity(jolt_id);
 		return PhysicsEngine::makeHVec3(vec);
+	}
+
+	void PhysicsEngine::OnRuntimeStart(int collisionSteps, int integrationSubStep)
+	{
+		s_JoltData->collisionSteps = collisionSteps;
+		s_JoltData->integrationSubSteps = integrationSubStep;
+	}
+
+	void PhysicsEngine::OnRuntimeStop()
+	{
+		s_JoltData->hasOptimized = false;
+		this->DestoryAllBodies();
 	}
 
 	// TODO: delete tmp function below

@@ -33,6 +33,11 @@ namespace Engine {
 		return s_idMap[this->mID];
 	}
 
+	void HBodyID::EmptyMap()
+	{
+		s_idMap.clear();
+	}
+
 	
 	/*
 	/// Get index in body array

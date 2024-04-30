@@ -167,13 +167,15 @@ namespace Engine {
 		void SetAngularVelocity(HBodyID id, HVec3 velocity);
 		void SetLinearAndAngularVelocity(HBodyID id, HVec3 linaerVelocity, HVec3 angularVelocity);
 		void OptimizeBroadPhase();
-		void Step(int integrationSubSteps);
-		void Step(int collisionSteps, int integrationSubSteps);
+		void Step(float deltaTime);
 		void RemoveBody(HBodyID id);
 		void DestoryBody(HBodyID id);
+		void DestoryAllBodies();
 		bool IsActive(HBodyID id);
 		HVec3 GetCenterOfMassPosition(HBodyID id);
 		HVec3 GetLinearVelocity(HBodyID id);
+		void OnRuntimeStart(int collisionSteps, int integrationSubStep);
+		void OnRuntimeStop();
 		static void tmpRunner();
 		
 
@@ -184,17 +186,7 @@ namespace Engine {
 		//JPH::JobSystemThreadPool* m_job_system;
 		Ref<JPH::PhysicsSystem> m_physics_system;
 
-		const JPH::uint cMaxBodies = 65536;
 
-		const JPH::uint cNumBodyMutexes = 0;
-
-		const JPH::uint cMaxBodyPairs = 65536;
-
-		const JPH::uint cMaxContactConstraints = 10240;
-
-		const float cDeltaTime = 1.0f / 60.0f;	// 60 Hz
-
-		const int cCollisionSteps = 1;
 
 		BPLayerInterfaceImpl m_broad_phase_layer_interface;
 		ObjectVsBroadPhaseLayerFilterImpl m_object_vs_broadphase_layer_filter;

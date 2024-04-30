@@ -16,6 +16,8 @@ namespace Engine {
 			static JPH::BodyID GetBodyID(uint32_t id);		// TODO: remove these static functions
 			JPH::BodyID GetBodyID();
 
+			static void EmptyMap();
+
 
 		private:
 			uint32_t mID;

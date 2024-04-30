@@ -159,21 +159,23 @@ namespace Engine {
 		void Init(int allocationSize);
 		void Shutdown();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID CreateBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID CreateSphere(float radius, HVec3 position, HEMotionType movability, bool activate);
+		HBodyID CreateBox(glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
+		HBodyID CreateSphere(float radius, glm::vec3 position, HEMotionType movability, bool activate);
 		void InsertObjectByID(HBodyID id, bool activate);
-		void SetPosition(HBodyID id, HVec3 position, bool activate);
-		void SetLinearVelocity(HBodyID id, HVec3 velocity);
-		void SetAngularVelocity(HBodyID id, HVec3 velocity);
-		void SetLinearAndAngularVelocity(HBodyID id, HVec3 linaerVelocity, HVec3 angularVelocity);
+		void SetPosition(HBodyID id, glm::vec3 position, bool activate);
+		void SetLinearVelocity(HBodyID id, glm::vec3 velocity);
+		void SetAngularVelocity(HBodyID id, glm::vec3 velocity);
+		void SetLinearAndAngularVelocity(HBodyID id, glm::vec3 linaerVelocity, glm::vec3 angularVelocity);
+		void SetShape();
 		void OptimizeBroadPhase();
 		void Step(float deltaTime);
 		void RemoveBody(HBodyID id);
 		void DestoryBody(HBodyID id);
 		void DestoryAllBodies();
 		bool IsActive(HBodyID id);
-		HVec3 GetCenterOfMassPosition(HBodyID id);
-		HVec3 GetLinearVelocity(HBodyID id);
+		glm::vec3 GetCenterOfMassPosition(HBodyID id);
+		glm::mat4x4 GetCenterOfMassTransform(HBodyID id);
+		glm::vec3 GetLinearVelocity(HBodyID id);
 		void OnRuntimeStart(int collisionSteps, int integrationSubStep);
 		void OnRuntimeStop();
 		static void tmpRunner();
@@ -198,9 +200,11 @@ namespace Engine {
 
 		JPH::BodyInterface* m_body_interface;
 
-		static JPH::RVec3 makeRVec3(HVec3 arr);
-		static JPH::Vec3 makeVec3(HVec3 arr);
-		static HVec3 makeHVec3(JPH::Vec3 arr);
+		static JPH::RVec3 makeRVec3(glm::vec3 arr);
+		static JPH::Vec3 makeVec3(glm::vec3 arr);
+		static glm::vec3 makeGLMVec3(JPH::Vec3 arr);
+		glm::vec4 makeGLMVec4(JPH::Vec4 arr);
+		glm::mat4x4 makeMat4x4(JPH::RMat44 mat);
 		//static HVec3 makeHVec3(JPH::RVec3 arr);
 		static JPH::EMotionType makeEMotionType(HEMotionType movability);
 		static HEMotionType makeHEMotionType(JPH::EMotionType movability);

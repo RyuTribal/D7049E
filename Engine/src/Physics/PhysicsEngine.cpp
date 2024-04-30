@@ -53,17 +53,30 @@ namespace Engine {
 	}
 #endif
 
-	JPH::RVec3 PhysicsEngine::makeRVec3(HVec3 arr)
+	JPH::RVec3 PhysicsEngine::makeRVec3(glm::vec3 arr)
 	{
-		return JPH::RVec3(arr.GetX(), arr.GetY(), arr.GetZ());
+		return JPH::RVec3(arr.x, arr.y, arr.z);
 	}
-	JPH::Vec3 PhysicsEngine::makeVec3(HVec3 arr)
+	JPH::Vec3 PhysicsEngine::makeVec3(glm::vec3 arr)
 	{
-		return JPH::Vec3(arr.GetX(), arr.GetY(), arr.GetZ());
+		return JPH::Vec3(arr.x, arr.y, arr.z);
 	}
-	HVec3 PhysicsEngine::makeHVec3(JPH::Vec3 arr)
+	glm::vec3 PhysicsEngine::makeGLMVec3(JPH::Vec3 arr)
 	{
-		return HVec3(arr.GetX(), arr.GetY(), arr.GetZ());
+		return glm::vec3(arr.GetX(), arr.GetY(), arr.GetZ());
+	}
+	glm::vec4 PhysicsEngine::makeGLMVec4(JPH::Vec4 arr)
+	{
+		return glm::vec4(arr.GetX(), arr.GetY(), arr.GetZ(), arr.GetW());
+	}
+	glm::mat4x4 PhysicsEngine::makeMat4x4(JPH::RMat44 mat)
+	{
+		return glm::mat4x4{
+			PhysicsEngine::makeGLMVec4(mat.GetColumn4(0)),
+			PhysicsEngine::makeGLMVec4(mat.GetColumn4(1)),
+			PhysicsEngine::makeGLMVec4(mat.GetColumn4(2)),
+			PhysicsEngine::makeGLMVec4(mat.GetColumn4(3))
+		};
 	}
 	//HVec3 PhysicsEngine::makeHVec3(JPH::RVec3 arr)
 	//{
@@ -152,7 +165,7 @@ namespace Engine {
 		JPH::Factory::sInstance = nullptr;
 	}
 
-	HBodyID PhysicsEngine::CreateBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateBox(glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, bool activate)
 	{
 		// conversion
 		JPH::Vec3 dim = PhysicsEngine::makeVec3(dimensions);
@@ -197,7 +210,7 @@ namespace Engine {
 		return HBodyID(box_id);
 	}
 
-	HBodyID PhysicsEngine::CreateSphere(float radius, HVec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateSphere(float radius, glm::vec3 position, HEMotionType movability, bool activate)
 	{
 		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		JPH::EMotionType mov = PhysicsEngine::makeEMotionType(movability);
@@ -246,7 +259,7 @@ namespace Engine {
 		}
 	}
 
-	void PhysicsEngine::SetPosition(HBodyID id, HVec3 position, bool activate)
+	void PhysicsEngine::SetPosition(HBodyID id, glm::vec3 position, bool activate)
 	{
 		JPH::BodyID jolt_id = id.GetBodyID();
 
@@ -261,7 +274,7 @@ namespace Engine {
 		}
 	}
 
-	void PhysicsEngine::SetLinearVelocity(HBodyID id, HVec3 velocity)
+	void PhysicsEngine::SetLinearVelocity(HBodyID id, glm::vec3 velocity)
 	{
 		JPH::BodyID jolt_id = id.GetBodyID();
 		JPH::Vec3 vel = PhysicsEngine::makeVec3(velocity);
@@ -269,7 +282,7 @@ namespace Engine {
 		(this->m_body_interface)->SetLinearVelocity(jolt_id, vel);
 	}
 
-	void PhysicsEngine::SetAngularVelocity(HBodyID id, HVec3 velocity)
+	void PhysicsEngine::SetAngularVelocity(HBodyID id, glm::vec3 velocity)
 	{
 		JPH::BodyID jolt_id = id.GetBodyID();
 		JPH::Vec3 vel = PhysicsEngine::makeVec3(velocity);
@@ -277,7 +290,7 @@ namespace Engine {
 		(this->m_body_interface)->SetAngularVelocity(jolt_id, vel);
 	}
 
-	void PhysicsEngine::SetLinearAndAngularVelocity(HBodyID id, HVec3 linaerVelocity, HVec3 angularVelocity)
+	void PhysicsEngine::SetLinearAndAngularVelocity(HBodyID id, glm::vec3 linaerVelocity, glm::vec3 angularVelocity)
 	{
 		JPH::BodyID jolt_id = id.GetBodyID();
 		JPH::Vec3 lVel = PhysicsEngine::makeVec3(linaerVelocity);
@@ -337,20 +350,28 @@ namespace Engine {
 		return (this->m_body_interface)->IsActive(jolt_id);
 	}
 
-	HVec3 PhysicsEngine::GetCenterOfMassPosition(HBodyID id)
+	glm::vec3 PhysicsEngine::GetCenterOfMassPosition(HBodyID id)
 	{
 		JPH::BodyID jolt_id = id.GetBodyID();
 
 		JPH::RVec3 vec = (this->m_body_interface)->GetCenterOfMassPosition(jolt_id);
-		return PhysicsEngine::makeHVec3(vec);
+		return PhysicsEngine::makeGLMVec3(vec);
 	}
 
-	HVec3 PhysicsEngine::GetLinearVelocity(HBodyID id)
+	glm::mat4x4 PhysicsEngine::GetCenterOfMassTransform(HBodyID id)
+	{
+		JPH::BodyID jolt_id = id.GetBodyID();
+
+		JPH::RMat44 vec = (this->m_body_interface)->GetCenterOfMassTransform(jolt_id);
+		return PhysicsEngine::makeMat4x4(vec);
+	}
+
+	glm::vec3 PhysicsEngine::GetLinearVelocity(HBodyID id)
 	{
 		JPH::BodyID jolt_id = id.GetBodyID();
 
 		JPH::Vec3 vec = (this->m_body_interface)->GetLinearVelocity(jolt_id);
-		return PhysicsEngine::makeHVec3(vec);
+		return PhysicsEngine::makeGLMVec3(vec);
 	}
 
 	void PhysicsEngine::OnRuntimeStart(int collisionSteps, int integrationSubStep)
@@ -371,20 +392,20 @@ namespace Engine {
 		PhysicsEngine* engin = PhysicsEngine::Get();
 		
 		engin->Init(10);
-		HBodyID box_id = engin->CreateBox(HVec3(100.0f, 1.0f, 100.0f), HVec3(0.0, -1.0, 0.0), HEMotionType::Static, false);
-		HBodyID sphere_id = engin->CreateSphere(0.5f, HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-		//HBodyID sphere_id = engin->CreateBox(HVec3(1.0f, 1.0f, 1.0f), HVec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-		engin->SetLinearVelocity(sphere_id, HVec3(0.0f, -5.0f, 0.0f));
+		HBodyID box_id = engin->CreateBox(glm::vec3(100.0f, 1.0f, 100.0f), glm::vec3(0.0, -1.0, 0.0), HEMotionType::Static, false);
+		HBodyID sphere_id = engin->CreateSphere(0.5f, glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
+		//HBodyID sphere_id = engin->CreateBox(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
+		engin->SetLinearVelocity(sphere_id, glm::vec3(0.0f, -5.0f, 0.0f));
 		engin->OptimizeBroadPhase();
 
 		int stepCounter = 0;
 		while (engin->IsActive(sphere_id) && stepCounter < 200)
 		{
 			++stepCounter;
-			HVec3 position = engin->GetCenterOfMassPosition(sphere_id);
-			HVec3 velocity = engin->GetLinearVelocity(sphere_id);
-			std::cout << "Step " << stepCounter << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << std::endl;
-			engin->Step(1);
+			glm::vec3 position = engin->GetCenterOfMassPosition(sphere_id);
+			glm::vec3 velocity = engin->GetLinearVelocity(sphere_id);
+			std::cout << "Step " << stepCounter << ": Position = (" << position.x << ", " << position.y << ", " << position.z << "), Velocity = (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")" << std::endl;
+			engin->Step(1.0/60.0);
 			
 		}
 		std::cout << "Finished the tmp simulation" << std::endl;

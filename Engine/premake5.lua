@@ -126,12 +126,22 @@ project "Engine"
         }
 
     filter "configurations:Debug"
-        defines "DEBUG"
+    defines {
+            "DEBUG",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            -- "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Debug"
         symbols "on"
 
     filter "configurations:Release"
-        defines "RELEASE"
+        defines {
+            "RELEASE",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Release"
         optimize "on"
 

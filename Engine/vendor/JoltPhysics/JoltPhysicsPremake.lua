@@ -31,7 +31,7 @@ project "JoltPhysics"
             "_DEBUG",
             "JPH_DEBUG_RENDERER",
             "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
-            "JPH_EXTERNAL_PROFILE"
+            -- "JPH_EXTERNAL_PROFILE"
         }
 
     filter { "system:windows", "configurations:Debug-AS" }
@@ -46,7 +46,7 @@ project "JoltPhysics"
         {
             "JPH_DEBUG_RENDERER",
             "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
-            "JPH_EXTERNAL_PROFILE"
+            -- "JPH_EXTERNAL_PROFILE"
         }
 
     filter "configurations:Dist"

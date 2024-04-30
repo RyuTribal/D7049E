@@ -46,3 +46,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
+
+#ifdef DEBUG 
+#define JPH_ENABLE_ASSERTS
+#endif
+#include <Jolt/Jolt.h>

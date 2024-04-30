@@ -143,6 +143,7 @@ namespace Engine {
 		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
 
+
 		BoxColliderComponent() = default;
 		BoxColliderComponent(const BoxColliderComponent&) = default;
 		BoxColliderComponent(glm::vec3 half_size) : HalfSize(half_size) {}

@@ -4,6 +4,8 @@
 #include "Script/ScriptEngine.h"
 
 #include "Renderer/Renderer.h"
+#include "Physics/PhysicsEngine.h"
+
 
 namespace Engine
 {
@@ -22,6 +24,7 @@ namespace Engine
 		if (!m_AppProps.NoScripting)
 		{
 			ScriptEngine::Init();
+			PhysicsEngine::Get()->Init(10);
 		}
 	}
 
@@ -45,6 +48,7 @@ namespace Engine
 		if (!m_AppProps.NoScripting)
 		{
 			ScriptEngine::Shutdown();
+			PhysicsEngine::Get()->Shutdown();
 		}
 	}
 
@@ -70,6 +74,7 @@ namespace Engine
 		m_Window->SetFullScreen(m_Window->GetFullScreen(), m_Window->GetFullScreenType());
 
 		auto last_frame = std::chrono::high_resolution_clock::now();
+		PhysicsEngine::tmpRunner();
 		while (m_Running)
 		{
 			auto newTime = std::chrono::high_resolution_clock::now();

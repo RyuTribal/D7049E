@@ -32,13 +32,17 @@ project "Editor"
     {
         "Engine",
         "Glad",
+        "JoltPhysics",
         "%{Library.Tracy}",
         
     }
 
     defines
     {
-        "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\""
+        "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\"",
+        "JPH_USE_LZCNT",
+        "JPH_USE_TZCNT",
+        "JPH_USE_FMADD",
     }
 
     postbuildcommands
@@ -70,12 +74,22 @@ project "Editor"
         }
 
     filter "configurations:Debug"
-        defines "DEBUG"
+        defines {
+            "DEBUG",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            -- "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Debug"
         symbols "on"
 
     filter "configurations:Release"
-        defines "RELEASE"
+        defines {
+            "RELEASE",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Release"
         optimize "on"
 

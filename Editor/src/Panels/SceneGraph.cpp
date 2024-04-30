@@ -270,6 +270,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
+			DisplayAddComponentEntry<BoxColliderComponent>("Box Collider");
 			DisplayAddComponentEntry<SoundComponent>("Sound");
 			ImGui::EndPopup();
 		}
@@ -509,6 +510,12 @@ namespace EditorPanels {
 
 			light.SetDirection(curr_direction);
 
+		});
+
+		DrawComponent<BoxColliderComponent>("Box Collider", entity, [](auto& component, auto entity)
+		{
+			DrawVec3Control("Half Size", component->HalfSize);
+			DrawVec3Control("Offset", component->Offset);
 		});
 
 		DrawComponent<SoundComponent>("Sound", entity, [](auto& component, auto entity)

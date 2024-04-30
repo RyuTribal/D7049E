@@ -190,6 +190,8 @@ namespace Engine {
 		CopyComponent<DirectionalLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<SoundComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<ScriptComponent>(original_scene->m_Registry, new_scene->m_Registry);
+		CopyComponent<BoxColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);
+		CopyComponent<SphereColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);
 
 		return new_scene;
 	}
@@ -240,9 +242,7 @@ namespace Engine {
 		{
 			for (auto& [entity_id, box_collider] : *box_colliders)
 			{
-				HVec3 dimensions{ box_collider.HalfSize.x, box_collider.HalfSize.y, box_collider.HalfSize.z };
-				HVec3 position{ box_collider.Offset.x, box_collider.Offset.y, box_collider.Offset.z };
-				PhysicsEngine::Get()->CreateBox(entity_id, dimensions, position, HEMotionType::Dynamic, true);
+				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize, box_collider.Offset, HEMotionType::Dynamic, true);
 			}
 		}
 
@@ -316,7 +316,8 @@ namespace Engine {
 
 			if (box_collider || sphere_collider)
 			{
-				worldTransform *= PhysicsTransform * transform->local_transform.mat4();
+				glm::mat4 collider_transform = PhysicsEngine::Get()->GetCenterOfMassTransform(node->GetID());
+				worldTransform *= collider_transform * transform->local_transform.mat4();
 			}
 			else
 			{

@@ -11,19 +11,18 @@ namespace Engine {
 	class HBodyID
 	{
 		public:
-			HBodyID(JPH::BodyID value);
-			static uint32_t InsertNewID(JPH::BodyID value);
-			static JPH::BodyID GetBodyID(uint32_t id);		// TODO: remove these static functions
+			HBodyID(UUID entity_id, JPH::BodyID value);
+			// static UUID InsertNewID(JPH::BodyID value);
+			static JPH::BodyID GetBodyID(UUID id);		// TODO: remove these static functions
 			JPH::BodyID GetBodyID();
 
 			static void EmptyMap();
 
 
 		private:
-			uint32_t mID;
-			static inline uint32_t sID = 0;
+			UUID mID;
 
-			static inline std::unordered_map<std::uint32_t, JPH::BodyID> s_idMap = std::unordered_map<std::uint32_t, JPH::BodyID>();
+			static inline std::unordered_map<UUID, JPH::BodyID> s_idMap = std::unordered_map<UUID, JPH::BodyID>();
 			// Create a std::hash for BodyID
 			//JPH_MAKE_HASHABLE(JPH::BodyID, t.GetIndexAndSequenceNumber())	// TODO: this??
 

@@ -152,7 +152,7 @@ namespace Engine {
 		JPH::Factory::sInstance = nullptr;
 	}
 
-	HBodyID PhysicsEngine::CreateBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateBox(UUID entity_id, HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate)
 	{
 		// conversion
 		JPH::Vec3 dim = PhysicsEngine::makeVec3(dimensions);
@@ -194,10 +194,10 @@ namespace Engine {
 
 		s_JoltData->numberOfBodies++;
 		s_JoltData->hasOptimized = false;
-		return HBodyID(box_id);
+		return HBodyID(entity_id, box_id);
 	}
 
-	HBodyID PhysicsEngine::CreateSphere(float radius, HVec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateSphere(UUID entity_id, float radius, HVec3 position, HEMotionType movability, bool activate)
 	{
 		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		JPH::EMotionType mov = PhysicsEngine::makeEMotionType(movability);
@@ -230,7 +230,7 @@ namespace Engine {
 
 		s_JoltData->numberOfBodies++;
 		s_JoltData->hasOptimized = false;
-		return HBodyID(sphere_id);
+		return HBodyID(entity_id ,sphere_id);
 	}
 
 	void PhysicsEngine::InsertObjectByID(HBodyID id, bool activate)

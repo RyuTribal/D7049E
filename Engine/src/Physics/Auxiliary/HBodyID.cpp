@@ -3,17 +3,13 @@
 
 namespace Engine {
 
-	HBodyID::HBodyID(JPH::BodyID value)
+	HBodyID::HBodyID(UUID entity_id, JPH::BodyID value)
 	{
-		if (sID == UINT32_MAX)
-		{
-			HVE_CONSOLE_LOG_ERROR("The BodyID counter has gotten too large");
-		}
-		this->mID = sID++;
-		s_idMap[this->mID] = value;
+		mID = entity_id;
+		s_idMap[entity_id] = value;
 	}
 
-	uint32_t HBodyID::InsertNewID(JPH::BodyID value)
+	/*UUID HBodyID::InsertNewID(JPH::BodyID value)
 	{
 		if (sID == UINT32_MAX)
 		{
@@ -21,9 +17,9 @@ namespace Engine {
 		}
 		s_idMap[sID] = value;
 		return sID++;
-	}
+	}*/
 
-	JPH::BodyID HBodyID::GetBodyID(uint32_t id)
+	JPH::BodyID HBodyID::GetBodyID(UUID id)
 	{
 		return s_idMap[id];
 	}

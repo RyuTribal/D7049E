@@ -6,6 +6,7 @@
 #include "Renderer/Renderer.h"
 #include "Assets/AssetManager.h"
 #include "Core/Application.h"
+#include "Physics/PhysicsEngine.h"
 
 namespace Engine {
 
@@ -234,15 +235,16 @@ namespace Engine {
 		}
 
 		auto box_colliders = m_Registry.GetComponentRegistry<BoxColliderComponent>();
+		PhysicsEngine::Get()->OnRuntimeStart(1, 1);
 		if (box_colliders)
 		{
 			for (auto& [entity_id, box_collider] : *box_colliders)
 			{
-				PhysicsEngine::CreateBox();
+				HVec3 dimensions{ box_collider.HalfSize.x, box_collider.HalfSize.y, box_collider.HalfSize.z };
+				HVec3 position{ box_collider.Offset.x, box_collider.Offset.y, box_collider.Offset.z };
+				PhysicsEngine::Get()->CreateBox(entity_id, dimensions, position, HEMotionType::Dynamic, true);
 			}
 		}
-
-		Physics::OnRuntimeStart();
 
 	}
 
@@ -250,6 +252,7 @@ namespace Engine {
 	{
 		HVE_CORE_ASSERT(!Application::Get().GetProps().NoScripting, "The scene requires you to use scripting, which is currently set to false!");
 		ScriptEngine::OnRuntimeStop();
+		PhysicsEngine::Get()->OnRuntimeStop();
 		m_SceneState = SceneRunType::Edit;
 	}
 
@@ -294,7 +297,7 @@ namespace Engine {
 		if (m_SceneState == SceneRunType::Runtime)
 		{
 			ScriptEngine::OnUpdate(Application::Get().GetFrameData().DeltaTime);
-			PhysicsEngine::Step(Application::Get().GetFrameData().DeltaTime);
+			PhysicsEngine::Get()->Step(Application::Get().GetFrameData().DeltaTime);
 		}
 
 		UpdateTransforms();
@@ -306,7 +309,20 @@ namespace Engine {
 		if (!node) return;
 		auto transform = m_Registry.Get<TransformComponent>(node->GetID());
 		if (transform) {
-			glm::mat4 worldTransform = parentWorldTransform * transform->local_transform.mat4();
+			glm::mat4 worldTransform = parentWorldTransform;
+
+			auto box_collider = m_Registry.Get<BoxColliderComponent>(node->GetID());
+			auto sphere_collider = m_Registry.Get<SphereColliderComponent>(node->GetID());
+
+			if (box_collider || sphere_collider)
+			{
+				worldTransform *= PhysicsTransform * transform->local_transform.mat4();
+			}
+			else
+			{
+				worldTransform *= transform->local_transform.mat4();
+			}
+
 			glm::vec3 scale;
 			glm::quat rotation;
 			glm::vec3 translation;

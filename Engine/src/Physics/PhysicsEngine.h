@@ -159,8 +159,8 @@ namespace Engine {
 		void Init(int allocationSize);
 		void Shutdown();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID CreateBox(HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID CreateSphere(float radius, HVec3 position, HEMotionType movability, bool activate);
+		HBodyID CreateBox(UUID entity_id, HVec3 dimensions, HVec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
+		HBodyID CreateSphere(UUID entity_id, float radius, HVec3 position, HEMotionType movability, bool activate);
 		void InsertObjectByID(HBodyID id, bool activate);
 		void SetPosition(HBodyID id, HVec3 position, bool activate);
 		void SetLinearVelocity(HBodyID id, HVec3 velocity);

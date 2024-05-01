@@ -91,9 +91,19 @@ namespace Engine
 		m_Stats.index_count += mesh->GetMeshSource()->IndexSize();
 	}
 
-	void Renderer::SubmitLine(Line line)
+	void Renderer::SubmitDebugLine(Line line)
 	{
-		m_Lines.push_back(line);
+		m_DebugLines.push_back(line);
+	}
+
+	void Renderer::SubmitDebugBox(DebugBox box)
+	{
+		m_DebugBoxes.push_back(box);
+	}
+
+	void Renderer::SubmitDebugSphere(DebugSphere sphere)
+	{
+		m_DebugSpheres.push_back(sphere);
 	}
 
 	void Renderer::BeginFrame(Camera* camera)
@@ -202,16 +212,6 @@ namespace Engine
 		}
 	}
 
-	void Renderer::DrawLine(Line line)
-	{
-		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("line_shader");
-		shader->Set("u_CameraView", m_CurrentCamera->GetView());
-		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
-		shader->Set("u_Color", line.color);
-		shader->Activate();
-		m_RendererAPI.DrawLine(line.start, line.end);
-	}
-
 	Ref<Texture2D> Renderer::GetWhiteTexture()
 	{
 		return s_DefaultTextures->White;
@@ -241,16 +241,11 @@ namespace Engine
 		m_HDRFramebuffer->Bind();
 		m_RendererAPI.ClearAll();
 		ShadeAllObjects();
-		if (m_DrawBoundingBox)
-		{
-			m_RendererAPI.SetDepthWriting(false);
-			DrawBoudingBoxes();
-			m_RendererAPI.SetDepthWriting(true);
-		}
-		for (const auto& line : m_Lines)
-		{
-			DrawLine(line);
-		}
+
+		m_RendererAPI.SetDepthWriting(false);
+		DrawDebugObjects();
+		m_RendererAPI.SetDepthWriting(true);
+
 		m_HDRFramebuffer->Unbind();
 		m_RendererAPI.ClearAll();
 
@@ -263,7 +258,9 @@ namespace Engine
 		m_Meshes.clear();
 		m_PointLights.clear();
 		m_DirectionalLights.clear();
-		m_Lines.clear();
+		m_DebugLines.clear();
+		m_DebugBoxes.clear();
+		m_DebugSpheres.clear();
     }
 
 	void Renderer::ReCreateFrameBuffers()
@@ -335,47 +332,73 @@ namespace Engine
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
 	}
-	void Renderer::DrawBoudingBoxes()
+
+	void Renderer::DrawDebugObjects()
 	{
-		m_RendererAPI.SetLineWidth(2.f);
-		glm::vec4 color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-		for (const auto& mesh : m_Meshes)
+		for (auto& box : m_DebugBoxes)
 		{
-			for (const auto& submesh : mesh->GetMeshSource()->GetSubmeshes())
+			glm::vec3 vertices[] = {
+			glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, -1.0f, -1.0f),
+			glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(1.0f, 1.0f, -1.0f),
+			glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(1.0f, -1.0f, 1.0f),
+			glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f)
+			};
+
+			int edges[][2] = {
+				{0, 1}, {1, 3}, {3, 2}, {2, 0},
+				{4, 5}, {5, 7}, {7, 6}, {6, 4},
+				{0, 4}, {1, 5}, {2, 6}, {3, 7}
+			};
+
+			glm::mat4 transform = glm::scale(box.Transform, box.Size);
+
+			for (auto& edge : edges)
 			{
-				Math::BoundingBox box = submesh.Bounds;
-				glm::vec3& min = box.Min;
-				glm::vec3& max = box.Max;
+				m_DebugLines.push_back(Line{ vertices[edge[0]], vertices[edge[1]], box.Color, transform });
+			}
+		}
 
-				std::vector<glm::vec3> vertices = {
-					// Bottom
-					glm::vec3(min.x, min.y, min.z), glm::vec3(max.x, min.y, min.z),
-					glm::vec3(max.x, min.y, min.z), glm::vec3(max.x, min.y, max.z),
-					glm::vec3(max.x, min.y, max.z), glm::vec3(min.x, min.y, max.z),
-					glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, min.y, min.z),
-					// Top
-					glm::vec3(min.x, max.y, min.z), glm::vec3(max.x, max.y, min.z),
-					glm::vec3(max.x, max.y, min.z), glm::vec3(max.x, max.y, max.z),
-					glm::vec3(max.x, max.y, max.z), glm::vec3(min.x, max.y, max.z),
-					glm::vec3(min.x, max.y, max.z), glm::vec3(min.x, max.y, min.z),
-					// Sides
-					glm::vec3(min.x, min.y, min.z), glm::vec3(min.x, max.y, min.z),
-					glm::vec3(max.x, min.y, min.z), glm::vec3(max.x, max.y, min.z),
-					glm::vec3(max.x, min.y, max.z), glm::vec3(max.x, max.y, max.z),
-					glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, max.y, max.z)
-				};
+		const int latitudeDivisions = 12;
+		const int longitudeDivisions = 12;
 
-				for (size_t i = 0; i < vertices.size(); i += 2)
+		for (auto& sphere : m_DebugSpheres)
+		{
+			std::vector<glm::vec3> vertices;
+
+			for (int i = 0; i <= latitudeDivisions; ++i)
+			{
+				float lat = glm::pi<float>() * i / latitudeDivisions;
+
+				for (int j = 0; j <= longitudeDivisions; ++j)
 				{
-					Line line{};
-					line.start = vertices[i];
-					line.end = vertices[i + 1];
-					line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
-					SubmitLine(line);
+					float lon = 2.0f * glm::pi<float>() * j / longitudeDivisions;
+
+					float x = sphere.Radius * sin(lat) * cos(lon);
+					float y = sphere.Radius * sin(lat) * sin(lon);
+					float z = sphere.Radius * cos(lat);
+
+					glm::vec3 pos = glm::vec3(sphere.Transform * glm::vec4(x, y, z, 1.0f));
+					vertices.push_back(pos);
+				}
+			}
+
+			for (int i = 0; i < latitudeDivisions; ++i)
+			{
+				for (int j = 0; j < longitudeDivisions; ++j)
+				{
+					m_DebugLines.push_back(Line{ vertices[i * (longitudeDivisions + 1) + j], vertices[i * (longitudeDivisions + 1) + j + 1], sphere.Color, glm::mat4(1.0f) });
+					m_DebugLines.push_back(Line{ vertices[i * (longitudeDivisions + 1) + j], vertices[(i + 1) * (longitudeDivisions + 1) + j], sphere.Color, glm::mat4(1.0f) });
 				}
 			}
 		}
+
+		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("line_shader");
+		shader->Set("u_CameraView", m_CurrentCamera->GetView());
+		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
+		shader->Activate();
+		m_RendererAPI.DrawInstancedLines(m_DebugLines);
 	}
+
 	void Renderer::ResizeViewport(int width, int height)
 	{
 		if (width == current_window_width && height == current_window_height)

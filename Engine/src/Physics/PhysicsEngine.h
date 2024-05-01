@@ -159,8 +159,8 @@ namespace Engine {
 		void Init(int allocationSize);
 		void Shutdown();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, bool activate);
+		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);		// TODO: change Vec3 to normal vector
+		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
 		void InsertObjectByID(UUID entity_id, bool activate);
 		void SetPosition(UUID entity_id, glm::vec3 position, bool activate);
 		void SetLinearVelocity(UUID entity_id, glm::vec3& velocity);
@@ -181,8 +181,11 @@ namespace Engine {
 		bool IsActive(UUID entity_id);
 		bool HasCollider(UUID entity_id);
 		glm::vec3 GetCenterOfMassPosition(UUID id);
+		glm::vec3 GetPosition(UUID id);
 		glm::mat4x4 GetCenterOfMassTransform(UUID id);
+		glm::mat4 GetTransform(UUID id);
 		glm::vec3 GetLinearVelocity(UUID entity_id);
+		glm::vec3 GetAngularVelocity(UUID entity_id);
 		void OnRuntimeStart(int collisionSteps, int integrationSubStep);
 		void OnRuntimeStop();
 

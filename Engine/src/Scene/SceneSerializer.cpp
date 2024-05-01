@@ -189,6 +189,28 @@ namespace Engine{
 			out << YAML::Key << "Handle" << YAML::Value << mesh->GetMeshSource()->Handle;
 			out << YAML::EndMap;
 		}
+
+		if (entity->HasComponent<BoxColliderComponent>())
+		{
+			auto collider = entity->GetComponent<BoxColliderComponent>();
+			out << YAML::Key << "BoxCollider";
+			out << YAML::BeginMap;
+			out << YAML::Key << "HalfSize" << YAML::Value << collider->HalfSize;
+			out << YAML::Key << "Offset" << YAML::Value << collider->Offset;
+			out << YAML::Key << "MotionType" << YAML::Value << FromMotionTypeToString(collider->MotionType);
+			out << YAML::EndMap;
+		}
+
+		if (entity->HasComponent<SphereColliderComponent>())
+		{
+			auto collider = entity->GetComponent<SphereColliderComponent>();
+			out << YAML::Key << "SphereCollider";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Radius" << YAML::Value << collider->Radius;
+			out << YAML::Key << "Offset" << YAML::Value << collider->Offset;
+			out << YAML::Key << "MotionType" << YAML::Value << FromMotionTypeToString(collider->MotionType);
+			out << YAML::EndMap;
+		}
 	}
 	void SceneSerializer::DeserializeEntity(YAML::Node entity_node, Ref<Scene> scene, UUID* parent_entity_id)
 	{
@@ -275,6 +297,25 @@ namespace Engine{
 			mesh_comp.mesh = CreateRef<Mesh>(source);
 			scene->GetEntity(entity)->AddComponent<MeshComponent>(mesh_comp);
 		}
+
+		if (entity_node["BoxCollider"])
+		{
+			BoxColliderComponent collider{};
+			collider.HalfSize = entity_node["BoxCollider"]["HalfSize"].as<glm::vec3>(glm::vec3(0.5f));
+			collider.Offset = entity_node["BoxCollider"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
+			collider.MotionType = FromStringToMotionType(entity_node["BoxCollider"]["MotionType"].as<std::string>());
+			scene->GetEntity(entity)->AddComponent<BoxColliderComponent>(collider);
+		}
+
+		if (entity_node["SphereCollider"])
+		{
+			SphereColliderComponent collider{};
+			collider.Radius = entity_node["SphereCollider"]["Radius"].as<float>();
+			collider.Offset = entity_node["SphereCollider"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
+			collider.MotionType = FromStringToMotionType(entity_node["SphereCollider"]["MotionType"].as<std::string>());
+			scene->GetEntity(entity)->AddComponent<SphereColliderComponent>(collider);
+		}
+
 
 		if (entity_node["Children"])
 		{

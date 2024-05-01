@@ -54,6 +54,22 @@ namespace Helios
 	}
 
 
+	public class CameraComponent : Component
+	{
+		// Use this for 3:rd person
+		public void RotateAroundEntity(Vector2 rotation, float speed, bool inverse_controls)
+		{
+			InternalCalls.Camera_RotateAroundEntity(Entity.ID, ref rotation, speed, inverse_controls);
+		}
+
+		// Use this for 1:st person
+		public void Rotate(Vector2 rotation, float speed, bool inverse_controls)
+		{
+			InternalCalls.Camera_Rotate(Entity.ID, ref rotation, speed, inverse_controls);
+		}
+	}
+
+
 
 	public class BoxColliderComponent : Component
 	{
@@ -68,6 +84,16 @@ namespace Helios
 			{
 				InternalCalls.BoxCollider_SetLinearVelocity(Entity.ID, ref value);
 			}
+		}
+
+		public void AddLinearVelocity(Vector3 velocity)
+		{
+			InternalCalls.BoxCollider_AddLinearVelocity(Entity.ID, ref velocity);
+		}
+
+		public void AddAngularVelocity(Vector3 velocity)
+		{
+			InternalCalls.BoxCollider_AddAngularVelocity(Entity.ID, ref velocity);
 		}
 
 		public void AddImpulse(Vector3 impulse)
@@ -100,6 +126,16 @@ namespace Helios
 			{
 				InternalCalls.SphereCollider_SetLinearVelocity(Entity.ID, ref value);
 			}
+		}
+
+		public void AddLinearVelocity(Vector3 velocity)
+		{
+			InternalCalls.SphereCollider_AddLinearVelocity(Entity.ID, ref velocity);
+		}
+
+		public void AddAngularVelocity(Vector3 velocity)
+		{
+			InternalCalls.SphereCollider_AddAngularVelocity(Entity.ID, ref velocity);
 		}
 
 		public void AddImpulse(Vector3 impulse)

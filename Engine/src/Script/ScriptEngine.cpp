@@ -295,6 +295,25 @@ namespace Engine {
 		return s_Data->CoreAssemblyImage;
 	}
 
+	Ref<ScriptInstance> ScriptEngine::GetInstanceByEntityID(UUID entity_id)
+	{
+		auto iter = s_Data->EntityInstances.find(entity_id);
+		if (iter == s_Data->EntityInstances.end())
+		{
+			return nullptr;
+		}
+
+		return iter->second;
+	}
+
+	void ScriptEngine::CallMethod(MonoObject* monoObject, MonoMethod* managedMethod, const void** parameters)
+	{
+		HVE_PROFILE_FUNC();
+
+		MonoObject* exception = NULL;
+		mono_runtime_invoke(managedMethod, monoObject, const_cast<void**>(parameters), &exception);
+	}
+
 	void ScriptEngine::InitMono()
 	{
 		mono_set_assemblies_path("mono/lib");
@@ -364,7 +383,7 @@ namespace Engine {
 		HVE_CORE_WARN("Reloaded Scripts");
 	}
 
-	ScriptInstance::ScriptInstance(Ref<ScriptClass> script_class, Entity* entity): m_ScriptClass(script_class)
+	ScriptInstance::ScriptInstance(Ref<ScriptClass> script_class, Entity* entity): m_ScriptClass(script_class), m_EntityID(entity->GetID())
 	{
 		m_Instance = script_class->Instantiate();
 		m_Constructor = s_Data->EntityClass.GetMethod(".ctor", 1);
@@ -372,9 +391,7 @@ namespace Engine {
 		m_OnUpdateMethod = script_class->GetMethod("OnUpdate", 1);
 
 		// Call Entity constructor
-		
-		UUID entityID = entity->GetID();
-		void* param = &entityID;
+		void* param = &m_EntityID;
 		m_ScriptClass->InvokeMethod(m_Instance, m_Constructor, &param);
 		
 	}

@@ -51,6 +51,28 @@ namespace Engine {
 		return s_HasComponentFuncs.at(monoManagedType)(entity);
 	}
 
+
+	static void Camera_RotateAroundEntity(uint64_t entity_id, glm::vec2* rotation, float speed, bool inverse_controls)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			camera_comp->camera.RotateAroundFocalPoint(*rotation, speed, inverse_controls);
+		}
+	}
+
+	static void Camera_Rotate(uint64_t entity_id, glm::vec2* rotation, float speed, bool inverse_controls)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			camera_comp->camera.Rotate(*rotation, speed, inverse_controls);
+		}
+	}
+
+
 	static void TransformComponent_GetTranslation(uint64_t entity_id, glm::vec3* out_translation)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
@@ -107,6 +129,30 @@ namespace Engine {
 		}
 	}
 
+	static void BoxCollider_AddLinearVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto box_collider = entity->GetComponent<BoxColliderComponent>();
+		if (box_collider)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
+		}
+	}
+
+	static void BoxCollider_AddAngularVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto box_collider = entity->GetComponent<BoxColliderComponent>();
+		if (box_collider)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetAngularVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
+		}
+	}
+
 	static void BoxCollider_AddImpulse(uint64_t entity_id, glm::vec3* impulse)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
@@ -155,6 +201,30 @@ namespace Engine {
 		if (sphere_collider)
 		{
 			PhysicsEngine::Get()->SetLinearVelocity(entity_id, *in_velocity);
+		}
+	}
+
+	static void SphereCollider_AddLinearVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		if (sphere_collider)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
+		}
+	}
+
+	static void SphereCollider_AddAngularVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		if (sphere_collider)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetAngularVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
 		}
 	}
 
@@ -225,9 +295,10 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(IsKeyPressed);
 		HVE_ADD_INTERNAL_CALL(IsMouseButtonPressed);
 		HVE_ADD_INTERNAL_CALL(GetMousePosition);
-
-
 		HVE_ADD_INTERNAL_CALL(Entity_HasComponent);
+
+		HVE_ADD_INTERNAL_CALL(Camera_RotateAroundEntity);
+		HVE_ADD_INTERNAL_CALL(Camera_Rotate);
 
 		HVE_ADD_INTERNAL_CALL(TransformComponent_GetTranslation);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetTranslation);
@@ -238,12 +309,16 @@ namespace Engine {
 
 		HVE_ADD_INTERNAL_CALL(BoxCollider_GetLinearVelocity);
 		HVE_ADD_INTERNAL_CALL(BoxCollider_SetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(BoxCollider_AddLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(BoxCollider_AddAngularVelocity);
 		HVE_ADD_INTERNAL_CALL(BoxCollider_AddImpulse);
 		HVE_ADD_INTERNAL_CALL(BoxCollider_AddAngularImpulse);
 		HVE_ADD_INTERNAL_CALL(BoxCollider_AddLinearAngularImpulse);
 
 		HVE_ADD_INTERNAL_CALL(SphereCollider_GetLinearVelocity);
 		HVE_ADD_INTERNAL_CALL(SphereCollider_SetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(SphereCollider_AddLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(SphereCollider_AddAngularVelocity);
 		HVE_ADD_INTERNAL_CALL(SphereCollider_AddImpulse);
 		HVE_ADD_INTERNAL_CALL(SphereCollider_AddAngularImpulse);
 		HVE_ADD_INTERNAL_CALL(SphereCollider_AddLinearAngularImpulse);

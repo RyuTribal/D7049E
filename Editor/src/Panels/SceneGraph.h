@@ -34,6 +34,12 @@ namespace EditorPanels {
 			return s_Instance->m_Scene;
 		}
 
+		static void SetScene(Ref<Scene> scene)
+		{
+			Create();
+			s_Instance->m_Scene = scene;
+		}
+
 	private:
 		void SetActiveScene(Ref<Scene> scene) { m_Scene = scene; }
 		void RenderImpl();
@@ -51,6 +57,6 @@ namespace EditorPanels {
 	private:
 		Ref<Scene> m_Scene;
 		static SceneGraph* s_Instance;
-		UUID m_SelectionContext;
+		UUID m_SelectionContext = 0;
 	};
 }

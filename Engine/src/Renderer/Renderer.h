@@ -30,11 +30,18 @@ namespace Engine
 		glm::vec4 position;
 	};
 
-	struct Line
+	struct DebugBox
 	{
-		glm::vec3 start;
-		glm::vec3 end;
-		glm::vec4 color;
+		glm::vec3 Size;
+		glm::mat4 Transform;
+		glm::vec4 Color;
+	};
+
+	struct DebugSphere
+	{
+		float Radius;
+		glm::mat4 Transform;
+		glm::vec4 Color;
 	};
 
 	struct DirectionalLightInfo
@@ -90,11 +97,13 @@ namespace Engine
 		void SubmitObject(Ref<Mesh> mesh);
 		void SubmitPointLight(PointLight* point_light) { m_PointLights.push_back(point_light); }
 		void SubmitDirectionalLight(DirectionalLight* light) { m_DirectionalLights.push_back(light); }
-		void SubmitLine(Line line);
+
+		void SubmitDebugLine(Line line);
+		void SubmitDebugBox(DebugBox box);
+		void SubmitDebugSphere(DebugSphere sphere);
 
 		void BeginFrame(Camera* camera);
 		void DrawIndexed(Ref<Mesh> mesh, bool use_material);
-		void DrawLine(Line line);
 
 
 		static Ref<Texture2D> GetWhiteTexture();
@@ -146,7 +155,8 @@ namespace Engine
 		void ReCreateFrameBuffers();
 		void UploadLightData();
 		void DrawHDRQuad();
-		void DrawBoudingBoxes();
+
+		void DrawDebugObjects();
 
 		ShaderLibrary m_ShaderLibrary{};
 
@@ -170,9 +180,12 @@ namespace Engine
 		float current_window_width, current_window_height;
 
 		std::vector<Ref<Mesh>> m_Meshes{};
-		std::vector<Line> m_Lines{};
 		std::vector<PointLight*> m_PointLights{};
 		std::vector<DirectionalLight*> m_DirectionalLights{};
+
+		std::vector<Line> m_DebugLines{};
+		std::vector<DebugBox> m_DebugBoxes{};
+		std::vector<DebugSphere> m_DebugSpheres{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
 

@@ -23,6 +23,12 @@ namespace Helios
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static bool Entity_HasComponent(ulong entity_id, Type component_type);
 
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_RotateAroundEntity(ulong entity_id, ref Vector2 rotation, float speed, bool inverse_controls);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_Rotate(ulong entity_id, ref Vector2 rotation, float speed, bool inverse_controls);
+
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void TransformComponent_GetTranslation(ulong entity_id, out Vector3 translation);
@@ -53,6 +59,12 @@ namespace Helios
 		internal extern static void BoxCollider_SetLinearVelocity(ulong entity_id, ref Vector3 velocity);
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void BoxCollider_AddLinearVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void BoxCollider_AddAngularVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void BoxCollider_AddImpulse(ulong entity_id, ref Vector3 impulse);
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
@@ -68,6 +80,12 @@ namespace Helios
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void SphereCollider_SetLinearVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void SphereCollider_AddLinearVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void SphereCollider_AddAngularVelocity(ulong entity_id, ref Vector3 velocity);
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void SphereCollider_AddImpulse(ulong entity_id, ref Vector3 impulse);

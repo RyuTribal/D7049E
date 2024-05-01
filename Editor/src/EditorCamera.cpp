@@ -75,7 +75,7 @@ namespace Editor {
 	{
 
 		if (m_KeyStates[MOUSE_BUTTON_RIGHT]) {
-			m_Camera->Rotate(m_DeltaMouseOrientation * delta_time, m_Sensitivity, false);
+			m_Camera->RotateAroundFocalPoint(m_DeltaMouseOrientation * delta_time, m_Sensitivity, false);
 			m_DeltaMouseOrientation = { 0.f, 0.f };
 		}
 

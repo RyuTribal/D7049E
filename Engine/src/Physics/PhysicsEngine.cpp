@@ -2,7 +2,7 @@
 #include "PhysicsEngine.h"
 #include "PhysicsEngine.h"
 
-
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 
 namespace Engine {
@@ -167,15 +167,18 @@ namespace Engine {
 	}
 
 
-	HBodyID PhysicsEngine::CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate)
 	{
 		// conversion
 		JPH::Vec3 dim = PhysicsEngine::makeVec3(dimensions);
 		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		JPH::EMotionType mov = PhysicsEngine::makeEMotionType(movability);
+		JPH::Vec3 jolt_offset = PhysicsEngine::makeVec3(offset);
 
-		JPH::BoxShapeSettings box_shape_settings(dim);
-		JPH::ShapeSettings::ShapeResult box_shape_result = box_shape_settings.Create();
+		JPH::BoxShapeSettings* box_shape_settings = new JPH::BoxShapeSettings(dim);		// TODO: I think we can add material here
+		JPH::RotatedTranslatedShapeSettings offsetShapeSettings(jolt_offset, JPH::Quat::sIdentity(), box_shape_settings);
+
+		JPH::ShapeSettings::ShapeResult box_shape_result = offsetShapeSettings.Create();
 		if (box_shape_result.HasError())
 		{
 			s_JoltData->LastErrorMessage = box_shape_result.GetError();
@@ -207,18 +210,22 @@ namespace Engine {
 			box_id = (this->m_body_interface)->CreateAndAddBody(box_settings, JPH::EActivation::DontActivate);
 		}
 
+		box_shape_settings->Release();
+
 		s_JoltData->numberOfBodies++;
 		s_JoltData->hasOptimized = false;
 		return HBodyID(entity_id, box_id);
 	}
 
-	HBodyID PhysicsEngine::CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, bool activate)
+	HBodyID PhysicsEngine::CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate)
 	{
 		JPH::RVec3 pos = PhysicsEngine::makeRVec3(position);
 		JPH::EMotionType mov = PhysicsEngine::makeEMotionType(movability);
+		JPH::Vec3 jolt_offset = PhysicsEngine::makeVec3(offset);
 
-		JPH::SphereShapeSettings sphere_shape_settings(radius);		// TODO: I think we can add material here
-		JPH::ShapeSettings::ShapeResult sphere_shape_result = sphere_shape_settings.Create();
+		JPH::SphereShapeSettings* sphere_shape_settings = new JPH::SphereShapeSettings(radius);		// TODO: I think we can add material here
+		JPH::RotatedTranslatedShapeSettings offsetShapeSettings(jolt_offset, JPH::Quat::sIdentity(), sphere_shape_settings);
+		JPH::ShapeSettings::ShapeResult sphere_shape_result = offsetShapeSettings.Create();
 		if (sphere_shape_result.HasError())
 		{
 			s_JoltData->LastErrorMessage = sphere_shape_result.GetError();
@@ -242,6 +249,8 @@ namespace Engine {
 		{
 			sphere_id = (this->m_body_interface)->CreateAndAddBody(sphere_settings, JPH::EActivation::DontActivate);
 		}
+
+		sphere_shape_settings->Release();
 
 		s_JoltData->numberOfBodies++;
 		s_JoltData->hasOptimized = false;
@@ -299,6 +308,11 @@ namespace Engine {
 		JPH::Vec3 aVel = PhysicsEngine::makeVec3(angularVelocity);
 
 		(this->m_body_interface)->SetLinearAndAngularVelocity(jolt_id, lVel, aVel);
+	}
+
+	void PhysicsEngine::AddLinearVelocity(UUID entity_id, glm::vec3& velocity)
+	{
+
 	}
 
 	void PhysicsEngine::AddLinearImpulse(UUID entity_id, glm::vec3& impulse)
@@ -401,6 +415,19 @@ namespace Engine {
 		return PhysicsEngine::makeGLMVec3(vec);
 	}
 
+	glm::vec3 PhysicsEngine::GetPosition(UUID id)
+	{
+		if (!HasCollider(id))
+		{
+			return glm::vec3(0.f);
+		}
+
+		JPH::BodyID jolt_id = HBodyID::GetBodyID(id);
+
+		JPH::RVec3 vec = (this->m_body_interface)->GetPosition(jolt_id);
+		return PhysicsEngine::makeGLMVec3(vec);
+	}
+
 	glm::mat4x4 PhysicsEngine::GetCenterOfMassTransform(UUID id)
 	{
 		if (!HasCollider(id)) 
@@ -413,11 +440,31 @@ namespace Engine {
 		return PhysicsEngine::makeMat4x4(vec);
 	}
 
+	glm::mat4 PhysicsEngine::GetTransform(UUID id)
+	{
+		if (!HasCollider(id))
+		{
+			return glm::mat4(); // Returns identity
+		}
+		JPH::BodyID jolt_id = HBodyID::GetBodyID(id);
+
+		JPH::RMat44 vec = (this->m_body_interface)->GetWorldTransform(jolt_id);
+		return PhysicsEngine::makeMat4x4(vec);
+	}
+
 	glm::vec3 PhysicsEngine::GetLinearVelocity(UUID entity_id)
 	{
 		JPH::BodyID jolt_id = HBodyID::GetBodyID(entity_id);
 
 		JPH::Vec3 vec = (this->m_body_interface)->GetLinearVelocity(jolt_id);
+		return PhysicsEngine::makeGLMVec3(vec);
+	}
+
+	glm::vec3 PhysicsEngine::GetAngularVelocity(UUID entity_id)
+	{
+		JPH::BodyID jolt_id = HBodyID::GetBodyID(entity_id);
+
+		JPH::Vec3 vec = (this->m_body_interface)->GetAngularVelocity(jolt_id);
 		return PhysicsEngine::makeGLMVec3(vec);
 	}
 

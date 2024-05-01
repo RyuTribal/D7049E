@@ -9,10 +9,12 @@ namespace Editor {
 	{
 		HVE_ASSERT(m_Project->GetSettings().StartingScene != 0, "Starting scene is invalid!");
 		OpenScene(m_Project->GetSettings().StartingScene);
+		EditorPanels::SceneGraph::SetScene(m_CurrentScene);
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
 	{
+
 		Engine::Camera* curr_camera = nullptr;
 		if (m_SceneState == SceneState::Play)
 		{
@@ -26,9 +28,37 @@ namespace Editor {
 		if (EditorPanels::Viewport::IsFocused()) {
 			m_Camera->Update(delta_time);
 		}
-		for (auto& line : m_DebugLines)
+
+		if (m_SceneState == SceneState::Edit)
 		{
-			Renderer::Get()->SubmitLine(line);
+			auto entity = EditorPanels::SceneGraph::GetSelectedEntity();
+			if (entity)
+			{
+				if (entity->HasComponent<BoxColliderComponent>())
+				{
+					auto collider = entity->GetComponent<BoxColliderComponent>();
+					DebugBox debug_box{};
+					auto transform = entity->GetComponent<TransformComponent>()->world_transform;
+					transform.translation += collider->Offset;
+					debug_box.Transform = transform.mat4();
+					debug_box.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					debug_box.Size = collider->HalfSize;
+					Renderer::Get()->SubmitDebugBox(debug_box);
+				}
+
+
+				if (entity->HasComponent<SphereColliderComponent>())
+				{
+					auto collider = entity->GetComponent<SphereColliderComponent>();
+					DebugSphere debug_sphere{};
+					auto transform = entity->GetComponent<TransformComponent>()->world_transform;
+					transform.translation += collider->Offset;
+					debug_sphere.Transform = transform.mat4();
+					debug_sphere.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					debug_sphere.Radius = collider->Radius;
+					Renderer::Get()->SubmitDebugSphere(debug_sphere);
+				}
+			}
 		}
 		
 		m_CurrentScene->UpdateScene();
@@ -81,6 +111,11 @@ namespace Editor {
 
 		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
 			window_flags |= ImGuiWindowFlags_NoBackground;
+
+		if (m_SceneState == SceneState::Play)
+		{
+			window_flags |= ImGuiWindowFlags_NoInputs;
+		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
@@ -196,13 +231,7 @@ namespace Editor {
 
 		ImGui::End();
 		ImGui::Begin("Settings");
-		static bool ShouldDrawBoundingBoxes = false;
-		ImGui::Text("Draw Mesh Bounding Boxes");
-		ImGui::SameLine();
-		if (ImGui::Checkbox("##boundboxesdraw", &ShouldDrawBoundingBoxes))
-		{
-			Renderer::Get()->SetDrawBoundingBoxes(ShouldDrawBoundingBoxes);
-		}
+
 		ImGui::End();
 
 		UIToolBar();
@@ -267,6 +296,8 @@ namespace Editor {
 		m_CurrentScene = Scene::Copy(m_EditorScene);
 
 		m_CurrentScene->OnRuntimeStart();
+
+		Input::SetLockMouseMode(true);
 	}
 
 	void EditorLayer::OnSceneStop()
@@ -274,13 +305,23 @@ namespace Editor {
 		m_SceneState = SceneState::Edit;
 		m_CurrentScene->OnRuntimeStop();
 		m_CurrentScene = m_EditorScene;
+		Input::SetLockMouseMode(false);
 	}
 
 	bool EditorLayer::OnKeyPress(Engine::KeyPressedEvent& event)
 	{
-
 		bool control = Input::IsKeyPressed(KEY_LEFT_CONTROL) || Input::IsKeyPressed(KEY_RIGHT_CONTROL);
 		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
+
+		if (m_SceneState == SceneState::Play)
+		{
+			if (shift && event.GetKeyCode() == KEY_ESCAPE)
+			{
+				OnSceneStop();
+				return false;
+			}
+			return false;
+		}
 
 		if (shift) {
 			m_Camera->UpdateKeyState(event.GetKeyCode(), true);
@@ -300,24 +341,42 @@ namespace Editor {
 
 	bool EditorLayer::OnKeyRelease(Engine::KeyReleasedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		m_Camera->UpdateKeyState(event.GetKeyCode(), false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseButtonReleased(Engine::MouseButtonReleasedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		m_Camera->UpdateKeyState(event.GetMouseButton(), false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseMoved(Engine::MouseMovedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		m_Camera->PanCamera();
 		return true;
 	}
 
 	bool EditorLayer::OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+
+			return false;
+		}
+
 		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
 		if (EditorPanels::Viewport::IsHovered())
 		{
@@ -328,12 +387,6 @@ namespace Editor {
 			auto [mouseX, mouseY] = EditorPanels::Viewport::GetMousePos();
 			// HVE_INFO("Shot fired from {0} {1}", mouseX, mouseY);
 			auto [origin, direction] = CastRay(mouseX, mouseY);
-
-			/*Line line{};
-			line.start = origin;
-			line.end = direction;
-			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
-			m_DebugLines.push_back(line);*/ // Can be used for debugging
 
 			auto meshEntities = m_CurrentScene->GetAllEntitiesByType<MeshComponent>();
 
@@ -398,6 +451,10 @@ namespace Editor {
 	}
 	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		if (EditorPanels::Viewport::IsHovered())
 		{
 			m_Camera->Zoom(event.GetYOffset());

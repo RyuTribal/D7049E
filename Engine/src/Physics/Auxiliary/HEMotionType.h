@@ -21,7 +21,7 @@ namespace Engine {
 		}
 	}
 
-	static HEMotionType FromStringToMotionType(std::string& type_string)
+	static HEMotionType FromStringToMotionType(const std::string& type_string)
 	{
 		if (type_string == "Static")                return HEMotionType::Static;
 		if (type_string == "Dynamic")               return HEMotionType::Dynamic;

@@ -4,6 +4,7 @@
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/object.h>
+#include <mono/metadata/mono-debug.h>
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 #include "Project/Project.h"

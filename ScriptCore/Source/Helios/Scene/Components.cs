@@ -52,4 +52,69 @@ namespace Helios
 			}
 		}
 	}
+
+
+
+	public class BoxColliderComponent : Component
+	{
+		public Vector3 LinearVelocity
+		{
+			get
+			{
+				InternalCalls.BoxCollider_GetLinearVelocity(Entity.ID, out Vector3 velocity);
+				return velocity;
+			}
+			set
+			{
+				InternalCalls.BoxCollider_SetLinearVelocity(Entity.ID, ref value);
+			}
+		}
+
+		public void AddImpulse(Vector3 impulse)
+		{
+			InternalCalls.BoxCollider_AddImpulse(Entity.ID, ref impulse);
+		}
+
+		public void AddAngularImpulse(Vector3 impulse)
+		{
+			InternalCalls.BoxCollider_AddAngularImpulse(Entity.ID, ref impulse);
+		}
+
+		public void AddLinearAndAngularImpulse(Vector3 linear_impulse, Vector3 angular_impulse)
+		{
+			InternalCalls.BoxCollider_AddLinearAngularImpulse(Entity.ID, ref linear_impulse, ref angular_impulse);
+		}
+	}
+
+
+	public class SphereColliderComponent : Component
+	{
+		public Vector3 LinearVelocity
+		{
+			get
+			{
+				InternalCalls.SphereCollider_GetLinearVelocity(Entity.ID, out Vector3 velocity);
+				return velocity;
+			}
+			set
+			{
+				InternalCalls.SphereCollider_SetLinearVelocity(Entity.ID, ref value);
+			}
+		}
+
+		public void AddImpulse(Vector3 impulse)
+		{
+			InternalCalls.SphereCollider_AddImpulse(Entity.ID, ref impulse);
+		}
+
+		public void AddAngularImpulse(Vector3 impulse)
+		{
+			InternalCalls.SphereCollider_AddAngularImpulse(Entity.ID, ref impulse);
+		}
+
+		public void AddLinearAndAngularImpulse(Vector3 linear_impulse, Vector3 angular_impulse)
+		{
+			InternalCalls.SphereCollider_AddLinearAngularImpulse(Entity.ID, ref linear_impulse, ref angular_impulse);
+		}
+	}
 }

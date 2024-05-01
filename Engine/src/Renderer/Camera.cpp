@@ -126,17 +126,24 @@ namespace Engine {
 		CalculatePosition();
 	}
 
+	void Camera::SetRotation(const glm::vec2& rotation)
+	{
+
+		m_Yaw = rotation.y;
+		m_Pitch = rotation.x;
+
+		glm::quat pitchQuat = glm::angleAxis(m_Pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::quat yawQuat = glm::angleAxis(m_Yaw, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		m_Orientation = glm::normalize(yawQuat * pitchQuat);
+
+		CalculatePosition();
+	}
+
 	void Camera::LookAt(glm::vec3& center)
 	{
 		glm::vec3 direction = glm::normalize(center - m_Position);
 		m_Orientation = glm::quatLookAt(direction, glm::vec3(0.0f, 1.0f, 0.0f));
-	}
-
-
-
-	void Camera::RotateWithVector(glm::vec3& rotation)
-	{
-
 	}
 
 	/*void Camera::LookAt(glm::vec3& center)

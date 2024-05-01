@@ -105,12 +105,12 @@ namespace Engine {
 	public:
 		virtual void		OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
 		{
-			std::cout << "A body got activated" << std::endl;
+			HVE_CORE_TRACE("A body got activated");
 		}
 
 		virtual void		OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
 		{
-			std::cout << "A body went to sleep" << std::endl;
+			HVE_CORE_TRACE("A body went to sleep");
 		}
 	};
 
@@ -121,7 +121,7 @@ namespace Engine {
 		// See: ContactListener
 		virtual JPH::ValidateResult	OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override
 		{
-			std::cout << "Contact validate callback" << std::endl;
+			HVE_CORE_TRACE("Contact validate callback");
 
 			// Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
 			return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
@@ -129,17 +129,17 @@ namespace Engine {
 
 		virtual void			OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
 		{
-			std::cout << "A contact was added" << std::endl;
+			HVE_CORE_TRACE("A contact was added");
 		}
 
 		virtual void			OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
 		{
-			std::cout << "A contact was persisted" << std::endl;
+			HVE_CORE_TRACE("A contact was persisted");
 		}
 
 		virtual void			OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
 		{
-			std::cout << "A contact was removed" << std::endl;
+			HVE_CORE_TRACE("A contact was removed");
 		}
 	};
 
@@ -161,25 +161,30 @@ namespace Engine {
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
 		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
 		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, bool activate);
-		void InsertObjectByID(HBodyID id, bool activate);
-		void SetPosition(HBodyID id, glm::vec3 position, bool activate);
-		void SetLinearVelocity(HBodyID id, glm::vec3 velocity);
-		void SetAngularVelocity(HBodyID id, glm::vec3 velocity);
-		void SetLinearAndAngularVelocity(HBodyID id, glm::vec3 linaerVelocity, glm::vec3 angularVelocity);
+		void InsertObjectByID(UUID entity_id, bool activate);
+		void SetPosition(UUID entity_id, glm::vec3 position, bool activate);
+		void SetLinearVelocity(UUID entity_id, glm::vec3& velocity);
+		void SetAngularVelocity(UUID entity_id, glm::vec3& velocity);
+		void SetLinearAndAngularVelocity(UUID entity_id, glm::vec3& linaerVelocity, glm::vec3& angularVelocity);
+		void AddLinearVelocity(UUID entity_id, glm::vec3& velocity);
+
+		void AddLinearImpulse(UUID entity_id, glm::vec3& impulse);
+		void AddAngularImpulse(UUID entity_id, glm::vec3& impulse);
+		void AddLinearAndAngularImpulse(UUID entity_id, glm::vec3& linear, glm::vec3& angular);
+
 		void SetShape();
 		void OptimizeBroadPhase();
 		void Step(float deltaTime);
-		void RemoveBody(HBodyID id);
-		void DestoryBody(HBodyID id);
+		void RemoveBody(UUID entity_id);
+		void DestoryBody(UUID entity_id);
 		void DestoryAllBodies();
-		bool IsActive(HBodyID id);
+		bool IsActive(UUID entity_id);
+		bool HasCollider(UUID entity_id);
 		glm::vec3 GetCenterOfMassPosition(UUID id);
 		glm::mat4x4 GetCenterOfMassTransform(UUID id);
-		glm::vec3 GetLinearVelocity(HBodyID id);
+		glm::vec3 GetLinearVelocity(UUID entity_id);
 		void OnRuntimeStart(int collisionSteps, int integrationSubStep);
 		void OnRuntimeStop();
-		static void tmpRunner();
-		
 
 	private:
 		static PhysicsEngine* s_Instance;
@@ -193,10 +198,6 @@ namespace Engine {
 		BPLayerInterfaceImpl m_broad_phase_layer_interface;
 		ObjectVsBroadPhaseLayerFilterImpl m_object_vs_broadphase_layer_filter;
 		ObjectLayerPairFilterImpl m_object_vs_object_layer_filter;
-
-		MyBodyActivationListener m_body_activation_listener;
-
-		MyContactListener m_contact_listener;
 
 		JPH::BodyInterface* m_body_interface;
 

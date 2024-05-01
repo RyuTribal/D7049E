@@ -8,6 +8,7 @@
 #include "Scene/Entity.h"
 #include "Scene/Components.h"
 #include "ScriptEngine.h"
+#include "Physics/PhysicsEngine.h"
 
 namespace Engine {
 
@@ -24,6 +25,22 @@ namespace Engine {
 		return { scene, entity };
 	}
 
+
+	static bool IsKeyPressed(int key)
+	{
+		return Input::IsKeyPressed(key);
+	}
+
+	static bool IsMouseButtonPressed(int button)
+	{
+		return Input::IsMouseButtonPressed(button);
+	}
+
+	static void GetMousePosition(glm::vec2* mouse_position_destination)
+	{
+		*mouse_position_destination = glm::vec2(Input::GetMouseX(), Input::GetMouseY());
+	}
+
 	static bool Entity_HasComponent(uint64_t entity_id, MonoReflectionType* component_type)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
@@ -37,37 +54,138 @@ namespace Engine {
 	static void TransformComponent_GetTranslation(uint64_t entity_id, glm::vec3* out_translation)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		*out_translation = entity->GetComponent<TransformComponent>()->local_transform.translation;
+		*out_translation = entity->GetComponent<TransformComponent>()->world_transform.translation;
 	}
 
 	static void TransformComponent_SetTranslation(uint64_t entity_id, glm::vec3* in_translation)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		entity->GetComponent<TransformComponent>()->local_transform.translation = *in_translation;
+		entity->GetComponent<TransformComponent>()->world_transform.translation = *in_translation;
 	}
 
 	static void TransformComponent_GetRotation(uint64_t entity_id, glm::vec3* out_rotation)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		*out_rotation = entity->GetComponent<TransformComponent>()->local_transform.rotation;
+		*out_rotation = entity->GetComponent<TransformComponent>()->world_transform.rotation;
 	}
 
 	static void TransformComponent_SetRotation(uint64_t entity_id, glm::vec3* in_rotation)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		entity->GetComponent<TransformComponent>()->local_transform.rotation = *in_rotation;
+		entity->GetComponent<TransformComponent>()->world_transform.rotation = *in_rotation;
 	}
 
 	static void TransformComponent_GetScale(uint64_t entity_id, glm::vec3* out_scale)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		*out_scale = entity->GetComponent<TransformComponent>()->local_transform.scale;
+		*out_scale = entity->GetComponent<TransformComponent>()->world_transform.scale;
 	}
 
 	static void TransformComponent_SetScale(uint64_t entity_id, glm::vec3* in_scale)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		entity->GetComponent<TransformComponent>()->local_transform.scale = *in_scale;
+		entity->GetComponent<TransformComponent>()->world_transform.scale = *in_scale;
+	}
+
+	static void BoxCollider_GetLinearVelocity(uint64_t entity_id, glm::vec3* out_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto box_collider = entity->GetComponent<BoxColliderComponent>();
+		if (box_collider)
+		{
+			*out_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+		}
+	}
+
+	static void BoxCollider_SetLinearVelocity(uint64_t entity_id, glm::vec3* in_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto box_collider = entity->GetComponent<BoxColliderComponent>();
+		if (box_collider)
+		{
+			PhysicsEngine::Get()->SetLinearVelocity(entity_id, *in_velocity);
+		}
+	}
+
+	static void BoxCollider_AddImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto box_collider = entity->GetComponent<BoxColliderComponent>();
+		if (box_collider)
+		{
+			PhysicsEngine::Get()->AddLinearImpulse(entity_id, *impulse);
+		}
+	}
+
+	static void BoxCollider_AddAngularImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto box_collider = entity->GetComponent<BoxColliderComponent>();
+		if (box_collider)
+		{
+			PhysicsEngine::Get()->AddAngularImpulse(entity_id, *impulse);
+		}
+	}
+
+	static void BoxCollider_AddLinearAngularImpulse(uint64_t entity_id, glm::vec3* linear_impulse, glm::vec3* angular_impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto box_collider = entity->GetComponent<BoxColliderComponent>();
+		if (box_collider)
+		{
+			PhysicsEngine::Get()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
+		}
+	}
+
+
+	static void SphereCollider_GetLinearVelocity(uint64_t entity_id, glm::vec3* out_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		if (sphere_collider)
+		{
+			*out_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+		}
+	}
+
+	static void SphereCollider_SetLinearVelocity(uint64_t entity_id, glm::vec3* in_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		if (sphere_collider)
+		{
+			PhysicsEngine::Get()->SetLinearVelocity(entity_id, *in_velocity);
+		}
+	}
+
+	static void SphereCollider_AddImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		if (sphere_collider)
+		{
+			PhysicsEngine::Get()->AddLinearImpulse(entity_id, *impulse);
+		}
+	}
+
+	static void SphereCollider_AddAngularImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		if (sphere_collider)
+		{
+			PhysicsEngine::Get()->AddAngularImpulse(entity_id, *impulse);
+		}
+	}
+
+	static void SphereCollider_AddLinearAngularImpulse(uint64_t entity_id, glm::vec3* linear_impulse, glm::vec3* angular_impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		if (sphere_collider)
+		{
+			PhysicsEngine::Get()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
+		}
 	}
 
 
@@ -103,6 +221,12 @@ namespace Engine {
 
 	void ScriptGlue::RegisterFunctions()
 	{
+
+		HVE_ADD_INTERNAL_CALL(IsKeyPressed);
+		HVE_ADD_INTERNAL_CALL(IsMouseButtonPressed);
+		HVE_ADD_INTERNAL_CALL(GetMousePosition);
+
+
 		HVE_ADD_INTERNAL_CALL(Entity_HasComponent);
 
 		HVE_ADD_INTERNAL_CALL(TransformComponent_GetTranslation);
@@ -111,6 +235,18 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_GetScale);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetScale);
+
+		HVE_ADD_INTERNAL_CALL(BoxCollider_GetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(BoxCollider_SetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(BoxCollider_AddImpulse);
+		HVE_ADD_INTERNAL_CALL(BoxCollider_AddAngularImpulse);
+		HVE_ADD_INTERNAL_CALL(BoxCollider_AddLinearAngularImpulse);
+
+		HVE_ADD_INTERNAL_CALL(SphereCollider_GetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(SphereCollider_SetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(SphereCollider_AddImpulse);
+		HVE_ADD_INTERNAL_CALL(SphereCollider_AddAngularImpulse);
+		HVE_ADD_INTERNAL_CALL(SphereCollider_AddLinearAngularImpulse);
 
 
 	}

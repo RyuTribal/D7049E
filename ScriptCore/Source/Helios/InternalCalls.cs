@@ -11,6 +11,16 @@ namespace Helios
 	public static class InternalCalls
 	{
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool IsKeyPressed(KeyCode key);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool IsMouseButtonPressed(MouseButton button);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool GetMousePosition(ref Vector2 mouse_position_destination);
+
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static bool Entity_HasComponent(ulong entity_id, Type component_type);
 
 
@@ -32,5 +42,41 @@ namespace Helios
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void TransformComponent_SetScale(ulong entity_id, ref Vector3 scale);
+
+
+
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void BoxCollider_GetLinearVelocity(ulong entity_id, out Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void BoxCollider_SetLinearVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void BoxCollider_AddImpulse(ulong entity_id, ref Vector3 impulse);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void BoxCollider_AddAngularImpulse(ulong entity_id, ref Vector3 impulse);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void BoxCollider_AddLinearAngularImpulse(ulong entity_id, ref Vector3 linear_impulse, ref Vector3 angular_impulse);
+
+
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void SphereCollider_GetLinearVelocity(ulong entity_id, out Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void SphereCollider_SetLinearVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void SphereCollider_AddImpulse(ulong entity_id, ref Vector3 impulse);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void SphereCollider_AddAngularImpulse(ulong entity_id, ref Vector3 impulse);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void SphereCollider_AddLinearAngularImpulse(ulong entity_id, ref Vector3 linear_impulse, ref Vector3 angular_impulse);
+
 	}
 }

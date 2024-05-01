@@ -8,6 +8,7 @@
 #include "Lights/DirectionalLight.h"
 #include "Sound/Sound.h"
 #include <Script/ScriptEngine.h>
+#include <Physics/Auxiliary/HEMotionType.h>
 
 namespace Engine {
 
@@ -142,6 +143,7 @@ namespace Engine {
 	{
 		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
+		HEMotionType MotionType = HEMotionType::Static;
 
 
 		BoxColliderComponent() = default;
@@ -154,6 +156,7 @@ namespace Engine {
 	{
 		float Radius = 0.5f;
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
+		HEMotionType MotionType = HEMotionType::Static;
 
 		SphereColliderComponent() = default;
 		SphereColliderComponent(const SphereColliderComponent&) = default;

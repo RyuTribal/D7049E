@@ -18,6 +18,8 @@ namespace Engine {
 
 			static void EmptyMap();
 
+			static std::unordered_map<UUID, JPH::BodyID>& GetMap();
+
 
 		private:
 			UUID mID;

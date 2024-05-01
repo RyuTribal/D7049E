@@ -49,7 +49,7 @@ namespace Engine {
 		void SetPosition(glm::vec3 translation) { m_FocalPoint = translation; }
 
 		void Rotate(const glm::vec2& delta, float rotation_speed, bool inverse_controls);
-		void RotateWithVector(glm::vec3& rotation);
+		void SetRotation(const glm::vec2& rotation);
 		void Move(const glm::vec3& velocity) { m_FocalPoint += velocity; };
 		void LookAt(glm::vec3& center);
 		/*

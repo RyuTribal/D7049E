@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -17,6 +18,23 @@ namespace Helios
 
 		public readonly ulong ID;
 
+
+		public bool IsKeyPressed(KeyCode key_code)
+		{
+			return InternalCalls.IsKeyPressed(key_code);
+		}
+
+		public bool IsMouseButtonPressed(MouseButton button)
+		{
+			return InternalCalls.IsMouseButtonPressed(button);
+		}
+
+		public Vector2 GetMousePosition()
+		{
+			Vector2 position = new Vector2(1.0f);
+			InternalCalls.GetMousePosition(ref position);
+			return position;
+		}
 
 		public bool HasComponent<T>() where T : Component, new()
 		{

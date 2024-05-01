@@ -34,6 +34,11 @@ namespace Engine {
 		s_idMap.clear();
 	}
 
+	std::unordered_map<UUID, JPH::BodyID>& HBodyID::GetMap()
+	{
+		return s_idMap;
+	}
+
 	
 	/*
 	/// Get index in body array

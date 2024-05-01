@@ -271,6 +271,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
 			DisplayAddComponentEntry<BoxColliderComponent>("Box Collider");
+			DisplayAddComponentEntry<SphereColliderComponent>("Sphere Collider");
 			DisplayAddComponentEntry<SoundComponent>("Sound");
 			ImGui::EndPopup();
 		}
@@ -516,6 +517,66 @@ namespace EditorPanels {
 		{
 			DrawVec3Control("Half Size", component->HalfSize);
 			DrawVec3Control("Offset", component->Offset);
+
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			std::string current_item = FromMotionTypeToString(component->MotionType);
+			ImGui::Text("Motion Type");
+			ImGui::NextColumn();
+			if (ImGui::BeginCombo("##Physics_Box_Collider_type", current_item.c_str()))
+			{
+				for (auto& type : HEMotionTypes)
+				{
+					std::string selectable_type = FromMotionTypeToString(type);
+					bool is_selected = (current_item == selectable_type.c_str());
+					if (ImGui::Selectable(selectable_type.c_str(), is_selected))
+					{
+						component->MotionType = type;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::Columns(1);
+
+		});
+
+		DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [](auto& component, auto entity)
+		{
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Radius");
+			ImGui::NextColumn();
+			float radius = component->Radius;
+			ImGui::SliderFloat("##sphere_collider_radius", &radius, 0.0f, 10.0f);
+			component->Radius = radius;
+			ImGui::Columns(1);
+
+			DrawVec3Control("Offset", component->Offset);
+
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			std::string current_item = FromMotionTypeToString(component->MotionType);
+			ImGui::Text("Motion Type");
+			ImGui::NextColumn();
+			if (ImGui::BeginCombo("##Physics_Box_Collider_type", current_item.c_str()))
+			{
+				for (auto& type : HEMotionTypes)
+				{
+					std::string selectable_type = FromMotionTypeToString(type);
+					bool is_selected = (current_item == selectable_type.c_str());
+					if (ImGui::Selectable(selectable_type.c_str(), is_selected))
+					{
+						component->MotionType = type;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::Columns(1);
+
 		});
 
 		DrawComponent<SoundComponent>("Sound", entity, [](auto& component, auto entity)

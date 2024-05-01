@@ -34,7 +34,7 @@ namespace Editor {
 		m_CurrentScene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
 
-		if (ScriptEngine::ShouldReload())
+		if (ScriptEngine::ShouldReload() && m_SceneState != SceneState::Play)
 		{
 			Project::ReloadScripts();
 		}

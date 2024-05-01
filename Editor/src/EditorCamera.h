@@ -12,7 +12,7 @@ namespace Editor {
 			m_CurrentMouseOrientation.x = Input::GetMouseX();
 			m_CurrentMouseOrientation.y = Input::GetMouseY();
 			m_Camera->Zoom(m_InitialZoomFactor);
-			m_Camera->RotateWithVector(m_InitialRotation);
+			m_Camera->SetRotation(m_InitialRotation);
 			m_Camera->Move(m_InitialPosition);
 		}
 		~EditorCamera() = default;

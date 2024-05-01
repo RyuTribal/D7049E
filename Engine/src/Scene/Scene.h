@@ -1,9 +1,10 @@
 #pragma once
+#include "Core/Input.h"
 #include "Registry.h"
 #include "Renderer/Camera.h"
 #include "EntityHandle.h"
 #include "SceneSerializer.h"
-#include <Assets/AssetMetadata.h>
+#include "Assets/AssetMetadata.h"
 
 namespace Engine {
 
@@ -178,6 +179,7 @@ namespace Engine {
 		void UpdateWorldTransform(SceneNode* node, glm::mat4& parentWorldTransform);
 		void UpdateTransforms();
 		void DrawSystem();
+		void SyncPhysicsTransforms();
 
 	private:
 		UUID m_ID = UUID();

@@ -113,6 +113,7 @@ namespace Engine {
 		config.Name = project_settings.ProjectName;
 		config.Namespace = project_settings.ProjectName;
 		config.Files = "../Assets/Scripts/**.cs";
+		HVE_CORE_WARN(external_scripts_path.string());
 		std::ofstream outFile(external_scripts_path / "premake5.lua");
 		CreatePremakeFile(config, outFile);
 		outFile.close();
@@ -153,10 +154,10 @@ namespace Engine {
 		os << "targetdir \"../Binaries\"\n";
 		os << "objdir \"../Binaries/Intermediates\"\n";
 		os << "namespace \"" << config.Namespace << "\"\n";
-		os << "location" << "\"../Assets/Scripts\"";
+		os << "location" << "\"../Assets/Scripts\"\n";
 
 		os << "links {\n";
-		os << "\t\"ScriptCore\",\n";
+		os << "\tos.getenv(\"HVE_ROOT_DIR\") .. \"/Editor/Resources/Scripts/ScriptCore\",\n";
 		os << "\tos.getenv(\"HVE_ROOT_DIR\") .. \"/Editor/mono/lib/mono/4.5/System.Numerics\",\n";
 		os << "\tos.getenv(\"HVE_ROOT_DIR\") .. \"/Editor/mono/lib/mono/4.5/System.Numerics.Vectors\",\n";
 		os << "}\n";

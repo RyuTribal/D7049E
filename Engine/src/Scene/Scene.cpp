@@ -242,7 +242,8 @@ namespace Engine {
 		{
 			for (auto& [entity_id, box_collider] : *box_colliders)
 			{
-				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize, box_collider.Offset, HEMotionType::Dynamic, true);
+				glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
+				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize, entity_world_translation + box_collider.Offset, box_collider.MotionType, true);
 			}
 		}
 
@@ -290,17 +291,33 @@ namespace Engine {
 
 	void Scene::UpdateScene()
 	{
-
 		SetCurrentCamera(Renderer::Get()->GetCamera());
 		m_IsReloading = false;
 
 		if (m_SceneState == SceneRunType::Runtime)
 		{
 			ScriptEngine::OnUpdate(Application::Get().GetFrameData().DeltaTime);
-			PhysicsEngine::Get()->Step(Application::Get().GetFrameData().DeltaTime);
+
+			auto box_colliders = m_Registry.GetComponentRegistry<BoxColliderComponent>();
+			if (box_colliders)
+			{
+				for (auto& [entity_id, box_collider] : *box_colliders)
+				{
+					glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
+					PhysicsEngine::Get()->SetPosition(entity_id, entity_world_translation + box_collider.Offset, true);
+				}
+
+				PhysicsEngine::Get()->Step(Application::Get().GetFrameData().DeltaTime);
+			}
 		}
 
 		UpdateTransforms();
+
+		if (m_SceneState == SceneRunType::Runtime)
+		{
+			SyncPhysicsTransforms();
+		}
+
 		DrawSystem();
 	}
 
@@ -309,20 +326,7 @@ namespace Engine {
 		if (!node) return;
 		auto transform = m_Registry.Get<TransformComponent>(node->GetID());
 		if (transform) {
-			glm::mat4 worldTransform = parentWorldTransform;
-
-			auto box_collider = m_Registry.Get<BoxColliderComponent>(node->GetID());
-			auto sphere_collider = m_Registry.Get<SphereColliderComponent>(node->GetID());
-
-			if (box_collider || sphere_collider)
-			{
-				glm::mat4 collider_transform = PhysicsEngine::Get()->GetCenterOfMassTransform(node->GetID());
-				worldTransform *= collider_transform * transform->local_transform.mat4();
-			}
-			else
-			{
-				worldTransform *= transform->local_transform.mat4();
-			}
+			glm::mat4 worldTransform = parentWorldTransform * transform->local_transform.mat4();
 
 			glm::vec3 scale;
 			glm::quat rotation;
@@ -342,8 +346,7 @@ namespace Engine {
 				m_Registry.Get<CameraComponent>(node->GetID())->camera.SetPosition(translation);
 
 				if (m_Registry.Get<CameraComponent>(node->GetID())->camera.IsRotationLocked()) {
-					m_Registry.Get<CameraComponent>(node->GetID())->camera.SetPitch(-transform->local_transform.rotation.x);
-					m_Registry.Get<CameraComponent>(node->GetID())->camera.SetYaw(-transform->local_transform.rotation.y);
+					m_Registry.Get<CameraComponent>(node->GetID())->camera.SetRotation(glm::vec2(-eulerAngles.x, -eulerAngles.y));
 				}
 			}
 
@@ -400,5 +403,82 @@ namespace Engine {
 		Renderer::Get()->BeginDrawing();
 	}
 
+	void Scene::SyncPhysicsTransforms()
+	{
+		auto box_colliders = m_Registry.GetComponentRegistry<BoxColliderComponent>();
+		if (box_colliders)
+		{
+			for (auto& [entity_id, box_collider] : *box_colliders)
+			{
+				auto transform = GetEntity(entity_id)->GetComponent<TransformComponent>();
+				glm::mat4 collider_transform = PhysicsEngine::Get()->GetCenterOfMassTransform(entity_id);
+				glm::mat4 worldTransform = collider_transform;
+
+				glm::vec3 scale;
+				glm::quat rotation;
+				glm::vec3 translation;
+				glm::vec3 skew;
+				glm::vec4 perspective;
+
+				glm::decompose(worldTransform, scale, rotation, translation, skew, perspective);
+
+				glm::vec3 eulerAngles = glm::eulerAngles(rotation);
+
+				transform->world_transform.translation = translation;
+				transform->world_transform.rotation = eulerAngles;
+				transform->world_transform.scale = scale;
+
+				// Update the camera if present
+				auto camera_component = m_Registry.Get<CameraComponent>(entity_id);
+				if (camera_component)
+				{
+					camera_component->camera.SetPosition(translation);
+
+					if (camera_component->camera.IsRotationLocked())
+					{
+						camera_component->camera.SetRotation(glm::vec2(-eulerAngles.x, -eulerAngles.y));
+					}
+				}
+			}
+		}
+
+
+		auto sphere_colliders = m_Registry.GetComponentRegistry<SphereColliderComponent>();
+		if (sphere_colliders)
+		{
+			for (auto& [entity_id, sphere_collider] : *sphere_colliders)
+			{
+				auto transform = GetEntity(entity_id)->GetComponent<TransformComponent>();
+				glm::mat4 collider_transform = PhysicsEngine::Get()->GetCenterOfMassTransform(entity_id);
+				glm::mat4 worldTransform = collider_transform;
+
+				glm::vec3 scale;
+				glm::quat rotation;
+				glm::vec3 translation;
+				glm::vec3 skew;
+				glm::vec4 perspective;
+
+				glm::decompose(worldTransform, scale, rotation, translation, skew, perspective);
+
+				glm::vec3 eulerAngles = glm::eulerAngles(rotation);
+
+				transform->world_transform.translation = translation;
+				transform->world_transform.rotation = eulerAngles;
+				transform->world_transform.scale = scale;
+
+				// Update the camera if present
+				auto camera_component = m_Registry.Get<CameraComponent>(entity_id);
+				if (camera_component)
+				{
+					camera_component->camera.SetPosition(translation);
+
+					if (camera_component->camera.IsRotationLocked())
+					{
+						camera_component->camera.SetRotation(glm::vec2(-eulerAngles.x, -eulerAngles.y));
+					}
+				}
+			}
+		}
+	}
 
 }

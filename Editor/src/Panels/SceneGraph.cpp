@@ -406,19 +406,19 @@ namespace EditorPanels {
 		{
 
 			auto& sound = component->sound;
-			float volume[1] = { sound->GetGlobalVolume() };
+			float globalVolume[1] = { sound->GetGlobalVolume() };
 			ImGui::Text("Global volume:");
-			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
-			sound->SetGlobalVolume(volume[0]);
+			ImGui::SliderFloat("##global_volume", globalVolume, 0.0f, 10.0f);
+			sound->SetGlobalVolume(globalVolume[0]);
 
 
 			ImGui::Text("Sound:");
+			ImGui::SameLine(); ImGui::TextWrapped(sound->GetSoundFilename());
 
-			//bool looping = sound->GetSoundLoopingStatus(sound->GetSoundFilename());
-			//std::string soundfile{ "file" };
-			//ImGui::InputText("Filepath", &soundfile);
-			//ImGui::Checkbox("Looping", &looping);
-			//sound->AddGlobalSound(soundfile2);
+			bool looping = sound->GetSoundLoopingStatus();
+			ImGui::Checkbox("Looping", &looping);
+			sound->SetSoundLoopingStatus(looping);
+
 			if (ImGui::Button("Add Sound"))
 			{
 				std::vector<std::vector<std::string>> filter = { {"Audio files", "ogg,mp3,wav"} };
@@ -427,14 +427,24 @@ namespace EditorPanels {
 				{
 					sound->AddGlobalSound(path.c_str());
 				}
-				
 			}
+
+			float volume[1] = { sound->GetVolume() };
+			ImGui::Text("Sound volume:");
+			ImGui::SliderFloat("##sound_volume", volume, 0.0f, 10.0f);
+			sound->SetVolume(volume[0]);
+
 			if (ImGui::Button("Play"))
 			{
 				sound->PlayGlobalSound();
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("Stop"))
+			{
+				sound->StopPlayingSound();
+			}
 
-			ImGui::Text(std::to_string(sound->GetNumberOfPlayingSounds()).c_str());
+			//ImGui::Text(std::to_string(sound->GetNumberOfPlayingSounds()).c_str());
 		});
 		
 

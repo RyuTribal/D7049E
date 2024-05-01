@@ -8,10 +8,8 @@
 #include <iostream>
 
 namespace Engine {
-	Sound::Sound(std::string soundDirectory, float globalVolume)
+	Sound::Sound()
 	{
-		m_soundPath = soundDirectory;
-		//s_soloud->setGlobalVolume(globalVolume);
 		if (!m_isInitialized)
 		{
 			s_soloud->init();
@@ -25,34 +23,30 @@ namespace Engine {
 		//m_isInitialized = false;
 	}
 
-	bool Sound::AddGlobalSound(const char* soundPath, bool looping)
+	bool Sound::AddGlobalSound(const char* soundPath)
 	{
 		if (m_soundfile.load(soundPath) != 0)
 		{
-			HVE_CORE_WARN("Could not find soundfile at path " + m_soundPath + soundPath);
+			HVE_CORE_WARN("Could not find soundfile at path " + std::string(soundPath));
 			return false;
 		}
-		HVE_CORE_INFO("Loaded soundfile at path " + m_soundPath + soundPath);
+		HVE_CORE_INFO("Loaded soundfile at path " + std::string(soundPath));
+		m_soundPath = std::string(soundPath);
 
-		if (looping)
-		{
-			m_soundfile.setLooping(true);
-		}
+		return true;
 	}
 
 	bool Sound::PlayGlobalSound(float relativeVolume)
 	{
 
-		/*if (m_soundfile.get)
+		if (m_soundPath == "No soundfile selected" || s_soloud->getVoiceFromHandle_internal(m_playingSound) != -1)
 		{
 			return false;
-		}*/
+		}
 
 		m_playingSound = s_soloud->play(m_soundfile, relativeVolume);
 
-
 		return true;
-
 	}
 
 	bool Sound::CheckFileExistance(std::string fileName)
@@ -66,38 +60,9 @@ namespace Engine {
 		s_soloud->setGlobalVolume(globalVolume);
 	}
 
-	/*bool Sound::PlayBackgroundMusic(const char* soundName, float relativeVolume)
-	{
-		if (!CheckFileExistance(m_soundPath + soundName))
-		{
-			return false;
-		}
-
-		m_backgroundMusicFile.load((m_soundPath + soundName).c_str());
-		m_backgroundMusicFile.setLooping(true);
-
-		m_backgroundMusic = s_soloud->playBackground(m_backgroundMusicFile, relativeVolume);
-
-		s_soloud->setProtectVoice(m_backgroundMusic, true);
-
-		return true;
-	}
-
-	void Sound::ChangeBackgroundMusicVolume(float relativeVolume, float fadingTime)
-	{
-		if (fadingTime > 0.0f)
-		{
-			s_soloud->fadeVolume(m_backgroundMusic, relativeVolume, fadingTime);
-		}
-		else
-		{
-			s_soloud->setVolume(m_backgroundMusic, relativeVolume);
-		}
-	}*/
-
 	float Sound::GetGlobalVolume()
 	{
-		// TODO: May need to be refactored in general since right now it might be the case that every component is a separate sound system. Not ideal.
+		// TODO: Fix: Creating a new sound system resets the global volume, not ideal
 		return s_soloud->getGlobalVolume();
 	}
 
@@ -106,19 +71,49 @@ namespace Engine {
 		return s_soloud->getActiveVoiceCount();
 	}
 
-	const char* Sound::GetSoundFilename(int index)
-	{
-		/*if (m_soundfile.find(soundName) != m_soundfiles.end())
-		{
-			return m_soundfiles.begin()->first.c_str();
-		}*/
-		
-		return "sound";
+	const char* Sound::GetSoundFilename()
+	{	
+		return m_soundPath.c_str();
 	}
 
-	bool Sound::GetSoundLoopingStatus(const char* soundName)
+	bool Sound::GetSoundLoopingStatus()
 	{
-		return m_soundfile.SHOULD_LOOP;
+		return m_looping;
+	}
+
+	void Sound::SetSoundLoopingStatus(bool loop)
+	{
+		m_soundfile.setLooping(loop);
+		m_looping = loop;
+	}
+
+	void Sound::StopPlayingSound()
+	{
+		s_soloud->stop(m_playingSound);
+	}
+
+	float Sound::GetVolume()
+	{
+		if (m_soundPath == "No soundfile selected")
+		{
+			return 1.0;
+		}
+		else
+		{
+			return s_soloud->getVolume(m_playingSound);
+		}
+	}
+
+	void Sound::SetVolume(float volume)
+	{
+		if (m_soundPath == "No soundfile selected")
+		{
+			return;
+		}
+		else
+		{
+			s_soloud->setVolume(m_playingSound, volume);
+		}
 	}
 
 	SoLoud::Soloud* Sound::s_soloud = new SoLoud::Soloud();

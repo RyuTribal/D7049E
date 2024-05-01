@@ -29,6 +29,12 @@ namespace Helios
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void Camera_Rotate(ulong entity_id, ref Vector2 rotation, float speed, bool inverse_controls);
 
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_GetForwardDirection(ulong entity_id,  ref Vector3 forward_direction);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_GetRightDirection(ulong entity_id, ref Vector3 right_direction);
+
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void TransformComponent_GetTranslation(ulong entity_id, out Vector3 translation);

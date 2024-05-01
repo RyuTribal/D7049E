@@ -67,6 +67,20 @@ namespace Helios
 		{
 			InternalCalls.Camera_Rotate(Entity.ID, ref rotation, speed, inverse_controls);
 		}
+
+		public Vector3 GetForwardDirection()
+		{
+			Vector3 direction = new Vector3(1.0f);
+			InternalCalls.Camera_GetForwardDirection(Entity.ID, ref direction);
+			return direction;
+		}
+
+		public Vector3 GetRightDirection()
+		{
+			Vector3 direction = new Vector3(1.0f);
+			InternalCalls.Camera_GetRightDirection(Entity.ID, ref direction);
+			return direction;
+		}
 	}
 
 

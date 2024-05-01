@@ -86,6 +86,10 @@ namespace Engine
 	void Renderer::SubmitObject(Ref<Mesh> mesh)
 	{
 		HVE_PROFILE_FUNC();
+		if (!mesh->GetMeshSource())
+		{
+			return;
+		}
 		m_Meshes.push_back(mesh);
 		m_Stats.vertices_count += mesh->GetMeshSource()->VertexSize();
 		m_Stats.index_count += mesh->GetMeshSource()->IndexSize();

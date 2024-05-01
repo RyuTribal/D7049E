@@ -84,6 +84,7 @@ namespace Engine {
 		void SetTransform(glm::mat4 transform);
 
 		Ref<MeshSource> GetMeshSource() { return m_MeshSource; }
+		void SetMeshSource(Ref<MeshSource> mesh_source) { m_MeshSource = mesh_source; }
 
 		static AssetType GetStaticType() { return AssetType::Mesh; } // Good for templated functions
 		AssetType GetType() const { return GetStaticType(); }

@@ -130,6 +130,31 @@ namespace EditorPanels {
         ImGui::PopID();
     }
 
+	void DrawDirectionControl(const std::string& label, glm::vec3& direction, float columnWidth = 100.0f)
+	{
+
+		float azimuth = atan2(direction.z, direction.x);
+		float elevation = asin(direction.y / glm::length(direction));
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text((label + " Yaw").c_str());
+		ImGui::NextColumn();
+		ImGui::SliderAngle("##dir_light_yaw", &azimuth, -180.0f, 180.0f);
+		ImGui::Columns(1);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text((label + " Pitch").c_str());
+		ImGui::NextColumn();
+		ImGui::SliderAngle("##dir_light_pitch", &elevation, -90.0f, 90.0f);
+		ImGui::Columns(1);
+
+		direction.x = cos(elevation) * cos(azimuth);
+		direction.y = sin(elevation);
+		direction.z = cos(elevation) * sin(azimuth);
+	}
+
 	static void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -235,6 +260,54 @@ namespace EditorPanels {
 			if (removeComponent)
 				entity->RemoveComponent<T>();
 		}
+	}
+
+	void SceneGraph::DrawDropBox(const std::string& label)
+	{
+		float width = ImGui::GetContentRegionAvail().x;
+		ImVec2 boxSize = ImVec2(width, 150);
+		ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+
+		ImGui::InvisibleButton(label.c_str(), boxSize);
+
+		bool hovered = ImGui::IsItemHovered();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		// Define dashed border
+		ImVec2 topLeft = cursorPos;
+		ImVec2 bottomRight = ImVec2(cursorPos.x + boxSize.x, cursorPos.y + boxSize.y);
+
+		float dashLength = 5.0f;
+		ImColor borderColor = ImColor(0.5f, 0.5f, 0.5f, 1.0f); // Gray border
+
+		// Draw top border
+		for (float x = topLeft.x; x < bottomRight.x; x += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(x, topLeft.y), ImVec2(x + dashLength, topLeft.y), borderColor);
+		}
+
+		// Draw bottom border
+		for (float x = topLeft.x; x < bottomRight.x; x += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(x, bottomRight.y), ImVec2(x + dashLength, bottomRight.y), borderColor);
+		}
+
+		// Draw left border
+		for (float y = topLeft.y; y < bottomRight.y; y += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(topLeft.x, y), ImVec2(topLeft.x, y + dashLength), borderColor);
+		}
+
+		// Draw right border
+		for (float y = topLeft.y; y < bottomRight.y; y += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(bottomRight.x, y), ImVec2(bottomRight.x, y + dashLength), borderColor);
+		}
+
+		ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
+		ImVec2 textPos = ImVec2(cursorPos.x + (boxSize.x - textSize.x) / 2, cursorPos.y + (boxSize.y - textSize.y) / 2);
+		ImGui::GetWindowDrawList()->AddText(textPos, ImColor(1.0f, 1.0f, 1.0f, 1.0f), label.c_str());
+
 	}
 
     void SceneGraph::DrawComponents()
@@ -507,7 +580,7 @@ namespace EditorPanels {
 			ImGui::Columns(1);
 
 			glm::vec3 curr_direction = light.GetDirection();
-			DrawVec3Control("Direction", curr_direction);
+			DrawDirectionControl("Direction", curr_direction);
 
 			light.SetDirection(curr_direction);
 
@@ -607,36 +680,72 @@ namespace EditorPanels {
 		});
 		
 
-		/*DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
+		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
 		{
-			ImGui::Columns(3);
-			ImGui::SetColumnWidth(0, 200.f);
-			ImGui::Text("Mesh File Path");
-			if (ImGui::IsItemHovered() && component->mesh)
+			if (component->mesh->GetMeshSource())
 			{
-				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
-			}
-			ImGui::NextColumn();
-			ImGui::Text(component->mesh ? component->mesh->GetMetaData().MeshPath.c_str() : "No mesh picked");
-			if (ImGui::IsItemHovered() && component->mesh)
-			{
-				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
-			}
-			ImGui::NextColumn();
-			ImGui::PushID("MeshFilePathButton");
-			if (ImGui::Button("..."))
-			{
-				std::vector<std::vector<std::string>> filter = { {"3D object files", "FBX,fbx,glft"} };
-				std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
-				if (path != "")
+				const auto& mesh_relative_path = AssetManager::GetMetadata(component->mesh->GetMeshSource()->Handle).FilePath;
+				ImGui::Columns(2);
+				ImGui::SetColumnWidth(0, 100.f);
+				ImGui::Text("Current Mesh");
+				if (ImGui::IsItemHovered() && component->mesh)
 				{
-					Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh(path, &entity->GetID());
-					component->mesh = object_mesh;
+					ImGui::SetTooltip("%s", Project::GetFullFilePath(mesh_relative_path).string().c_str());
+				}
+				ImGui::NextColumn();
+				ImGui::Text(mesh_relative_path.string().c_str());
+				if (ImGui::IsItemHovered() && component->mesh)
+				{
+					ImGui::SetTooltip("%s", mesh_relative_path.string().c_str());
+				}
+				ImGui::Columns(1);
+			}
+
+			DrawDropBox("Drop mesh here to change");
+
+		});
+
+
+		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
+		{
+			// Check for internal drag-and-drop payloads
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const auto payload_path = *(const std::filesystem::path*)payload->Data;
+				if (DesignAssetManager::GetAssetTypeFromFileExtension(payload_path.extension()) == AssetType::MeshSource)
+				{
+					auto entity = m_Scene->GetEntity(m_SelectionContext);
+					const auto payload_path = *(const std::filesystem::path*)payload->Data;
+					Project::GetActiveDesignAssetManager()->ImportAsset(payload_path);
+					auto handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(payload_path);
+					auto meshSource = AssetManager::GetAsset<MeshSource>(handle);
+
+					if (entity->HasComponent<MeshComponent>())
+					{
+						auto component = entity->GetComponent<MeshComponent>();
+						component->mesh->SetMeshSource(meshSource);
+					}
+					else
+					{
+						MeshComponent new_comp(CreateRef<Mesh>(meshSource));
+						entity->AddComponent<MeshComponent>(new_comp);
+					}
 				}
 			}
-			ImGui::PopID();
-			ImGui::Columns(1);
-		});*/
+
+			// Check for external file payloads
+			//else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+			//{
+			//	auto meshSource = AssetManager::ImportMesh(payload_path); // Import or load the mesh
+
+			//	if (meshSource)
+			//	{
+			//		component->mesh->SetMeshSource(meshSource);
+			//	}
+			//}
+
+			ImGui::EndDragDropTarget();
+		}
     }
 
 

@@ -47,6 +47,7 @@ namespace EditorPanels {
 		Entity* GetSelectedEntityImpl() { return m_Scene->GetEntity(m_SelectionContext); }
 		void SetSelectedEntityImpl(UUID id){ m_SelectionContext = id; }
 		void DrawComponents();
+		static void DrawDropBox(const std::string& label);
 
 		template<typename T>
 		static void ShowMapSearchPopup(std::unordered_map<std::string, T>& map, bool use_first, std::string* result_destination);

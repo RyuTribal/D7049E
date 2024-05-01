@@ -110,7 +110,7 @@ namespace Engine {
 
 	void Camera::RotateAroundFocalPoint(const glm::vec2& delta, float rotation_speed, bool inverse_controls)
 	{
-		float sign = inverse_controls ? -1.0f : 1.0f;
+		float sign = inverse_controls ? 1.0f : -1.0f;
 
 		float deltaYaw = delta.x * rotation_speed * sign;
 		float deltaPitch = delta.y * rotation_speed * sign;
@@ -142,7 +142,7 @@ namespace Engine {
 
 	void Camera::Rotate(const glm::vec2& delta, float rotation_speed, bool inverse_controls)
 	{
-		float sign = inverse_controls ? -1.0f : 1.0f;
+		float sign = inverse_controls ? 1.0f : -1.0f;
 		m_Yaw += delta.x * rotation_speed * sign;
 		m_Pitch += delta.y * rotation_speed * sign;
 

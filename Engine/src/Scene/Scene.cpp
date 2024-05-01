@@ -243,18 +243,21 @@ namespace Engine {
 			for (auto& [entity_id, box_collider] : *box_colliders)
 			{
 				glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
-				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize, entity_world_translation, box_collider.MotionType, box_collider.Offset, true);
+				glm::vec3 entity_world_scale = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.scale;
+				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize + entity_world_scale, entity_world_translation, box_collider.MotionType, box_collider.Offset, true);
 			}
 		}
 
 		auto sphere_colliders = m_Registry.GetComponentRegistry<SphereColliderComponent>();
 		PhysicsEngine::Get()->OnRuntimeStart(1, 1);
-		if (box_colliders)
+		if (sphere_colliders)
 		{
 			for (auto& [entity_id, sphere_collider] : *sphere_colliders)
 			{
 				glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
-				PhysicsEngine::Get()->CreateSphere(entity_id, sphere_collider.Radius, entity_world_translation, sphere_collider.MotionType, sphere_collider.Offset, true);
+				glm::vec3 entity_world_scale = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.scale;
+				float max_value = std::max({ entity_world_scale.x, entity_world_scale.y, entity_world_scale.z });
+				PhysicsEngine::Get()->CreateSphere(entity_id, sphere_collider.Radius + max_value, entity_world_translation, sphere_collider.MotionType, sphere_collider.Offset, true);
 			}
 		}
 
@@ -437,7 +440,6 @@ namespace Engine {
 
 				transform->world_transform.translation = translation;
 				transform->world_transform.rotation = eulerAngles;
-				transform->world_transform.scale = scale;
 
 				// Update the camera if present
 				auto camera_component = m_Registry.Get<CameraComponent>(entity_id);
@@ -475,7 +477,6 @@ namespace Engine {
 
 				transform->world_transform.translation = translation;
 				transform->world_transform.rotation = eulerAngles;
-				transform->world_transform.scale = scale;
 
 				// Update the camera if present
 				auto camera_component = m_Registry.Get<CameraComponent>(entity_id);

@@ -104,6 +104,11 @@ namespace Engine {
 			return;
 		}
 
+		if (GetHandleByPath(file_path) != 0)
+		{
+			return; // means it's already imported
+		}
+
 		Ref<Asset> asset = AssetImporter::Import(handle, metadata);
 		if (asset)
 		{
@@ -115,7 +120,7 @@ namespace Engine {
 		}
 		HVE_CORE_ERROR_TAG("Asset Importer", "Failed to import asset at path {0}", file_path.string());
 	}
-	void DesignAssetManager::RegisterAsset(AssetHandle handle, std::filesystem::path& file_path)
+	void DesignAssetManager::RegisterAsset(AssetHandle handle, const std::filesystem::path& file_path)
 	{
 		std::filesystem::path new_file_path = file_path;
 		if (file_path.is_absolute())

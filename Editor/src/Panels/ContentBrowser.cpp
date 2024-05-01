@@ -15,7 +15,6 @@ namespace EditorPanels {
 
 	void ContentBrowser::RenderImpl()
 	{
-
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, 400);
 
@@ -184,6 +183,11 @@ namespace EditorPanels {
 		m_DirectoryElements[path.string()] = new_element;
 	}
 
+	void ContentBrowser::RefreshBrowser()
+	{
+		m_DirectoryElements.clear();
+	}
+
 	void ContentBrowser::SetupContentView()
 	{
 		ImGui::BeginChild("Content view");
@@ -278,6 +282,7 @@ namespace EditorPanels {
 				if (!Project::GetActiveDesignAssetManager()->IsAssetRegistered(entry.path()))
 				{
 					Project::GetActiveDesignAssetManager()->ImportAsset(entry.path());
+					RefreshBrowser();
 				}
 			}
 		}
@@ -291,10 +296,11 @@ namespace EditorPanels {
 			m_DraggingPath = path;
 			ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", &m_DraggingPath, sizeof(std::filesystem::path));
 			ImGui::Text("Move %s", path.filename().string().c_str());
+
 			ImGui::EndDragDropSource();
 		}
 
-		if (ImGui::BeginDragDropTarget() && path.extension() != ".cs")
+		if (ImGui::BeginDragDropTarget() && path.extension() != ".cs" && std::filesystem::is_directory(path))
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 			{
@@ -383,13 +389,24 @@ namespace EditorPanels {
 		ImGui::BeginDisabled(m_CurrentDirectory == m_RootDirectory);
 		ImVec2 uv0 = ImVec2(0.0f, 1.0f);
 		ImVec2 uv1 = ImVec2(1.0f, 0.0f);
-		auto texture_id = EditorResources::FileIcons["back"]->GetRendererID();
+		auto back_button_texture_id = EditorResources::FileIcons["back"]->GetRendererID();
 
-		if (ImGui::ImageButton(reinterpret_cast<void*>(static_cast<intptr_t>(texture_id)), ImVec2(24.0f, 24.0f), uv0, uv1))
+		if (ImGui::ImageButton((ImTextureID)back_button_texture_id, ImVec2(24.0f, 24.0f), uv0, uv1))
 		{
 			m_CurrentDirectory = m_CurrentDirectory.parent_path();
 		}
 		ImGui::EndDisabled();
+
+		ImVec2 pos = ImGui::GetCursorScreenPos();
+
+		auto refresh_texture_id = EditorResources::FileIcons["refresh"]->GetRendererID();
+		float full_width = ImGui::GetContentRegionAvail().x;
+		ImGui::SetCursorScreenPos(ImVec2(pos.x + full_width, pos.y));
+		if (ImGui::ImageButton((ImTextureID)refresh_texture_id, ImVec2(24.0f, 24.0f), uv0, uv1))
+		{
+			RefreshBrowser();
+		}
+		ImGui::SetCursorScreenPos(pos);
 	}
 
 	void ContentBrowser::HandleBackgroundContextMenu()

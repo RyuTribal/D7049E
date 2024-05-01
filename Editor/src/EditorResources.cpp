@@ -13,7 +13,7 @@ namespace Editor {
 		{".jpeg", "JPG.png"}, {".png", "PNG.png"}, {".wav", "WAV.png"},
 		{".ogg", "OGG.png"}, {".mp3", "MP3.png"}, {".hvescn", "SCENE.png"},
 		{".cs", "CSHARP.png"},
-		{"default", "File.png"}, {"", "FOLDER.png"}, {"back", "BACK.png"}, {"unregistered", "UNREG.png"},
+		{"default", "File.png"}, {"", "FOLDER.png"}, {"back", "BACK.png"}, {"unregistered", "UNREG.png"}, {"refresh", "REFRESH.png"},
 		{"play", "PLAY.PNG"}, {"pause", "PAUSE.PNG"}, {"stop", "STOP.PNG"}
 		};
 

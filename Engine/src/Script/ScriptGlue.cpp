@@ -72,6 +72,26 @@ namespace Engine {
 		}
 	}
 
+	static void Camera_GetForwardDirection(uint64_t entity_id, glm::vec3* forward_direction)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			*forward_direction = camera_comp->camera.GetForwardDirection();
+		}
+	}
+
+	static void Camera_GetRightDirection(uint64_t entity_id, glm::vec3* right_direction)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			*right_direction = camera_comp->camera.GetRightDirection();
+		}
+	}
+
 
 	static void TransformComponent_GetTranslation(uint64_t entity_id, glm::vec3* out_translation)
 	{
@@ -299,6 +319,8 @@ namespace Engine {
 
 		HVE_ADD_INTERNAL_CALL(Camera_RotateAroundEntity);
 		HVE_ADD_INTERNAL_CALL(Camera_Rotate);
+		HVE_ADD_INTERNAL_CALL(Camera_GetForwardDirection);
+		HVE_ADD_INTERNAL_CALL(Camera_GetRightDirection);
 
 		HVE_ADD_INTERNAL_CALL(TransformComponent_GetTranslation);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetTranslation);

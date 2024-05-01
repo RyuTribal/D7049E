@@ -68,6 +68,8 @@ namespace EditorPanels {
 
 		void LoadDirectoryElement(const std::filesystem::path& path);
 
+		void RefreshBrowser();
+
 	private:
 		static ContentBrowser* s_Instance;
 		std::filesystem::path m_RootDirectory;

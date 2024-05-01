@@ -30,7 +30,7 @@ namespace Engine {
 			return asset->Handle;
 		}
 
-		void RegisterAsset(AssetHandle handle, std::filesystem::path& file_path);
+		void RegisterAsset(AssetHandle handle, const std::filesystem::path& file_path);
 		void UnregsiterAsset(AssetHandle handle);
 
 		bool IsAssetRegistered(const std::filesystem::path& file_path);

@@ -84,7 +84,7 @@ namespace Engine {
 	};
 
 	struct MeshComponent  {
-		Ref<Mesh> mesh;
+		Ref<Mesh> mesh = CreateRef<Mesh>(nullptr);
 
 		MeshComponent() = default;
 		MeshComponent(const MeshComponent&) = default;

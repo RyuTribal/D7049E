@@ -33,15 +33,14 @@ namespace Engine {
 		std::filesystem::path asset_path = full_dir_path / "Assets";
 		std::filesystem::create_directory(asset_path);
 
-		CreateScriptProject();
-
-		std::vector<std::string> sub_dirs = { "Meshes", "Scenes", "Scripts"};
+		std::vector<std::string> sub_dirs = { "Meshes", "Scenes", "Scripts", "Meshes/Primitives"};
 
 		for (auto& dir : sub_dirs)
 		{
 			std::filesystem::path new_dir = asset_path / dir;
 			std::filesystem::create_directory(new_dir);
 		}
+
 
 		ProjectSettings settings{};
 		settings.ProjectName = name;
@@ -57,6 +56,33 @@ namespace Engine {
 		auto asset_manager = new_project->GetDesignAssetManager();
 		std::filesystem::path scene_file_path = asset_path / std::filesystem::path("Scenes") / std::filesystem::path("Main_Scene.hvescn");
 		asset_manager->RegisterAsset(default_scene->Handle, scene_file_path);
+		CreateScriptProject();
+
+		std::filesystem::path root_path = ROOT_PATH;
+		root_path = root_path.parent_path();
+		root_path = root_path / "Editor/Resources/Primitives";
+		std::filesystem::path primitives_destination = asset_path / "Meshes/Primitives";
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(root_path))
+		{
+			const auto& primitive_source = entry.path();
+			const auto& file = std::filesystem::relative(primitive_source, root_path);
+			const auto& primitive_destination = primitives_destination / file;
+			if (std::filesystem::is_regular_file(primitive_source))
+			{
+				try
+				{
+					std::filesystem::copy_file(primitive_source, primitive_destination, std::filesystem::copy_options::skip_existing);
+				}
+				catch (const std::filesystem::filesystem_error& e)
+				{
+					HVE_CORE_ERROR("Error copying file: {}", e.what());
+				}
+
+				const auto& registration_path = std::filesystem::relative(primitive_destination, asset_path);
+				Project::GetActiveDesignAssetManager()->ImportAsset(primitive_destination);
+			}
+		}
+
 		Serializer(settings);
 		return { true, settings.RootPath / std::filesystem::path(settings.ProjectName + file_extension) };
 	}

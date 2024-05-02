@@ -1,36 +1,42 @@
 #pragma once
 
-#include <string>
-#include <map>
-
-#include <soloud.h>
-#include <soloud_thread.h>
 #include <soloud_wav.h>
+
+namespace SoLoud {
+	class Soloud;
+	class Wav;
+	typedef unsigned int handle;
+}
+
 
 namespace Engine {
 	class Sound
 	{
 	public:
-		Sound(std::string soundDirectory = "Sounds/", float globalVolume = 1.0f);
+		Sound();
 		~Sound();
-		bool AddGlobalSound(const char* soundName, bool looping = false);
-		bool PlayGlobalSound(const char* soundName, float relativeVolume = 1.0f); // Takes a sound filename (e.g. "pew.waw") and a volume relative to the global volume (e.g. 0.5 is half as loud and 2 twice as loud) and plays the sound. Returns false if sound not found.
+		bool AddGlobalSound(const char* soundPath); //Takes a filepath to a sound of .wav, .ogg or .mp3 format and adds it as the soundfile played by the component. Returns false if file not found.
+		bool PlayGlobalSound(float relativeVolume = 1.0f); //Plays the components sound at a volume relative to the global volume (e.g. 0.5 is half as loud and 2 twice as loud). Returns false if no sound has been loaded. Will only play one sound instance at the same time.
 		void SetGlobalVolume(float globalVolume); // 0.0 = Mute, 1.0 = Default
-		//bool PlayBackgroundMusic(const char* soundName, float relativeVolume = 1.0f); // Plays sound file with looping enabled and with priority so that it's not interrupted
-		//void ChangeBackgroundMusicVolume(float relativeVolume, float fadingTime = 0.0f); // Separate BGM volume control, relative to global volume. fadingTime allows fading volume for e.g. subtly lowering BGM during dialogs
 		float GetGlobalVolume();
-		int GetNumberOfPlayingSounds();
-		const char* GetSoundFilename(int index = 0);
-		bool GetSoundLoopingStatus(const char* soundname);
+		int GetNumberOfPlayingSounds(); //Gets the total number of sounds playing over all components.
+		const char* GetSoundFilename();
+		bool GetSoundLoopingStatus();
+		void SetSoundLoopingStatus(bool loop); //A looping sound will play again and again from the beginning until stopped. Can't be changed while the sound is playing.
+		void StopPlayingSound(); //Stops playing sound if the component is currently playing one, will start the sound from the beginning when next played.
+		float GetVolume();
+		void SetVolume(float volume); //Sets the volume relative to the global volume, can be changed while the sound is playing.
 		static SoLoud::Soloud* s_soloud;
 
 	private:
-		std::string m_soundPath;
+		std::string m_soundPath = "No soundfile selected";
+		SoLoud::handle m_playingSound;
+		SoLoud::Wav m_soundfile;
+
+		bool m_looping = false;
 
 		bool m_isInitialized = false;
 
-		std::map<std::string, SoLoud::handle> m_playingSounds;
-		std::map < std::string, SoLoud::Wav> m_soundfiles;
 		bool CheckFileExistance(std::string fileName);
 	};
 }

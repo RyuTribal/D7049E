@@ -10,11 +10,15 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/MutableCompoundShape.h>
 
 #include "Auxiliary/HVec3.h"
 #include "Auxiliary/HVec3.h"
 #include "Auxiliary/HEMotionType.h"
 #include "Auxiliary/HBodyID.h"
+
+#include "Scene/Entity.h"
+#include "Scene/Components.h"
 
 
 namespace Engine {
@@ -158,8 +162,9 @@ namespace Engine {
 		}
 		void Init(int allocationSize);
 		void Shutdown();
-		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);		// TODO: change Vec3 to normal vector
-		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);		// TODO: change Vec3 to normal vector
+		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);
+		HBodyID CreateBody(Entity* entity);
+		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
 		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
 		void InsertObjectByID(UUID entity_id, bool activate);
 		void SetPosition(UUID entity_id, glm::vec3 position, bool activate);
@@ -175,9 +180,9 @@ namespace Engine {
 		void SetShape();
 		void OptimizeBroadPhase();
 		void Step(float deltaTime);
-		void RemoveBody(UUID entity_id);
-		void DestoryBody(UUID entity_id);
-		void DestoryAllBodies();
+		void RemoveShape(UUID entity_id);
+		void DestroyShape(UUID entity_id);
+		void DestroyAllShapes();
 		bool IsActive(UUID entity_id);
 		bool HasCollider(UUID entity_id);
 		glm::vec3 GetCenterOfMassPosition(UUID id);

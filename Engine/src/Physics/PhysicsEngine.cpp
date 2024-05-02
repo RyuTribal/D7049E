@@ -166,6 +166,35 @@ namespace Engine {
 		JPH::Factory::sInstance = nullptr;
 	}
 
+	HBodyID PhysicsEngine::CreateBody(Entity* entity)	//TODO: return differently if we're adding multiple shapes to the entity
+	{
+		BoxColliderComponent* boxComponent = entity->GetComponent<BoxColliderComponent>();
+		if (boxComponent)
+		{
+			glm::vec3 posistion(0, 0, 0);		// TODO: ask about position
+			return PhysicsEngine::Get()->CreateBox( 
+				entity->GetID(), 
+				boxComponent->HalfSize, 
+				posistion,
+				boxComponent->MotionType, 
+				boxComponent->Offset, 
+				true 
+			);
+		}
+		SphereColliderComponent* sphereComponent = entity->GetComponent<SphereColliderComponent>();
+		if (sphereComponent)
+		{
+			glm::vec3 posistion(0, 0, 0);
+			return PhysicsEngine::Get()->CreateSphere(
+				entity->GetID(),
+				sphereComponent->Radius,
+				posistion,
+				sphereComponent->MotionType,
+				sphereComponent->Offset,
+				true
+			);
+		}
+	}
 
 	HBodyID PhysicsEngine::CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate)
 	{
@@ -363,25 +392,25 @@ namespace Engine {
 		);
 	}
 
-	void PhysicsEngine::RemoveBody(UUID entity_id)
+	void PhysicsEngine::RemoveShape(UUID entity_id)
 	{
 		JPH::BodyID h_id = HBodyID::GetBodyID(entity_id);
-		(this->m_body_interface)->RemoveBody(h_id);
+		(this->m_body_interface)->RemoveShape(h_id);
 	}
 
-	void PhysicsEngine::DestoryBody(UUID entity_id)
+	void PhysicsEngine::DestroyShape(UUID entity_id)
 	{
 		JPH::BodyID jolt_id = HBodyID::GetBodyID(entity_id);
 
 		(this->m_body_interface)->DestroyBody(jolt_id);
 	}
 
-	void PhysicsEngine::DestoryAllBodies()
+	void PhysicsEngine::DestroyAllShapes()
 	{
 		auto& body_id_map = HBodyID::GetMap();
 		for (auto& [entity_id, jolt_id] : body_id_map)
 		{
-			(this->m_body_interface)->RemoveBody(jolt_id);
+			(this->m_body_interface)->RemoveShape(jolt_id);
 			(this->m_body_interface)->DestroyBody(jolt_id);
 		}		
 		s_JoltData->numberOfBodies = 0;
@@ -477,6 +506,6 @@ namespace Engine {
 	void PhysicsEngine::OnRuntimeStop()
 	{
 		s_JoltData->hasOptimized = false;
-		this->DestoryAllBodies();
+		this->DestroyAllShapes();
 	}
 }

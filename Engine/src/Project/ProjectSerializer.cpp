@@ -89,6 +89,7 @@ namespace Engine {
 
 	void ProjectSerializer::Serializer(ProjectSettings& settings)
 	{		
+		auto renderer_settings = Renderer::Get()->GetSettings();
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Project" << YAML::Value << settings.ProjectName;
@@ -96,6 +97,17 @@ namespace Engine {
 		out << YAML::Key << "AssetRegistry" << YAML::Value << settings.AssetRegistryPath.string();
 		out << YAML::Key << "StartingScene" << YAML::Value << settings.StartingScene;
 		out << YAML::Key << "ScriptAssembly" << YAML::Value << settings.ScriptAssemblyPath.string();
+		out << YAML::Key << "Renderer";
+		out << YAML::BeginMap;
+
+		out << YAML::Key << "AntiAliasing";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Type" << YAML::Value << FromAATypeToString(renderer_settings.AntiAliasing.Type);
+		out << YAML::Key << "PostProcessing" << YAML::Value << FromPostAATypeToString(renderer_settings.AntiAliasing.PostProcessing);
+		out << YAML::Key << "Multiplier" << YAML::Value << renderer_settings.AntiAliasing.Multiplier;
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
 		out << YAML::EndMap;
 
 		std::filesystem::path filepath = settings.RootPath / std::filesystem::path(settings.ProjectName + file_extension);
@@ -125,6 +137,18 @@ namespace Engine {
 			settings.AssetRegistryPath = std::filesystem::path(config["AssetRegistry"].as<std::string>());
 		}
 		settings.StartingScene = config["StartingScene"].as<AssetHandle>(0);
+
+		if (config["Renderer"])
+		{
+			if (config["Renderer"]["AntiAliasing"])
+			{
+				AntiAliasingSettings renderer_aa_settings{};
+				renderer_aa_settings.Multiplier = config["Renderer"]["AntiAliasing"]["Multiplier"].as<int>();
+				renderer_aa_settings.Type = FromStringToAAType(config["Renderer"]["AntiAliasing"]["Type"].as<std::string>("None"));
+				renderer_aa_settings.PostProcessing = FromStringToPostAAType(config["Renderer"]["AntiAliasing"]["PostProcessing"].as<std::string>("None"));
+				Renderer::Get()->SetAntiAliasing(renderer_aa_settings);
+			}
+		}
 
 		return settings;
 	}

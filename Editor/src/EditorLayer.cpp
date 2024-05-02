@@ -2,6 +2,7 @@
 #include "Panels/Viewport.h"
 #include "Panels/SceneGraph.h"
 #include "Panels/ContentBrowser.h"
+#include "Panels/ProjectSettings.h"
 #include <imgui/imgui_internal.h>
 
 namespace Editor {
@@ -10,6 +11,7 @@ namespace Editor {
 		HVE_ASSERT(m_Project->GetSettings().StartingScene != 0, "Starting scene is invalid!");
 		OpenScene(m_Project->GetSettings().StartingScene);
 		EditorPanels::SceneGraph::SetScene(m_CurrentScene);
+		EditorPanels::ProjectSettings::Init();
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
@@ -68,6 +70,11 @@ namespace Editor {
 		{
 			Project::ReloadScripts();
 		}
+	}
+
+	void EditorLayer::OnDetach()
+	{
+		EditorPanels::ProjectSettings::Shutdown();
 	}
 
 	void EditorLayer::OnEvent(Engine::Event& event)
@@ -230,7 +237,12 @@ namespace Editor {
 		ImGui::Text("Indices: %d", Renderer::Get()->GetStats()->index_count);
 
 		ImGui::End();
-		ImGui::Begin("Settings");
+
+		ImGui::Begin("Project Settings");
+		EditorPanels::ProjectSettings::Render();
+		ImGui::End();
+
+		ImGui::Begin("Scene Settings");
 
 		ImGui::End();
 
@@ -330,6 +342,7 @@ namespace Editor {
 		{
 			if (event.GetKeyCode() == KEY_S)
 			{
+				Project::SaveActive();
 				SaveScene();
 			}
 		}

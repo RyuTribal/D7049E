@@ -50,6 +50,11 @@ namespace Engine
 			ScriptEngine::Shutdown();
 			PhysicsEngine::Get()->Shutdown();
 		}
+
+		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();)
+		{
+			(*--it)->OnDetach();
+		}
 	}
 
 	void Application::PushLayer(Layer* layer)

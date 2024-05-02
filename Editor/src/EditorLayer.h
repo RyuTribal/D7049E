@@ -32,6 +32,7 @@ namespace Editor {
 
 		void OnAttach() override;
 		void OnUpdate(float delta_time) override;
+		void OnDetach() override;
 		void OnEvent(Event& event) override;
 		void OnImGuiRender() override;
 		bool OnKeyPress(KeyPressedEvent& event);

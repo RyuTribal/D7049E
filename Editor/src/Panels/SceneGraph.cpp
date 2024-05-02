@@ -1,5 +1,6 @@
 #include "SceneGraph.h"
 #include <imgui/imgui_internal.h>
+#include <imgui/imGuIZMOquat.h>
 
 using namespace Engine;
 
@@ -234,8 +235,7 @@ namespace EditorPanels {
 			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 			ImGui::Separator();
 			bool open = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, name.c_str());
-			ImGui::PopStyleVar(
-			);
+			ImGui::PopStyleVar();
 			ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 			if (ImGui::Button("+", ImVec2{ lineHeight, lineHeight }))
 			{
@@ -579,10 +579,13 @@ namespace EditorPanels {
 			}
 			ImGui::Columns(1);
 
-			glm::vec3 curr_direction = light.GetDirection();
-			DrawDirectionControl("Direction", curr_direction);
-
-			light.SetDirection(curr_direction);
+			glm::quat curr_direction = light.GetDirection();
+			quat qRot = quat(curr_direction.w, curr_direction.x, curr_direction.y, curr_direction.z);
+			if (ImGui::gizmo3D("##gizmo_light_dir", qRot, 100, imguiGizmo::modeDirection))
+			{
+				curr_direction = glm::quat(qRot.w, qRot.x, qRot.y, qRot.z);
+				light.SetDirection(curr_direction);
+			}
 
 		});
 

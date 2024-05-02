@@ -93,7 +93,7 @@ namespace Engine {
 	{
 		switch (severity)
 		{
-		case GL_DEBUG_SEVERITY_HIGH:		 HVE_CORE_FATAL(message); return;
+		case GL_DEBUG_SEVERITY_HIGH:		 HVE_CORE_FATAL(message); HVE_CORE_ASSERT(false); return;
 		case GL_DEBUG_SEVERITY_MEDIUM:       HVE_CORE_ERROR(message);  return;
 		case GL_DEBUG_SEVERITY_LOW:          HVE_CORE_WARN(message);  return;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: HVE_CORE_TRACE(message);  return;
@@ -115,6 +115,8 @@ namespace Engine {
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glEnable(GL_MULTISAMPLE);
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_LINE_SMOOTH);

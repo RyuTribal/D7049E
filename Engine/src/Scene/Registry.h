@@ -90,5 +90,4 @@ namespace Engine {
     private:
         std::unordered_map<std::type_index, std::shared_ptr<IComponentContainer>> components;
     };
-
 }

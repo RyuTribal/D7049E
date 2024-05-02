@@ -46,6 +46,6 @@ namespace Editor {
 		glm::vec3 m_InitialRotation = { -32.f, 30.f, 0.f };
 		bool m_FirstClick = true;
 		glm::vec2 m_DeltaMouseOrientation = { 0.f, 0.f };
-		glm::vec2 m_CurrentMouseOrientation = { 0.f, 0.f };
+		glm::vec2 m_CurrentMouseOrientation = { Engine::Input::GetMouseX(), Engine::Input::GetMouseY() };
 	};
 }

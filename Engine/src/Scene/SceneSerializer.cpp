@@ -284,7 +284,7 @@ namespace Engine{
 			light.light = DirectionalLight();
 			glm::vec3 color = entity_node["DirectionalLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f));
 			light.light.SetColor(color);
-			glm::vec3 direction = entity_node["DirectionalLight"]["Direction"].as<glm::vec3>(glm::vec3(0.0f));
+			glm::quat direction = entity_node["DirectionalLight"]["Direction"].as<glm::quat>(glm::quat(1.0f, 0.f, 0.f, 0.f));
 			light.light.SetDirection(direction);
 			light.light.SetIntensity(entity_node["DirectionalLight"]["Intensity"].as<float>());
 			scene->GetEntity(entity)->AddComponent<DirectionalLightComponent>(light);

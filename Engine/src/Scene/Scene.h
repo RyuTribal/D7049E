@@ -5,6 +5,7 @@
 #include "EntityHandle.h"
 #include "SceneSerializer.h"
 #include "Assets/AssetMetadata.h"
+#include "Renderer/Renderer.h"
 
 namespace Engine {
 
@@ -172,6 +173,8 @@ namespace Engine {
 
 		Camera* GetPrimaryEntityCamera();
 
+		void SetSkybox(SkyboxSettings skybox) { m_Skybox = skybox; }
+
 	private:
 
 		void FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent);
@@ -197,6 +200,8 @@ namespace Engine {
 		bool m_IsReloading = false;
 
 		SceneRunType m_SceneState = SceneRunType::Edit;
+
+		SkyboxSettings m_Skybox;
 
 		friend class Entity;
 	};

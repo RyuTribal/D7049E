@@ -88,6 +88,20 @@ namespace Engine{
 			return 0;
 		}
 
+		static GLenum HeliosDownSamplingFormatToGL(FramebufferSamplingFormat format)
+		{
+
+			switch (format)
+			{
+				case FramebufferSamplingFormat::Linear:			return GL_LINEAR;
+				case FramebufferSamplingFormat::Nearest:		return GL_NEAREST;
+			}
+
+			HVE_CORE_ASSERT(false);
+			return 0;
+			 
+		}
+
 	}
 
 	Framebuffer::Framebuffer(const FramebufferSpecification& spec)
@@ -223,5 +237,17 @@ namespace Engine{
 		auto& spec = m_ColorAttachmentSpecifications[attachmentIndex];
 		glClearTexImage(m_ColorAttachments[attachmentIndex], 0,
 			Utils::HeliosFBTextureFormatToGL(spec.TextureFormat), GL_INT, &value);
+	}
+	void Framebuffer::CopyFramebufferContent(Ref<Framebuffer> other_buffer, FramebufferSamplingFormat sampling)
+	{
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, other_buffer->GetRendererID());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_RendererID);
+
+		int src_width = other_buffer->GetSpecification().Width;
+		int src_height = other_buffer->GetSpecification().Height;
+
+		glBlitFramebuffer(0, 0, src_width, src_height, 0, 0, m_Specification.Width, m_Specification.Height, GL_COLOR_BUFFER_BIT, Utils::HeliosDownSamplingFormatToGL(sampling));
+		
+		HVE_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer incomplete during content copying.");
 	}
 }

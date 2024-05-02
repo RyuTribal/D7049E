@@ -18,6 +18,12 @@ namespace Engine {
 		Depth = DEPTH24STENCIL8
 	};
 
+	enum class FramebufferSamplingFormat
+	{
+		Linear,
+		Nearest
+	};
+
 	struct FramebufferTextureSpecification
 	{
 		FramebufferTextureSpecification() = default;
@@ -67,6 +73,10 @@ namespace Engine {
 
 		uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const { HVE_CORE_ASSERT(index < m_ColorAttachments.size()); return m_ColorAttachments[index]; }
 		uint32_t GetDepthAttachmentID() const { return m_DepthAttachment; }
+
+		void CopyFramebufferContent(Ref<Framebuffer> other_buffer, FramebufferSamplingFormat sampling);
+
+		uint32_t GetRendererID() { return m_RendererID; }
 
 		const FramebufferSpecification& GetSpecification() const { return m_Specification; }
 	private:

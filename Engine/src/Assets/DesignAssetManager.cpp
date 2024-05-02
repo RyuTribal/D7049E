@@ -16,6 +16,7 @@ namespace Engine {
 		{ ".png", AssetType::Texture },
 		{ ".jpg", AssetType::Texture },
 		{ ".jpeg", AssetType::Texture },
+		{ ".hdr", AssetType::Texture },
 		{ ".wav", AssetType::Audio },
 		{ ".ogg", AssetType::Audio },
 		{ ".mp3", AssetType::Audio }

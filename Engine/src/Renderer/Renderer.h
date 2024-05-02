@@ -2,10 +2,10 @@
 #include "Camera.h"
 #include <glad/gl.h>
 #include "ShaderProgram.h"
-#include <Lights/PointLight.h>
+#include "Lights/PointLight.h"
+#include "Lights/DirectionalLight.h"
 #include "Mesh.h"
 #include "Material.h"
-#include <Scene/Components.h>
 #include "RendererAPI.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
@@ -16,6 +16,73 @@ namespace Engine
 {
 
 	struct GLFWwindow;
+
+	enum class AAType
+	{
+		None = 0,
+		SSAA,
+		MSAA,
+	};
+
+	enum class PPAAType
+	{
+		None = 0,
+		FXAA
+	};
+
+	static std::string FromAATypeToString(AAType type)
+	{
+		switch (type)
+		{
+			case AAType::None: return "None";
+			case AAType::SSAA: return "Super Sampling";
+			case AAType::MSAA: return "Multi Sampling";
+		}
+	}
+
+	static AAType FromStringToAAType(const std::string& type)
+	{
+		if (type == "Super Sampling") return AAType::SSAA;
+		else if (type == "Multi Sampling") return AAType::MSAA;
+		else if (type == "None") return AAType::None;
+	}
+
+	static std::string FromPostAATypeToString(PPAAType type)
+	{
+		switch (type)
+		{
+			case PPAAType::None: return "None";
+			case PPAAType::FXAA: return "FXAA";
+		}
+	}
+
+	static PPAAType FromStringToPostAAType(const std::string& type)
+	{
+		if (type == "None") return PPAAType::None;
+		else if (type == "FXAA") return PPAAType::FXAA;
+	}
+
+	struct AntiAliasingSettings
+	{
+		AAType Type = AAType::None;
+		PPAAType PostProcessing = PPAAType::None;
+		int Multiplier = 2;
+	};
+
+
+	struct SkyboxSettings
+	{
+		Ref<Texture> Texture;
+		float Brightness = 1.0f;
+		float AmbientLightIntensity = 1.0f;
+	};
+
+	struct RendererSettings
+	{
+		AntiAliasingSettings AntiAliasing{};
+		SkyboxSettings Skybox{};
+	};
+
 
 	const int MAX_POINT_LIGHTS = 1000;
 
@@ -144,6 +211,9 @@ namespace Engine
 
 		void SetDrawBoundingBoxes(bool should_draw) { m_DrawBoundingBox = should_draw; }
 
+		RendererSettings& GetSettings() { return m_Settings; }
+		void SetAntiAliasing(AntiAliasingSettings& settings);
+
 	private:
 
 		void DepthPrePass();
@@ -152,11 +222,15 @@ namespace Engine
 		void ShadeHDR();
 
 		void ResetStats();
-		void ReCreateFrameBuffers();
+		void RecreateBuffers();
+		void ResizeBuffers();
 		void UploadLightData();
 		void DrawHDRQuad();
 
 		void DrawDebugObjects();
+
+	private:
+		RendererSettings m_Settings{};
 
 		ShaderLibrary m_ShaderLibrary{};
 
@@ -171,6 +245,7 @@ namespace Engine
 		Ref<ShaderStorageBuffer> m_DirLightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_VisibleLightsSSBO = nullptr;
 		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
+		Ref<Framebuffer> m_Intermidiatebuffer = nullptr;
 		Ref<Framebuffer> m_SceneFramebuffer = nullptr;
 
 		int m_BackgroundColor[3] = { 0, 0, 0 };

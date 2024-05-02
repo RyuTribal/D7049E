@@ -236,20 +236,20 @@ namespace Engine {
 			}
 		}
 
-		auto box_colliders = m_Registry.GetComponentRegistry<BoxColliderComponent>();
 		PhysicsEngine::Get()->OnRuntimeStart(1, 1);
+
+		auto box_colliders = m_Registry.GetComponentRegistry<BoxColliderComponent>();
 		if (box_colliders)
 		{
 			for (auto& [entity_id, box_collider] : *box_colliders)
 			{
 				glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
 				glm::vec3 entity_world_scale = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.scale;
-				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize + entity_world_scale, entity_world_translation, box_collider.MotionType, box_collider.Offset, true);
+				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize + entity_world_scale - 1.f, entity_world_translation, box_collider.MotionType, box_collider.Offset, true);
 			}
 		}
 
 		auto sphere_colliders = m_Registry.GetComponentRegistry<SphereColliderComponent>();
-		PhysicsEngine::Get()->OnRuntimeStart(1, 1);
 		if (sphere_colliders)
 		{
 			for (auto& [entity_id, sphere_collider] : *sphere_colliders)

@@ -27,6 +27,11 @@ namespace Engine {
 			return nullptr;
 		}
 		Ref<Asset> new_asset = s_AssetLoadingFunctions.at(metadata.Type)(handle, metadata);
+		if (!new_asset)
+		{
+			HVE_CORE_ERROR_TAG("Asset Importer", "Something went wrong here!");
+			return nullptr;
+		}
 		new_asset->Handle = handle;
 		return new_asset;
 	}

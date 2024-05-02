@@ -27,10 +27,10 @@ namespace Engine {
 	{
 		if (m_soundfile.load(soundPath) != 0)
 		{
-			HVE_CORE_WARN("Could not find soundfile at path " + std::string(soundPath));
+			HVE_CORE_WARN_TAG("Sound", "Could not find soundfile at path " + std::string(soundPath));
 			return false;
 		}
-		HVE_CORE_INFO("Loaded soundfile at path " + std::string(soundPath));
+		HVE_CORE_INFO_TAG("Sound", "Loaded soundfile at path " + std::string(soundPath));
 		m_soundPath = std::string(soundPath);
 
 		return true;

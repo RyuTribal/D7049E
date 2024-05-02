@@ -12,6 +12,8 @@ namespace Editor {
 		OpenScene(m_Project->GetSettings().StartingScene);
 		EditorPanels::SceneGraph::SetScene(m_CurrentScene);
 		EditorPanels::ProjectSettings::Init();
+
+		HVE_WARN(Project::GetActive()->GetSettings().RootPath.string());
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)

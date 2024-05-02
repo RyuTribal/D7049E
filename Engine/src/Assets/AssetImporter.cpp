@@ -3,6 +3,7 @@
 #include "AssetImporter.h"
 #include "TextureImporter.h"
 #include "ModelImporter.h"
+#include "AudioImporter.h"
 #include "Scene/Scene.h"
 
 namespace Engine {
@@ -14,6 +15,7 @@ namespace Engine {
 		{AssetType::Scene, Scene::LoadScene},
 		{AssetType::Texture, TextureImporter::Import},
 		{AssetType::MeshSource, ModelImporter::ImportSource},
+		{AssetType::Audio, AudioImporter::Import},
 		//{AssetType::Mesh, ModelImporter::Import},
 		/*{AssetType::Material, },
 		{AssetType::Audio, },*/

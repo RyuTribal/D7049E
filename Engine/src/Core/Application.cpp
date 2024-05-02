@@ -5,6 +5,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Physics/PhysicsEngine.h"
+#include "Sound/SoundEngine.h"
 
 
 namespace Engine
@@ -20,6 +21,8 @@ namespace Engine
 		Renderer::CreateRenderer();
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
+
+		SoundEngine::Init();
 
 		if (!m_AppProps.NoScripting)
 		{
@@ -50,6 +53,8 @@ namespace Engine
 			ScriptEngine::Shutdown();
 			PhysicsEngine::Get()->Shutdown();
 		}
+
+		SoundEngine::Shutdown();
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();)
 		{

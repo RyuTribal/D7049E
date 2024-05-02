@@ -127,6 +127,15 @@ namespace Helios
 	}
 
 
+	public class GlobalSoundsComponent : Component
+	{
+		public void PlaySoundAtIndex(int index)
+		{
+			InternalCalls.Sounds_PlaySoundAtIndex(Entity.ID, index);
+		}
+	}
+
+
 	public class SphereColliderComponent : Component
 	{
 		public Vector3 LinearVelocity

@@ -188,7 +188,7 @@ namespace Engine {
 		CopyComponent<CameraComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<PointLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<DirectionalLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
-		CopyComponent<SoundComponent>(original_scene->m_Registry, new_scene->m_Registry);
+		CopyComponent<GlobalSoundsComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<ScriptComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<BoxColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<SphereColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);

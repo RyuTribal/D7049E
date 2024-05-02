@@ -1,6 +1,7 @@
 #include "SceneGraph.h"
 #include <imgui/imgui_internal.h>
 #include <imgui/imGuIZMOquat.h>
+#include <Sound/AudioAsset.h>
 
 using namespace Engine;
 
@@ -345,7 +346,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
 			DisplayAddComponentEntry<BoxColliderComponent>("Box Collider");
 			DisplayAddComponentEntry<SphereColliderComponent>("Sphere Collider");
-			DisplayAddComponentEntry<SoundComponent>("Sound");
+			DisplayAddComponentEntry<GlobalSoundsComponent>("Global Sounds");
 			ImGui::EndPopup();
 		}
 
@@ -655,50 +656,87 @@ namespace EditorPanels {
 
 		});
 
-		DrawComponent<SoundComponent>("Sound", entity, [](auto& component, auto entity)
+		DrawComponent<GlobalSoundsComponent>("Global Sounds Library", entity, [](auto& component, auto entity)
 		{
 
-			auto& sound = component->sound;
-			float globalVolume[1] = { sound->GetGlobalVolume() };
-			ImGui::Text("Global volume:");
-			ImGui::SliderFloat("##global_volume", globalVolume, 0.0f, 10.0f);
-			sound->SetGlobalVolume(globalVolume[0]);
 
+			auto& sounds_vector = component->Sounds;
 
-			ImGui::Text("Sound:");
-			ImGui::SameLine(); ImGui::TextWrapped(sound->GetSoundFilename());
-
-			bool looping = sound->GetSoundLoopingStatus();
-			ImGui::Checkbox("Looping", &looping);
-			sound->SetSoundLoopingStatus(looping);
-
-			if (ImGui::Button("Add Sound"))
+			for (size_t i = 0; i < sounds_vector.size(); ++i)
 			{
-				std::vector<std::vector<std::string>> filter = { {"Audio files", "ogg,mp3,wav"} };
-				std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
-				if (path != "")
+				auto sound = sounds_vector[i];
+
+				// Construct unique identifiers
+				std::stringstream idStream;
+				idStream << i;
+				std::string idStr = idStream.str();
+
+				char buffer[256];
+				memset(buffer, 0, sizeof(buffer));
+				strncpy_s(buffer, sizeof(buffer), sound->GetTitle().c_str(), sizeof(buffer));
+
+				if (ImGui::InputText(("##SoundName" + idStr).c_str(), buffer, sizeof(buffer)))
 				{
-					sound->AddGlobalSound(path.c_str());
+					sound->SetTitle(std::string(buffer));
+				}
+
+				ImGui::Text("Path: ");
+				ImGui::SameLine();
+				ImGui::TextWrapped(AssetManager::GetMetadata(sound->GetSoundAsset()).FilePath.string().c_str());
+
+				bool looping = sound->IsLooping();
+				if (ImGui::Checkbox(("Looping##" + idStr).c_str(), &looping))
+				{
+					sound->SetLooping(looping);
+				}
+
+				float volume[1] = { sound->GetVolume() };
+				ImGui::Text("Sound volume:");
+				if (ImGui::SliderFloat(("##sound_volume" + idStr).c_str(), volume, 0.0f, 10.0f))
+				{
+					sound->SetVolume(volume[0]);
+				}
+
+				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				{
+					sound->PlaySound(true);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button(("Remove##" + idStr).c_str()))
+				{
+					sounds_vector.erase(sounds_vector.begin() + i);
+					--i;
 				}
 			}
 
-			float volume[1] = { sound->GetVolume() };
-			ImGui::Text("Sound volume:");
-			ImGui::SliderFloat("##sound_volume", volume, 0.0f, 10.0f);
-			sound->SetVolume(volume[0]);
-
-			if (ImGui::Button("Play"))
-			{
-				sound->PlayGlobalSound();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Stop"))
-			{
-				sound->StopPlayingSound();
-			}
-
-			//ImGui::Text(std::to_string(sound->GetNumberOfPlayingSounds()).c_str());
+			DrawDropBox("Add sound file here");
 		});
+
+		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
+		{
+			// Check for internal drag-and-drop payloads
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const auto payload_path = *(const std::filesystem::path*)payload->Data;
+				if (DesignAssetManager::GetAssetTypeFromFileExtension(payload_path.extension()) == AssetType::Audio)
+				{
+					auto entity = m_Scene->GetEntity(m_SelectionContext);
+					const auto payload_path = *(const std::filesystem::path*)payload->Data;
+					Project::GetActiveDesignAssetManager()->ImportAsset(payload_path);
+					auto handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(payload_path);
+					auto audioSource = AssetManager::GetAsset<AudioAsset>(handle);
+
+					GlobalSoundsComponent* component;
+					if (!entity->HasComponent<GlobalSoundsComponent>())
+					{
+						entity->AddComponent<GlobalSoundsComponent>(GlobalSoundsComponent());
+						
+					}
+					component = entity->GetComponent<GlobalSoundsComponent>();
+					component->Sounds.push_back(CreateRef<GlobalSource>(audioSource->Handle));
+				}
+			}
+		 }
 		
 
 		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)

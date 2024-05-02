@@ -211,6 +211,26 @@ namespace Engine{
 			out << YAML::Key << "MotionType" << YAML::Value << FromMotionTypeToString(collider->MotionType);
 			out << YAML::EndMap;
 		}
+
+		if (entity->HasComponent<GlobalSoundsComponent>())
+		{
+			auto& sounds_vector = entity->GetComponent<GlobalSoundsComponent>()->Sounds;
+
+			out << YAML::Key << "GlobalSounds";
+			out << YAML::BeginSeq;
+
+			for (const auto& sound : sounds_vector)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Title" << YAML::Value << sound->GetTitle();
+				out << YAML::Key << "Handle" << YAML::Value << sound->GetSoundAsset();
+				out << YAML::Key << "Looping" << YAML::Value << sound->IsLooping();
+				out << YAML::Key << "Volume" << YAML::Value << sound->GetVolume();
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
 	}
 	void SceneSerializer::DeserializeEntity(YAML::Node entity_node, Ref<Scene> scene, UUID* parent_entity_id)
 	{
@@ -314,6 +334,34 @@ namespace Engine{
 			collider.Offset = entity_node["SphereCollider"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
 			collider.MotionType = FromStringToMotionType(entity_node["SphereCollider"]["MotionType"].as<std::string>());
 			scene->GetEntity(entity)->AddComponent<SphereColliderComponent>(collider);
+		}
+
+		if (entity_node["GlobalSounds"])
+		{
+			std::vector<Ref<GlobalSource>> sounds_vector;
+
+			YAML::Node soundsNode = entity_node["GlobalSounds"];
+
+			for (const auto& soundNode : soundsNode)
+			{
+				std::string title = soundNode["Title"].as<std::string>();
+				AssetHandle handle = soundNode["Handle"].as<AssetHandle>(0);
+				bool looping = soundNode["Looping"].as<bool>();
+				float volume = soundNode["Volume"].as<float>();
+
+				// Create and configure a new sound
+				auto newSound = CreateRef<GlobalSource>(handle);
+
+				newSound->SetTitle(title);
+				newSound->SetLooping(looping);
+				newSound->SetVolume(volume);
+
+				sounds_vector.push_back(newSound);
+			}
+
+			GlobalSoundsComponent new_comp{};
+			new_comp.Sounds = sounds_vector;
+			scene->GetEntity(entity)->AddComponent<GlobalSoundsComponent>(new_comp);
 		}
 
 

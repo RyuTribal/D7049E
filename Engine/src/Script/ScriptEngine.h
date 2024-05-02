@@ -98,6 +98,8 @@ namespace Engine {
 		}
 
 
+		
+
 		template<typename... TArgs>
 		static void CallMethod(UUID entity_id, const std::string& methodName, TArgs&&... args)
 		{

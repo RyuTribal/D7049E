@@ -129,6 +129,16 @@ namespace Engine {
 		entity->GetComponent<TransformComponent>()->world_transform.scale = *in_scale;
 	}
 
+	static void Sounds_PlaySoundAtIndex(uint64_t entity_id, int index)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sounds_library = entity->GetComponent<GlobalSoundsComponent>();
+		if (sounds_library && index <= sounds_library->Sounds.size() - 1)
+		{
+			sounds_library->Sounds.at(index)->PlaySound(false);
+		}
+	}
+
 	static void BoxCollider_GetLinearVelocity(uint64_t entity_id, glm::vec3* out_velocity)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
@@ -328,6 +338,8 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_GetScale);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetScale);
+
+		HVE_ADD_INTERNAL_CALL(Sounds_PlaySoundAtIndex);
 
 		HVE_ADD_INTERNAL_CALL(BoxCollider_GetLinearVelocity);
 		HVE_ADD_INTERNAL_CALL(BoxCollider_SetLinearVelocity);

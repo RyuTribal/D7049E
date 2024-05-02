@@ -32,7 +32,7 @@ namespace Engine {
 		struct TagDetails
 		{
 			bool Enabled = true;
-			Level LevelFilter = Level::Warn;
+			Level LevelFilter = Level::Info;
 		};
 
 	public:

@@ -22,6 +22,9 @@ Go to the root directory of the repository and
 run (**AS AN ADMIN**) the **generate_win_projects.bat** script to generate the 
 Visual Studio solution.
 
+Running
+-------
+
 Now there are two projects which you can run in the solution:
 
 - **Editor** - The main editor project **Default startup project**

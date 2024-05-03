@@ -20,6 +20,7 @@ namespace Engine
 		inline bool GetMaximized() const override { return m_Data.ScreenMaximized; }
 		inline bool GetVSync() const override { return m_Data.VSync; }
 		inline std::string& GetTitle() override { return m_Data.Title; }
+		void SetTitle(std::string& new_title) override;
 
 		inline void SetEventCallback(const EventCallbackFn &callback) override { m_Data.EventCallback = callback; }
 

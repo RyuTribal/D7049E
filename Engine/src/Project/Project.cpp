@@ -8,11 +8,16 @@ namespace Engine {
 	Ref<Project> Project::s_ActiveProject = nullptr;
 	Ref<Project> Project::New(std::string& name)
 	{
-		std::string path = FilePicker::OpenFileExplorer(true);
-		auto [success, project_file_path] = ProjectSerializer::CreateNewProject(path, name);
-		HVE_CORE_ASSERT(success, "Something went wrong with the project creation!");
+		// Should probably remove this function...
+		auto [success, path] = FilePicker::OpenFileExplorer(true);
+		if (success)
+		{
+			auto [success_proj, project_file_path] = ProjectSerializer::CreateNewProject(path, name);
+			HVE_CORE_ASSERT(success_proj, "Something went wrong with the project creation!");
+			return Load(project_file_path);
+		}
 
-		return Load(project_file_path);
+		HVE_CORE_ASSERT(success, "Something went wrong with the project creation!");
 	}
 
 	Ref<Project> Project::New(std::string& name, std::filesystem::path& file_path)
@@ -62,6 +67,10 @@ namespace Engine {
 	}
 	void Project::ReloadScripts()
 	{
-		ScriptEngine::ReloadAssembly(s_ActiveProject->m_Settings.RootPath / s_ActiveProject->m_Settings.ScriptAssemblyPath);
+		std::filesystem::path assembly_path = s_ActiveProject->m_Settings.RootPath / s_ActiveProject->m_Settings.ScriptAssemblyPath;
+		if (std::filesystem::exists(assembly_path))
+		{
+			ScriptEngine::ReloadAssembly(s_ActiveProject->m_Settings.RootPath / s_ActiveProject->m_Settings.ScriptAssemblyPath);
+		}
 	}
 }

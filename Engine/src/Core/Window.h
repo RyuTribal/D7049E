@@ -49,6 +49,7 @@ namespace Engine {
 		virtual bool GetMaximized() const = 0;
 		virtual bool GetVSync() const = 0;
 		virtual std::string& GetTitle() = 0;
+		virtual void SetTitle(std::string& new_title) = 0;
 		virtual void SetFullScreen(bool fullscreen, FullscreenType type) = 0;
 		virtual void SetMaximized(bool maximized) = 0;
 

@@ -32,6 +32,11 @@ namespace Engine
 		Shutdown();
 	}
 
+	void WindowsWindow::SetTitle(std::string& new_title)
+	{
+		glfwSetWindowTitle(m_Window, new_title.c_str());
+	}
+
 	void WindowsWindow::SetFullScreen(bool fullscreen, FullscreenType type)
 	{
 		if (m_Data.Fullscreen == fullscreen) {

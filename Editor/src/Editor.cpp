@@ -18,9 +18,21 @@ public:
 
 Engine::Application* Engine::CreateApplication(int argc, char** argv)
 {
-
-	HVE_ASSERT(argc > 1, "No project selected. Please use the launcher to open a project!");
-	std::string projectPath = argv[1];
+	std::string projectPath;
+	if (argc > 0 && std::filesystem::path(argv[0]).filename().extension() == ".hveproject")
+	{
+		projectPath = argv[0];
+	}
+	else if (argc > 1 && std::filesystem::path(argv[1]).filename().extension() == ".hveproject")
+	{
+		projectPath = argv[1];
+	}
+	else
+	{
+		std::filesystem::path full_sandbox_path = std::filesystem::current_path() / "Sandbox/Sandbox.hveproject";
+		projectPath = full_sandbox_path.string();
+	}
+	 
 	std::filesystem::path project_name = std::filesystem::path(projectPath).filename().stem();
 	WindowProps props{};
 	props.Title = project_name.string() + " - Editor";

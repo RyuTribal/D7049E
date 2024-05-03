@@ -37,6 +37,7 @@ namespace EditorPanels {
 		static void SetScene(Ref<Scene> scene)
 		{
 			Create();
+			s_Instance->m_SelectionContext = 0;
 			s_Instance->m_Scene = scene;
 		}
 

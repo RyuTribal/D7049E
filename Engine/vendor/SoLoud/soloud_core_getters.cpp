@@ -62,6 +62,11 @@ namespace SoLoud
 		}
 
 		int ch = (aVoiceHandle & 0xfff) - 1;
+		if (ch < 0 || ch >= 1024)
+		{
+			return -1;
+		}
+
 		unsigned int idx = aVoiceHandle >> 12;
 		if (mVoice[ch] &&
 			(mVoice[ch]->mPlayIndex & 0xfffff) == idx)

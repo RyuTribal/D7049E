@@ -40,23 +40,26 @@ namespace Engine
 		uint32_t blueTextureData = 0xffff8080;
 		s_DefaultTextures->Blue = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
 
+		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * MAX_POINT_LIGHTS, 2);
+		m_DirLightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(DirectionalLightInfo) * MAX_DIR_LIGHTS, 0);
 
 		current_window_width = Application::Get().GetWindow().GetWidth();
 		current_window_height = Application::Get().GetWindow().GetHeight();
+
 		FramebufferSpecification depthSpec = {};
 		depthSpec.Width = current_window_width;
 		depthSpec.Height = current_window_height;
 		depthSpec.Attachments = { FramebufferTextureFormat::DEPTH24STENCIL8 };
 		m_DepthFramebuffer = Engine::Framebuffer::Create(depthSpec);
 
-		FramebufferSpecification hdrSpec = {};
-		hdrSpec.Width = current_window_width;
-		hdrSpec.Height = current_window_height;
-		hdrSpec.Attachments = {
+		FramebufferSpecification intermidiateSpec = {};
+		intermidiateSpec.Width = current_window_width;
+		intermidiateSpec.Height = current_window_height;
+		intermidiateSpec.Attachments = {
 				FramebufferTextureFormat::RGBA16F,
 				FramebufferTextureFormat::DEPTH24STENCIL8
 		};
-		m_HDRFramebuffer = Engine::Framebuffer::Create(hdrSpec);
+		m_Intermidiatebuffer = Framebuffer::Create(intermidiateSpec);
 
 		FramebufferSpecification sceneSpec = {};
 		sceneSpec.Width = current_window_width;
@@ -67,30 +70,50 @@ namespace Engine
 		};
 		m_SceneFramebuffer = Engine::Framebuffer::Create(sceneSpec);
 
-		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * MAX_POINT_LIGHTS, 2);
-		m_DirLightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(DirectionalLightInfo) * MAX_DIR_LIGHTS, 0);
+		RecreateBuffers();
 
 		m_ShaderLibrary.Load("default_static_pbr", "Resources/Shaders/default_static_shader");
 		m_ShaderLibrary.Load("forward_plus_depth_pre_pass", "Resources/Shaders/depth_pre_pass");
 		m_ShaderLibrary.Load("forward_plus_light_culling", "Resources/Shaders/light_culling_shader");
 		m_ShaderLibrary.Load("hdr_shader", "Resources/Shaders/hdr_shader");
+		m_ShaderLibrary.Load("line_shader", "Resources/Shaders/line");
+		m_ShaderLibrary.Load("fxaa", "Resources/Shaders/FXAA");
 
-		ReCreateFrameBuffers();
+		ResizeBuffers();
     }
 
     Renderer::~Renderer() {
 		delete s_DefaultTextures;
     }
 
-	void Renderer::SubmitObject(Mesh* mesh)
+	void Renderer::SubmitObject(Ref<Mesh> mesh)
 	{
 		HVE_PROFILE_FUNC();
+		if (!mesh->GetMeshSource())
+		{
+			return;
+		}
 		m_Meshes.push_back(mesh);
 		m_Stats.vertices_count += mesh->GetMeshSource()->VertexSize();
 		m_Stats.index_count += mesh->GetMeshSource()->IndexSize();
 	}
 
-    void Renderer::BeginFrame(Camera* camera)
+	void Renderer::SubmitDebugLine(Line line)
+	{
+		m_DebugLines.push_back(line);
+	}
+
+	void Renderer::SubmitDebugBox(DebugBox box)
+	{
+		m_DebugBoxes.push_back(box);
+	}
+
+	void Renderer::SubmitDebugSphere(DebugSphere sphere)
+	{
+		m_DebugSpheres.push_back(sphere);
+	}
+
+	void Renderer::BeginFrame(Camera* camera)
     {
 		HVE_PROFILE_FUNC();
 		auto& app = Application::Get();
@@ -111,6 +134,12 @@ namespace Engine
 		ResetStats();
     }
 
+	void Renderer::SetAntiAliasing(AntiAliasingSettings& settings)
+	{
+		m_Settings.AntiAliasing = settings;
+		RecreateBuffers();
+	}
+
 	void Renderer::DepthPrePass()
 	{
 		HVE_PROFILE_FUNC();
@@ -120,7 +149,7 @@ namespace Engine
 		shader->Set("u_CameraView", m_CurrentCamera->GetView());
 		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
 		shader->Activate();
-		for (Mesh* mesh : m_Meshes) {
+		for (Ref<Mesh> mesh : m_Meshes) {
 			DrawIndexed(mesh, false);
 		}
 
@@ -152,23 +181,29 @@ namespace Engine
 	void Renderer::ShadeAllObjects()
 	{
 		HVE_PROFILE_FUNC();
-		m_HDRFramebuffer->Bind();
-		m_RendererAPI.ClearAll();
-
 		for (size_t i = 0; i < m_Meshes.size(); i++) {
 			DrawIndexed(m_Meshes[i], true);
 		}
+		
+	}
 
-		m_HDRFramebuffer->Unbind();
+	void Renderer::ShadeHDR()
+	{
+		HVE_PROFILE_FUNC();
 
+		uint32_t color_attachment;
+		if (m_Settings.AntiAliasing.Type != AAType::None)
+		{
+			m_Intermidiatebuffer->CopyFramebufferContent(m_HDRFramebuffer, m_Settings.AntiAliasing.Type == AAType::SSAA ? FramebufferSamplingFormat::Linear : FramebufferSamplingFormat::Nearest); // Needed because the object buffer is a multisampled buffer
+			color_attachment = m_Intermidiatebuffer->GetColorAttachmentRendererID();
+		}
+		else
+		{
+			color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
+		}
 
-		uint32_t color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
-
-		m_RendererAPI.ClearAll();
 		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("hdr_shader");
 		shader->Activate();
-
-		color_attachment = m_HDRFramebuffer->GetColorAttachmentRendererID();
 		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE0);
 		m_RendererAPI.BindTexture(color_attachment);
 		shader->Set("exposure", exposure);
@@ -178,10 +213,9 @@ namespace Engine
 		m_RendererAPI.ClearAll();
 		DrawHDRQuad();
 		m_SceneFramebuffer->Unbind();
-		
 	}
 
-	void Renderer::DrawIndexed(Mesh* mesh, bool use_material)
+	void Renderer::DrawIndexed(Ref<Mesh> mesh, bool use_material)
 	{
 		HVE_PROFILE_FUNC();
 		for (size_t i = 0; i < mesh->GetMeshSource()->GetSubmeshes().size(); i++)
@@ -194,6 +228,10 @@ namespace Engine
 				material->Set("u_CameraProjection", Renderer::Get()->GetCamera()->GetProjection());
 				material->Set("u_Transform", mesh->GetTransform() * mesh->GetMeshSource()->GetSubmeshes()[i].WorldTransform);
 				material->Set("u_NumDirectionalLights", (int)m_DirectionalLights.size());
+				if (!material->GetUniformValue<int>("u_UseNormalMap"))
+				{
+					glEnable(GL_NORMALIZE);
+				}
 				material->ApplyMaterial();
 			}
 			m_RendererAPI.DrawIndexed(mesh->GetMeshSource()->GetSubmeshes()[i].VertexArray);
@@ -226,7 +264,20 @@ namespace Engine
 		DepthPrePass();
 		UploadLightData();
 		CullLights();
+
+		m_HDRFramebuffer->Bind();
+		m_RendererAPI.ClearAll();
 		ShadeAllObjects();
+
+		m_RendererAPI.SetDepthWriting(false);
+		DrawDebugObjects();
+		m_RendererAPI.SetDepthWriting(true);
+
+		m_HDRFramebuffer->Unbind();
+
+		m_RendererAPI.ClearAll();
+
+		ShadeHDR();
 	}
 
     void Renderer::EndFrame()
@@ -235,15 +286,43 @@ namespace Engine
 		m_Meshes.clear();
 		m_PointLights.clear();
 		m_DirectionalLights.clear();
+		m_DebugLines.clear();
+		m_DebugBoxes.clear();
+		m_DebugSpheres.clear();
     }
 
-	void Renderer::ReCreateFrameBuffers()
+
+	void Renderer::RecreateBuffers()
+	{
+		// Currently we only need to recreate the object shading buffer
+		FramebufferSpecification hdrSpec = {};
+		hdrSpec.Width = current_window_width;
+		hdrSpec.Height = current_window_height;
+		hdrSpec.Samples = 1;
+		if (m_Settings.AntiAliasing.Type == AAType::SSAA)
+		{
+			hdrSpec.Width *= m_Settings.AntiAliasing.Multiplier;
+			hdrSpec.Height *= m_Settings.AntiAliasing.Multiplier;
+		}
+		else if (m_Settings.AntiAliasing.Type == AAType::MSAA)
+		{
+			hdrSpec.Samples *= m_Settings.AntiAliasing.Multiplier;
+		}
+		hdrSpec.Attachments = {
+				FramebufferTextureFormat::RGBA16F,
+				FramebufferTextureFormat::DEPTH24STENCIL8
+		};
+		m_HDRFramebuffer = Engine::Framebuffer::Create(hdrSpec);
+	}
+
+	void Renderer::ResizeBuffers()
 	{
 		HVE_PROFILE_FUNC();
 		
 		m_DepthFramebuffer->Resize(current_window_width, current_window_height);
 		m_HDRFramebuffer->Resize(current_window_width, current_window_height);
 		m_SceneFramebuffer->Resize(current_window_width, current_window_height);
+		m_Intermidiatebuffer->Resize(current_window_width, current_window_height);
 
 		m_WorkGroupsX = (current_window_width + ((int)current_window_width % 16)) / 16;
 		m_WorkGroupsY = (current_window_height + ((int)current_window_height % 16)) / 16;
@@ -274,7 +353,7 @@ namespace Engine
 		for (size_t i = 0; i < m_DirectionalLights.size(); ++i)
 		{
 			dirLightsData[i].color = glm::vec4(m_DirectionalLights[i]->GetColor(), 1.f);
-			dirLightsData[i].direction = glm::vec4(m_DirectionalLights[i]->GetDirection(), 1.f);
+			dirLightsData[i].direction = glm::vec4(m_DirectionalLights[i]->DirectionToVec3(), 1.f);
 			dirLightsData[i].intensity = m_DirectionalLights[i]->GetIntensity();
 		}
 		m_DirLightsSSBO->SetData(dirLightsData.data(), dirLightsData.size() * sizeof(DirectionalLightInfo));
@@ -306,13 +385,86 @@ namespace Engine
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
 	}
+
+	void Renderer::DrawDebugObjects()
+	{
+		for (auto& box : m_DebugBoxes)
+		{
+			glm::vec3 vertices[] = {
+			glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, -1.0f, -1.0f),
+			glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(1.0f, 1.0f, -1.0f),
+			glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(1.0f, -1.0f, 1.0f),
+			glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f)
+			};
+
+			int edges[][2] = {
+				{0, 1}, {1, 3}, {3, 2}, {2, 0},
+				{4, 5}, {5, 7}, {7, 6}, {6, 4},
+				{0, 4}, {1, 5}, {2, 6}, {3, 7}
+			};
+
+			glm::mat4 transform = glm::scale(box.Transform, box.Size);
+
+			for (auto& edge : edges)
+			{
+				m_DebugLines.push_back(Line{ vertices[edge[0]], vertices[edge[1]], box.Color, transform });
+			}
+		}
+
+		const int latitudeDivisions = 12;
+		const int longitudeDivisions = 12;
+
+		for (auto& sphere : m_DebugSpheres)
+		{
+			std::vector<glm::vec3> vertices;
+
+			for (int i = 0; i <= latitudeDivisions; ++i)
+			{
+				float lat = glm::pi<float>() * i / latitudeDivisions;
+
+				for (int j = 0; j <= longitudeDivisions; ++j)
+				{
+					float lon = 2.0f * glm::pi<float>() * j / longitudeDivisions;
+
+					float x = sphere.Radius * sin(lat) * cos(lon);
+					float y = sphere.Radius * sin(lat) * sin(lon);
+					float z = sphere.Radius * cos(lat);
+
+					glm::vec3 pos = glm::vec3(sphere.Transform * glm::vec4(x, y, z, 1.0f));
+					vertices.push_back(pos);
+				}
+			}
+
+			for (int i = 0; i < latitudeDivisions; ++i)
+			{
+				for (int j = 0; j < longitudeDivisions; ++j)
+				{
+					m_DebugLines.push_back(Line{ vertices[i * (longitudeDivisions + 1) + j], vertices[i * (longitudeDivisions + 1) + j + 1], sphere.Color, glm::mat4(1.0f) });
+					m_DebugLines.push_back(Line{ vertices[i * (longitudeDivisions + 1) + j], vertices[(i + 1) * (longitudeDivisions + 1) + j], sphere.Color, glm::mat4(1.0f) });
+				}
+			}
+		}
+
+		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("line_shader");
+		shader->Set("u_CameraView", m_CurrentCamera->GetView());
+		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
+		shader->Activate();
+		m_RendererAPI.DrawInstancedLines(m_DebugLines);
+	}
+
 	void Renderer::ResizeViewport(int width, int height)
 	{
+		HVE_PROFILE_FUNC();
+		if (width == current_window_width && height == current_window_height)
+		{
+			return;
+		}
 		current_window_width = width;
 		current_window_height = height ? height : 1;
 		m_CurrentCamera->SetAspectRatio(current_window_width / current_window_height);
 		m_RendererAPI.SetViewport(0, 0, current_window_width, current_window_height);
-		ReCreateFrameBuffers();
+
+		ResizeBuffers();
 	}
 	void Renderer::SetVSync(bool vsync)
 	{

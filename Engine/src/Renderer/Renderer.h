@@ -2,10 +2,10 @@
 #include "Camera.h"
 #include <glad/gl.h>
 #include "ShaderProgram.h"
-#include <Lights/PointLight.h>
+#include "Lights/PointLight.h"
+#include "Lights/DirectionalLight.h"
 #include "Mesh.h"
 #include "Material.h"
-#include <Scene/Components.h>
 #include "RendererAPI.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
@@ -16,6 +16,73 @@ namespace Engine
 {
 
 	struct GLFWwindow;
+
+	enum class AAType
+	{
+		None = 0,
+		SSAA,
+		MSAA,
+	};
+
+	enum class PPAAType
+	{
+		None = 0,
+		FXAA
+	};
+
+	static std::string FromAATypeToString(AAType type)
+	{
+		switch (type)
+		{
+			case AAType::None: return "None";
+			case AAType::SSAA: return "Super Sampling";
+			case AAType::MSAA: return "Multi Sampling";
+		}
+	}
+
+	static AAType FromStringToAAType(const std::string& type)
+	{
+		if (type == "Super Sampling") return AAType::SSAA;
+		else if (type == "Multi Sampling") return AAType::MSAA;
+		else if (type == "None") return AAType::None;
+	}
+
+	static std::string FromPostAATypeToString(PPAAType type)
+	{
+		switch (type)
+		{
+			case PPAAType::None: return "None";
+			case PPAAType::FXAA: return "FXAA";
+		}
+	}
+
+	static PPAAType FromStringToPostAAType(const std::string& type)
+	{
+		if (type == "None") return PPAAType::None;
+		else if (type == "FXAA") return PPAAType::FXAA;
+	}
+
+	struct AntiAliasingSettings
+	{
+		AAType Type = AAType::None;
+		PPAAType PostProcessing = PPAAType::None;
+		int Multiplier = 2;
+	};
+
+
+	struct SkyboxSettings
+	{
+		Ref<Texture> Texture;
+		float Brightness = 1.0f;
+		float AmbientLightIntensity = 1.0f;
+	};
+
+	struct RendererSettings
+	{
+		AntiAliasingSettings AntiAliasing{};
+		SkyboxSettings Skybox{};
+	};
+
 
 	const int MAX_POINT_LIGHTS = 1000;
 
@@ -28,6 +95,20 @@ namespace Engine
 		float intensity;
 		glm::vec4 color; // vec4 necessary for GLSL allignment
 		glm::vec4 position;
+	};
+
+	struct DebugBox
+	{
+		glm::vec3 Size;
+		glm::mat4 Transform;
+		glm::vec4 Color;
+	};
+
+	struct DebugSphere
+	{
+		float Radius;
+		glm::mat4 Transform;
+		glm::vec4 Color;
 	};
 
 	struct DirectionalLightInfo
@@ -80,16 +161,16 @@ namespace Engine
 		Renderer();
 		~Renderer();
 
-		void SubmitObject(Mesh* mesh);
+		void SubmitObject(Ref<Mesh> mesh);
 		void SubmitPointLight(PointLight* point_light) { m_PointLights.push_back(point_light); }
 		void SubmitDirectionalLight(DirectionalLight* light) { m_DirectionalLights.push_back(light); }
 
-		void BeginFrame(Camera* camera);
+		void SubmitDebugLine(Line line);
+		void SubmitDebugBox(DebugBox box);
+		void SubmitDebugSphere(DebugSphere sphere);
 
-		void DepthPrePass();
-		void CullLights();
-		void ShadeAllObjects();
-		void DrawIndexed(Mesh* mesh, bool use_material);
+		void BeginFrame(Camera* camera);
+		void DrawIndexed(Ref<Mesh> mesh, bool use_material);
 
 
 		static Ref<Texture2D> GetWhiteTexture();
@@ -127,12 +208,29 @@ namespace Engine
 		void SetVSync(bool vsync);
 		void SetViewport(int width, int height);
 		void BindTextureUnit(TextureUnits unit) { m_RendererAPI.ActivateTextureUnit(unit); }
+
+		void SetDrawBoundingBoxes(bool should_draw) { m_DrawBoundingBox = should_draw; }
+
+		RendererSettings& GetSettings() { return m_Settings; }
+		void SetAntiAliasing(AntiAliasingSettings& settings);
+
 	private:
 
+		void DepthPrePass();
+		void CullLights();
+		void ShadeAllObjects();
+		void ShadeHDR();
+
 		void ResetStats();
-		void ReCreateFrameBuffers();
+		void RecreateBuffers();
+		void ResizeBuffers();
 		void UploadLightData();
 		void DrawHDRQuad();
+
+		void DrawDebugObjects();
+
+	private:
+		RendererSettings m_Settings{};
 
 		ShaderLibrary m_ShaderLibrary{};
 
@@ -147,6 +245,7 @@ namespace Engine
 		Ref<ShaderStorageBuffer> m_DirLightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_VisibleLightsSSBO = nullptr;
 		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
+		Ref<Framebuffer> m_Intermidiatebuffer = nullptr;
 		Ref<Framebuffer> m_SceneFramebuffer = nullptr;
 
 		int m_BackgroundColor[3] = { 0, 0, 0 };
@@ -155,9 +254,13 @@ namespace Engine
 		
 		float current_window_width, current_window_height;
 
-		std::vector<Mesh*> m_Meshes{};
+		std::vector<Ref<Mesh>> m_Meshes{};
 		std::vector<PointLight*> m_PointLights{};
 		std::vector<DirectionalLight*> m_DirectionalLights{};
+
+		std::vector<Line> m_DebugLines{};
+		std::vector<DebugBox> m_DebugBoxes{};
+		std::vector<DebugSphere> m_DebugSpheres{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
 
@@ -167,6 +270,8 @@ namespace Engine
 		GLuint m_QuadVBO;
 
 		RendererAPI m_RendererAPI{};
+
+		bool m_DrawBoundingBox = false;
 	};
 
 	// This is so the spd log library can print this data structure

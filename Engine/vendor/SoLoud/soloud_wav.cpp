@@ -32,6 +32,7 @@ freely, subject to the following restrictions:
 #include "dr_mp3.h"
 #include "dr_wav.h"
 #include "dr_flac.h"
+#include <iostream>
 
 namespace SoLoud
 {

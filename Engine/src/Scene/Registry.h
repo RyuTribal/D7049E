@@ -43,7 +43,6 @@ namespace Engine {
 
     class Registry {
     public:
-
         template<typename T>
         void Add(UUID entityId, T component) {
             const std::type_index typeIndex = std::type_index(typeid(T));
@@ -91,5 +90,4 @@ namespace Engine {
     private:
         std::unordered_map<std::type_index, std::shared_ptr<IComponentContainer>> components;
     };
-
 }

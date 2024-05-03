@@ -38,6 +38,14 @@ namespace Engine {
 		
 	};
 
+	struct Line
+	{
+		glm::vec3 Start;
+		glm::vec3 End;
+		glm::vec4 Color;
+		glm::mat4 Transform;
+	};
+
 	class RendererAPI {
 	public:
 		void Init();
@@ -49,7 +57,8 @@ namespace Engine {
 		void ClearColor();
 
 		void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0);
-		void DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount);
+		void DrawInstancedLines(std::vector<Line>& lines);
+		void DrawLine(const glm::vec3& start, const glm::vec3& end);
 
 		void UseShaderProgram(uint32_t id);
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);

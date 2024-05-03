@@ -24,6 +24,7 @@ project "EditorLauncher"
         "%{wks.location}/Engine/vendor",
         "%{wks.location}/Engine/src",
         "%{wks.location}/Engine/vendor/nativefiledialog-extended/src/include",
+        "%{wks.location}/Engine/vendor/SoLoud",
     }
 
     links

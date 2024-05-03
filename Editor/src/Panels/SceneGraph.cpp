@@ -1,5 +1,9 @@
 #include "SceneGraph.h"
 #include <imgui/imgui_internal.h>
+#include <imgui/imGuIZMOquat.h>
+#include <Sound/AudioAsset.h>
+
+using namespace Engine;
 
 namespace EditorPanels {
 	SceneGraph* SceneGraph::s_Instance = nullptr;
@@ -128,6 +132,31 @@ namespace EditorPanels {
         ImGui::PopID();
     }
 
+	void DrawDirectionControl(const std::string& label, glm::vec3& direction, float columnWidth = 100.0f)
+	{
+
+		float azimuth = atan2(direction.z, direction.x);
+		float elevation = asin(direction.y / glm::length(direction));
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text((label + " Yaw").c_str());
+		ImGui::NextColumn();
+		ImGui::SliderAngle("##dir_light_yaw", &azimuth, -180.0f, 180.0f);
+		ImGui::Columns(1);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text((label + " Pitch").c_str());
+		ImGui::NextColumn();
+		ImGui::SliderAngle("##dir_light_pitch", &elevation, -90.0f, 90.0f);
+		ImGui::Columns(1);
+
+		direction.x = cos(elevation) * cos(azimuth);
+		direction.y = sin(elevation);
+		direction.z = cos(elevation) * sin(azimuth);
+	}
+
 	static void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -207,8 +236,7 @@ namespace EditorPanels {
 			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 			ImGui::Separator();
 			bool open = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, name.c_str());
-			ImGui::PopStyleVar(
-			);
+			ImGui::PopStyleVar();
 			ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 			if (ImGui::Button("+", ImVec2{ lineHeight, lineHeight }))
 			{
@@ -233,6 +261,54 @@ namespace EditorPanels {
 			if (removeComponent)
 				entity->RemoveComponent<T>();
 		}
+	}
+
+	void SceneGraph::DrawDropBox(const std::string& label)
+	{
+		float width = ImGui::GetContentRegionAvail().x;
+		ImVec2 boxSize = ImVec2(width, 150);
+		ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+
+		ImGui::InvisibleButton(label.c_str(), boxSize);
+
+		bool hovered = ImGui::IsItemHovered();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		// Define dashed border
+		ImVec2 topLeft = cursorPos;
+		ImVec2 bottomRight = ImVec2(cursorPos.x + boxSize.x, cursorPos.y + boxSize.y);
+
+		float dashLength = 5.0f;
+		ImColor borderColor = ImColor(0.5f, 0.5f, 0.5f, 1.0f); // Gray border
+
+		// Draw top border
+		for (float x = topLeft.x; x < bottomRight.x; x += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(x, topLeft.y), ImVec2(x + dashLength, topLeft.y), borderColor);
+		}
+
+		// Draw bottom border
+		for (float x = topLeft.x; x < bottomRight.x; x += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(x, bottomRight.y), ImVec2(x + dashLength, bottomRight.y), borderColor);
+		}
+
+		// Draw left border
+		for (float y = topLeft.y; y < bottomRight.y; y += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(topLeft.x, y), ImVec2(topLeft.x, y + dashLength), borderColor);
+		}
+
+		// Draw right border
+		for (float y = topLeft.y; y < bottomRight.y; y += dashLength * 2)
+		{
+			drawList->AddLine(ImVec2(bottomRight.x, y), ImVec2(bottomRight.x, y + dashLength), borderColor);
+		}
+
+		ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
+		ImVec2 textPos = ImVec2(cursorPos.x + (boxSize.x - textSize.x) / 2, cursorPos.y + (boxSize.y - textSize.y) / 2);
+		ImGui::GetWindowDrawList()->AddText(textPos, ImColor(1.0f, 1.0f, 1.0f, 1.0f), label.c_str());
+
 	}
 
     void SceneGraph::DrawComponents()
@@ -263,11 +339,14 @@ namespace EditorPanels {
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
+			DisplayAddComponentEntry<ScriptComponent>("Script");
 			DisplayAddComponentEntry<CameraComponent>("Camera");
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
-			DisplayAddComponentEntry<SoundComponent>("Sound");
+			DisplayAddComponentEntry<BoxColliderComponent>("Box Collider");
+			DisplayAddComponentEntry<SphereColliderComponent>("Sphere Collider");
+			DisplayAddComponentEntry<GlobalSoundsComponent>("Global Sounds");
 			ImGui::EndPopup();
 		}
 
@@ -282,12 +361,108 @@ namespace EditorPanels {
 			DrawVec3Control("Scale", component->local_transform.scale, 1.0f);
 		});
 
-		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, auto entity)
+		DrawComponent<ScriptComponent>("Script", entity, [](auto& component, auto entity) {
+
+			std::string class_name = component->Name.empty() ? "No class selected" : component->Name;
+			std::string title = fmt::format("Script class: {}", class_name );
+
+			ImGui::Text(title.c_str());
+
+			if (ImGui::Button("Select class"))
+			{
+				ImGui::OpenPopup("##ClassSearchPopup");
+			}
+
+			if (ImGui::BeginPopup("##ClassSearchPopup"))
+			{
+				static char buffer[64];
+				auto& map = ScriptEngine::GetEntityClasses();
+				static std::vector<std::string> filteredResults;
+				std::string searchText = buffer;
+
+				if (ImGui::InputText("##ClassPopupSearchBar", buffer, sizeof(buffer)))
+				{
+					std::transform(searchText.begin(), searchText.end(), searchText.begin(), ::tolower);
+					filteredResults.clear();
+					for (auto& elements : map)
+					{
+						if (searchText.empty())
+						{
+							filteredResults.push_back(elements.first);
+							continue;
+						}
+
+						std::string lowerClassName = elements.first;
+						std::transform(lowerClassName.begin(), lowerClassName.end(), lowerClassName.begin(), ::tolower);
+
+						if (lowerClassName.find(searchText) != std::string::npos)
+						{
+							filteredResults.push_back(elements.first);
+						}
+					}
+				}
+
+				if (filteredResults.size() < 1 && searchText.empty()) // So it fills the list in the beginning
+				{
+					for (auto& elements : map)
+					{
+						filteredResults.push_back(elements.first);
+					}
+				}
+
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				for (auto& result : filteredResults)
+				{
+					bool isSelected = (result == buffer);
+					if (ImGui::Selectable(result.c_str(), isSelected))
+					{
+						component->Name = result;
+						ImGui::CloseCurrentPopup();
+					}
+					if (isSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+
+				ImGui::EndPopup();
+			}
+			
+		});
+
+		static UUID primary_camera_ID = 0;
+
+		DrawComponent<CameraComponent>("Camera", entity, [&](auto& component, auto entity)
 		{
 			auto& camera = component->camera;
 
+			if (component->IsPrimary && primary_camera_ID == 0)
+			{
+				primary_camera_ID = entity->GetID();
+			}
+
+			bool is_primary = primary_camera_ID == entity->GetID();
+			component->IsPrimary = is_primary;
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Primary");
+			ImGui::NextColumn();
+			if (ImGui::Checkbox("##primary_camera", &is_primary))
+			{
+				if (is_primary)
+				{
+					primary_camera_ID = entity->GetID();
+				}
+				else
+				{
+					primary_camera_ID = 0;
+				}
+			}
+			ImGui::Columns(1);
+
+
 			const char* projectionTypeStrings[] = { "Perspective", "Orthographic" };
-			const char* currentProjectionTypeString = camera->GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
+			const char* currentProjectionTypeString = camera.GetType() == CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Projection");
@@ -300,7 +475,7 @@ namespace EditorPanels {
 					if (ImGui::Selectable(projectionTypeStrings[i], isSelected))
 					{
 						currentProjectionTypeString = projectionTypeStrings[i];
-						camera->ChangeCameraType(i == 0 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
+						camera.ChangeCameraType(i == 0 ? CameraType::PERSPECTIVE : CameraType::ORTHOGRAPHIC);
 					}
 
 					if (isSelected)
@@ -310,158 +485,334 @@ namespace EditorPanels {
 				ImGui::EndCombo();
 			}
 			ImGui::Columns(1);
-			float perspectiveVerticalFov = glm::degrees(camera->GetFOVY());
+			float perspectiveVerticalFov = glm::degrees(camera.GetFOVY());
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Vertical FOV");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##fov", &perspectiveVerticalFov))
-				camera->SetFovy(glm::radians(perspectiveVerticalFov));
+				camera.SetFovy(glm::radians(perspectiveVerticalFov));
 
 			ImGui::Columns(1);
-			float perspectiveNear = camera->GetNear();
+			float perspectiveNear = camera.GetNear();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Near");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##near", &perspectiveNear))
-				camera->SetNear(perspectiveNear);
+				camera.SetNear(perspectiveNear);
 			ImGui::Columns(1);
-			float perspectiveFar = camera->GetFar();
+			float perspectiveFar = camera.GetFar();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Far");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##far", &perspectiveFar))
-				camera->SetFar(perspectiveFar);
+				camera.SetFar(perspectiveFar);
 
 			ImGui::Columns(1);
+
+			float camera_zoom = camera.GetZoomDistance();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Zoom");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##zoom", &camera_zoom))
+				camera.SetZoomDistance(camera_zoom);
+			ImGui::Columns(1);
+
 		});
 
 
 		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
-			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
+			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Color");
 			ImGui::NextColumn();
 			ImGui::ColorEdit3("##point_light_color", color);
-			light->SetColor(glm::vec3(color[0], color[1], color[2]));
+			light.SetColor(glm::vec3(color[0], color[1], color[2]));
 			ImGui::Columns(1);
 
-			float intensity = light->GetIntensity();
+			float intensity = light.GetIntensity();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
 			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f);
-			light->SetIntensity(intensity);
+			light.SetIntensity(intensity);
 			ImGui::Columns(1);
 
-			float attenuations[3] = { light->GetConstantAttenuation(),  light->GetLinearAttenuation(), light->GetQuadraticAttenuation() };
+			float attenuations[3] = { light.GetConstantAttenuation(),  light.GetLinearAttenuation(), light.GetQuadraticAttenuation() };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Attenuations (constant, linear, quadratic)");
 			ImGui::NextColumn();
 			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f);
-			light->SetConstantAttenuation(attenuations[0]);
-			light->SetLinearAttenuation(attenuations[1]);
-			light->SetQuadraticAttenuation(attenuations[2]);
+			light.SetConstantAttenuation(attenuations[0]);
+			light.SetLinearAttenuation(attenuations[1]);
+			light.SetQuadraticAttenuation(attenuations[2]);
 			ImGui::Columns(1);
 		});
 		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
-			float color[3] = { light->GetColor().r,  light->GetColor().g, light->GetColor().b };
+			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Color");
 			ImGui::NextColumn();
 			ImGui::ColorEdit3("##dir_light_color", color);
 			glm::vec3 new_color = glm::vec3(color[0], color[1], color[2]);
-			light->SetColor(new_color);
+			light.SetColor(new_color);
 			ImGui::Columns(1);
 
-			float intensity = light->GetIntensity();
+			float intensity = light.GetIntensity();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f))
 			{
-				light->SetIntensity(intensity);
+				light.SetIntensity(intensity);
 			}
 			ImGui::Columns(1);
 
-			glm::vec3 curr_direction = light->GetDirection();
-			DrawVec3Control("Direction", curr_direction);
-
-			light->SetDirection(curr_direction);
+			glm::quat curr_direction = light.GetDirection();
+			quat qRot = quat(curr_direction.w, curr_direction.x, curr_direction.y, curr_direction.z);
+			if (ImGui::gizmo3D("##gizmo_light_dir", qRot, 100, imguiGizmo::modeDirection))
+			{
+				curr_direction = glm::quat(qRot.w, qRot.x, qRot.y, qRot.z);
+				light.SetDirection(curr_direction);
+			}
 
 		});
 
-		DrawComponent<SoundComponent>("Sound", entity, [](auto& component, auto entity)
+		DrawComponent<BoxColliderComponent>("Box Collider", entity, [](auto& component, auto entity)
 		{
-
-			auto& sound = component->sound;
-			float volume[1] = { sound->GetGlobalVolume() };
-			ImGui::Text("Global volume:");
-			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
-			sound->SetGlobalVolume(volume[0]);
+			DrawVec3Control("Half Size", component->HalfSize);
+			DrawVec3Control("Offset", component->Offset);
 
 
-			/*ImGui::Text("Sound:");
-			const char * soundfile = sound->GetSoundFilename();
-			char* soundfile2 = (char*)soundfile;
-			//bool looping = sound->GetSoundLoopingStatus(sound->GetSoundFilename());
-			ImGui::InputText("Filepath", soundfile2, IM_ARRAYSIZE(soundfile2));
-			//ImGui::Checkbox("Looping", &looping);
-			sound->AddGlobalSound(soundfile2);
-			/*if (ImGui::Button("Add Sound"))
-			{
-				sound->AddGlobalSound(soundfile, looping);
-			}*/
-			if (ImGui::Button("Play"))
-			{
-				sound->PlayGlobalSound(sound->GetSoundFilename());
-			}
-		});
-		
-
-		/*DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
-		{
-			ImGui::Columns(3);
-			ImGui::SetColumnWidth(0, 200.f);
-			ImGui::Text("Mesh File Path");
-			if (ImGui::IsItemHovered() && component->mesh)
-			{
-				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
-			}
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			std::string current_item = FromMotionTypeToString(component->MotionType);
+			ImGui::Text("Motion Type");
 			ImGui::NextColumn();
-			ImGui::Text(component->mesh ? component->mesh->GetMetaData().MeshPath.c_str() : "No mesh picked");
-			if (ImGui::IsItemHovered() && component->mesh)
+			if (ImGui::BeginCombo("##Physics_Box_Collider_type", current_item.c_str()))
 			{
-				ImGui::SetTooltip("%s", component->mesh->GetMetaData().MeshPath.c_str());
-			}
-			ImGui::NextColumn();
-			ImGui::PushID("MeshFilePathButton");
-			if (ImGui::Button("..."))
-			{
-				std::vector<std::vector<std::string>> filter = { {"3D object files", "FBX,fbx,glft"} };
-				std::string path = Engine::FilePicker::OpenFileExplorer(filter, false);
-				if (path != "")
+				for (auto& type : HEMotionTypes)
 				{
-					Ref<Mesh> object_mesh = ModelLibrary::Get()->CreateMesh(path, &entity->GetID());
-					component->mesh = object_mesh;
+					std::string selectable_type = FromMotionTypeToString(type);
+					bool is_selected = (current_item == selectable_type.c_str());
+					if (ImGui::Selectable(selectable_type.c_str(), is_selected))
+					{
+						component->MotionType = type;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::Columns(1);
+
+		});
+
+		DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [](auto& component, auto entity)
+		{
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Radius");
+			ImGui::NextColumn();
+			float radius = component->Radius;
+			ImGui::SliderFloat("##sphere_collider_radius", &radius, 0.0f, 10.0f);
+			component->Radius = radius;
+			ImGui::Columns(1);
+
+			DrawVec3Control("Offset", component->Offset);
+
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			std::string current_item = FromMotionTypeToString(component->MotionType);
+			ImGui::Text("Motion Type");
+			ImGui::NextColumn();
+			if (ImGui::BeginCombo("##Physics_Box_Collider_type", current_item.c_str()))
+			{
+				for (auto& type : HEMotionTypes)
+				{
+					std::string selectable_type = FromMotionTypeToString(type);
+					bool is_selected = (current_item == selectable_type.c_str());
+					if (ImGui::Selectable(selectable_type.c_str(), is_selected))
+					{
+						component->MotionType = type;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::Columns(1);
+
+		});
+
+		DrawComponent<GlobalSoundsComponent>("Global Sounds Library", entity, [](auto& component, auto entity)
+		{
+
+
+			auto& sounds_vector = component->Sounds;
+
+			for (size_t i = 0; i < sounds_vector.size(); ++i)
+			{
+				auto sound = sounds_vector[i];
+
+				// Construct unique identifiers
+				std::stringstream idStream;
+				idStream << i;
+				std::string idStr = idStream.str();
+
+				char buffer[256];
+				memset(buffer, 0, sizeof(buffer));
+				strncpy_s(buffer, sizeof(buffer), sound->GetTitle().c_str(), sizeof(buffer));
+
+				if (ImGui::InputText(("##SoundName" + idStr).c_str(), buffer, sizeof(buffer)))
+				{
+					sound->SetTitle(std::string(buffer));
+				}
+
+				ImGui::Text("Path: ");
+				ImGui::SameLine();
+				ImGui::TextWrapped(AssetManager::GetMetadata(sound->GetSoundAsset()).FilePath.string().c_str());
+
+				bool looping = sound->IsLooping();
+				if (ImGui::Checkbox(("Looping##" + idStr).c_str(), &looping))
+				{
+					sound->SetLooping(looping);
+				}
+
+				float volume[1] = { sound->GetVolume() };
+				ImGui::Text("Sound volume:");
+				if (ImGui::SliderFloat(("##sound_volume" + idStr).c_str(), volume, 0.0f, 10.0f))
+				{
+					sound->SetVolume(volume[0]);
+				}
+
+				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				{
+					sound->PlaySound(true);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button(("Remove##" + idStr).c_str()))
+				{
+					sounds_vector.erase(sounds_vector.begin() + i);
+					--i;
 				}
 			}
-			ImGui::PopID();
-			ImGui::Columns(1);
-		});*/
+
+			DrawDropBox("Add sound file here");
+		});
+
+		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
+		{
+			// Check for internal drag-and-drop payloads
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const auto payload_path = *(const std::filesystem::path*)payload->Data;
+				if (DesignAssetManager::GetAssetTypeFromFileExtension(payload_path.extension()) == AssetType::Audio)
+				{
+					auto entity = m_Scene->GetEntity(m_SelectionContext);
+					const auto payload_path = *(const std::filesystem::path*)payload->Data;
+					Project::GetActiveDesignAssetManager()->ImportAsset(payload_path);
+					auto handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(payload_path);
+					auto audioSource = AssetManager::GetAsset<AudioAsset>(handle);
+
+					GlobalSoundsComponent* component;
+					if (!entity->HasComponent<GlobalSoundsComponent>())
+					{
+						entity->AddComponent<GlobalSoundsComponent>(GlobalSoundsComponent());
+						
+					}
+					component = entity->GetComponent<GlobalSoundsComponent>();
+					component->Sounds.push_back(CreateRef<GlobalSource>(audioSource->Handle));
+				}
+			}
+		 }
+		
+
+		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)
+		{
+			if (component->mesh->GetMeshSource())
+			{
+				const auto& mesh_relative_path = AssetManager::GetMetadata(component->mesh->GetMeshSource()->Handle).FilePath;
+				ImGui::Columns(2);
+				ImGui::SetColumnWidth(0, 100.f);
+				ImGui::Text("Current Mesh");
+				if (ImGui::IsItemHovered() && component->mesh)
+				{
+					ImGui::SetTooltip("%s", Project::GetFullFilePath(mesh_relative_path).string().c_str());
+				}
+				ImGui::NextColumn();
+				ImGui::Text(mesh_relative_path.string().c_str());
+				if (ImGui::IsItemHovered() && component->mesh)
+				{
+					ImGui::SetTooltip("%s", mesh_relative_path.string().c_str());
+				}
+				ImGui::Columns(1);
+			}
+
+			DrawDropBox("Drop mesh here to change");
+
+		});
+
+
+		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
+		{
+			// Check for internal drag-and-drop payloads
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const auto payload_path = *(const std::filesystem::path*)payload->Data;
+				if (DesignAssetManager::GetAssetTypeFromFileExtension(payload_path.extension()) == AssetType::MeshSource)
+				{
+					auto entity = m_Scene->GetEntity(m_SelectionContext);
+					const auto payload_path = *(const std::filesystem::path*)payload->Data;
+					Project::GetActiveDesignAssetManager()->ImportAsset(payload_path);
+					auto handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(payload_path);
+					auto meshSource = AssetManager::GetAsset<MeshSource>(handle);
+
+					if (entity->HasComponent<MeshComponent>())
+					{
+						auto component = entity->GetComponent<MeshComponent>();
+						component->mesh->SetMeshSource(meshSource);
+					}
+					else
+					{
+						MeshComponent new_comp(CreateRef<Mesh>(meshSource));
+						entity->AddComponent<MeshComponent>(new_comp);
+					}
+				}
+			}
+
+			// Check for external file payloads
+			//else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+			//{
+			//	auto meshSource = AssetManager::ImportMesh(payload_path); // Import or load the mesh
+
+			//	if (meshSource)
+			//	{
+			//		component->mesh->SetMeshSource(meshSource);
+			//	}
+			//}
+
+			ImGui::EndDragDropTarget();
+		}
     }
 
+
+	template<typename T>
+	void EditorPanels::SceneGraph::ShowMapSearchPopup(std::unordered_map<std::string, T>& map, bool use_first, std::string* result_destination)
+	{
+
+	}
 
 	template<typename T>
 	void SceneGraph::DisplayAddComponentEntry(const std::string& entryName) {

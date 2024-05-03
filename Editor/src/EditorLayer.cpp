@@ -2,6 +2,7 @@
 #include "Panels/Viewport.h"
 #include "Panels/SceneGraph.h"
 #include "Panels/ContentBrowser.h"
+#include "Panels/ProjectSettings.h"
 #include <imgui/imgui_internal.h>
 
 namespace Editor {
@@ -9,17 +10,73 @@ namespace Editor {
 	{
 		HVE_ASSERT(m_Project->GetSettings().StartingScene != 0, "Starting scene is invalid!");
 		OpenScene(m_Project->GetSettings().StartingScene);
+		EditorPanels::SceneGraph::SetScene(m_CurrentScene);
+		EditorPanels::ProjectSettings::Init();
+
+		HVE_WARN(Project::GetActive()->GetSettings().RootPath.string());
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
 	{
-		Engine::Camera* curr_camera = m_Scene->GetCurrentCamera();
+
+		Engine::Camera* curr_camera = nullptr;
+		if (m_SceneState == SceneState::Play)
+		{
+			curr_camera = m_CurrentScene->GetPrimaryEntityCamera();
+		}
+		else
+		{
+			curr_camera = m_Camera->GetCamera().get();
+		}
 		Engine::Renderer::Get()->BeginFrame(curr_camera);
 		if (EditorPanels::Viewport::IsFocused()) {
 			m_Camera->Update(delta_time);
 		}
-		m_Scene->UpdateScene();
+
+		if (m_SceneState == SceneState::Edit)
+		{
+			auto entity = EditorPanels::SceneGraph::GetSelectedEntity();
+			if (entity)
+			{
+				if (entity->HasComponent<BoxColliderComponent>())
+				{
+					auto collider = entity->GetComponent<BoxColliderComponent>();
+					DebugBox debug_box{};
+					auto transform = entity->GetComponent<TransformComponent>()->world_transform;
+					transform.translation += collider->Offset;
+					debug_box.Transform = transform.mat4();
+					debug_box.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					debug_box.Size = collider->HalfSize;
+					Renderer::Get()->SubmitDebugBox(debug_box);
+				}
+
+
+				if (entity->HasComponent<SphereColliderComponent>())
+				{
+					auto collider = entity->GetComponent<SphereColliderComponent>();
+					DebugSphere debug_sphere{};
+					auto transform = entity->GetComponent<TransformComponent>()->world_transform;
+					transform.translation += collider->Offset;
+					debug_sphere.Transform = transform.mat4();
+					debug_sphere.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					debug_sphere.Radius = collider->Radius;
+					Renderer::Get()->SubmitDebugSphere(debug_sphere);
+				}
+			}
+		}
+		
+		m_CurrentScene->UpdateScene();
 		Engine::Renderer::Get()->EndFrame();
+
+		if (ScriptEngine::ShouldReload() && m_SceneState != SceneState::Play)
+		{
+			Project::ReloadScripts();
+		}
+	}
+
+	void EditorLayer::OnDetach()
+	{
+		EditorPanels::ProjectSettings::Shutdown();
 	}
 
 	void EditorLayer::OnEvent(Engine::Event& event)
@@ -63,6 +120,11 @@ namespace Editor {
 
 		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
 			window_flags |= ImGuiWindowFlags_NoBackground;
+
+		if (m_SceneState == SceneState::Play)
+		{
+			window_flags |= ImGuiWindowFlags_NoInputs;
+		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
@@ -123,7 +185,19 @@ namespace Editor {
 
 			if (ImGui::BeginMenu("Edit"))
 			{
-				// Dont know yet, this is just more here for now
+				if (ImGui::MenuItem("Recreate Script Project"))
+				{
+					Project::CreateScriptProject();
+				}
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Project"))
+			{
+				if (ImGui::MenuItem("Reload Scripts"))
+				{
+					Project::ReloadScripts();
+				}
 				ImGui::EndMenu();
 			}
 
@@ -131,13 +205,14 @@ namespace Editor {
 		}
 
 
-		EditorPanels::SceneGraph::Render(m_Scene);
+		EditorPanels::SceneGraph::Render(m_CurrentScene);
 
 		ImGui::Begin("Content Browser");
-			EditorPanels::ContentBrowser::Render(m_Scene);
+			EditorPanels::ContentBrowser::Render(m_CurrentScene);
 		ImGui::End();
 
-		ImGui::Begin("Viewport");
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		EditorPanels::Viewport::Render(m_Camera->GetCamera().get());
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -153,6 +228,7 @@ namespace Editor {
 			ImGui::EndDragDropTarget();
 		}
 		ImGui::End();
+		ImGui::PopStyleVar(1);
 
 		ImGui::Begin("Stats");
 
@@ -164,19 +240,102 @@ namespace Editor {
 
 		ImGui::End();
 
-		ImGui::Begin("Settings");
+		ImGui::Begin("Project Settings");
+		EditorPanels::ProjectSettings::Render();
+		ImGui::End();
+
+		ImGui::Begin("Scene Settings");
 
 		ImGui::End();
+
+		UIToolBar();
 
 		ImGui::End();
 
 	}
 
+	void EditorLayer::UIToolBar()
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+		auto& colors = ImGui::GetStyle().Colors;
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(colors[ImGuiCol_ButtonHovered].x, colors[ImGuiCol_ButtonHovered].y, colors[ImGuiCol_ButtonHovered].z, 0.5f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(colors[ImGuiCol_ButtonHovered].x, colors[ImGuiCol_ButtonHovered].y, colors[ImGuiCol_ButtonHovered].z, 0.5f));
+
+		ImGui::Begin("##toolbar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		float size = ImGui::GetWindowHeight() - 4.0f;
+		/*size *= 2;
+		size -= 4.0f;*/
+		Ref<Texture2D> icon;
+
+		switch (m_SceneState)
+		{
+			case SceneState::Edit:
+				icon = EditorResources::FileIcons["play"];
+				EditorPanels::Viewport::SetUsingEditor(true);
+				break;
+			case SceneState::Play:
+				icon = EditorResources::FileIcons["stop"];
+				EditorPanels::Viewport::SetUsingEditor(false);
+				break;
+			default:
+				icon = EditorResources::FileIcons["play"];
+				EditorPanels::Viewport::SetUsingEditor(true);
+		}
+
+		ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x * 0.5f) - (size * 0.5f));
+		if (ImGui::ImageButton((ImTextureID)icon->GetRendererID(), ImVec2(size, size), ImVec2(0, 0), ImVec2(1, 1), 0))
+		{
+			if (m_SceneState == SceneState::Edit)
+			{
+				OnScenePlay();
+			}
+			else if (m_SceneState == SceneState::Play)
+			{
+				OnSceneStop();
+			}
+		}
+
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor(3);
+
+		ImGui::End();
+	}
+
+	void EditorLayer::OnScenePlay()
+	{
+		m_SceneState = SceneState::Play;
+
+		m_CurrentScene = Scene::Copy(m_EditorScene);
+
+		m_CurrentScene->OnRuntimeStart();
+
+		Input::SetLockMouseMode(true);
+	}
+
+	void EditorLayer::OnSceneStop()
+	{
+		m_SceneState = SceneState::Edit;
+		m_CurrentScene->OnRuntimeStop();
+		m_CurrentScene = m_EditorScene;
+		Input::SetLockMouseMode(false);
+	}
+
 	bool EditorLayer::OnKeyPress(Engine::KeyPressedEvent& event)
 	{
-
 		bool control = Input::IsKeyPressed(KEY_LEFT_CONTROL) || Input::IsKeyPressed(KEY_RIGHT_CONTROL);
 		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
+
+		if (m_SceneState == SceneState::Play)
+		{
+			if (shift && event.GetKeyCode() == KEY_ESCAPE)
+			{
+				OnSceneStop();
+				return false;
+			}
+			return false;
+		}
 
 		if (shift) {
 			m_Camera->UpdateKeyState(event.GetKeyCode(), true);
@@ -185,6 +344,7 @@ namespace Editor {
 		{
 			if (event.GetKeyCode() == KEY_S)
 			{
+				Project::SaveActive();
 				SaveScene();
 			}
 		}
@@ -196,72 +356,167 @@ namespace Editor {
 
 	bool EditorLayer::OnKeyRelease(Engine::KeyReleasedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		m_Camera->UpdateKeyState(event.GetKeyCode(), false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseButtonReleased(Engine::MouseButtonReleasedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		m_Camera->UpdateKeyState(event.GetMouseButton(), false);
 		return true;
 	}
 
 	bool EditorLayer::OnMouseMoved(Engine::MouseMovedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		m_Camera->PanCamera();
 		return true;
 	}
 
 	bool EditorLayer::OnMouseButtonPressed(Engine::MouseButtonPressedEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+
+			return false;
+		}
+
 		bool shift = Input::IsKeyPressed(KEY_LEFT_SHIFT) || Input::IsKeyPressed(KEY_RIGHT_SHIFT);
 		if (EditorPanels::Viewport::IsHovered())
 		{
 			m_Camera->UpdateKeyState(event.GetMouseButton(), true);
 		}
 		// Too janky gotta fix a ray caster instead
-		/*if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsFocused()) {
-			auto [x, y] = EditorPanels::Viewport::GetMousePos();
-			int pixelData = Renderer::Get()->GetObjectFrameBuffer()->ReadPixel(1, x, y);
-			if (pixelData != -1 || EditorPanels::SceneGraph::GetSelectedEntity()->GetID() != (UUID)pixelData) {
-				EditorPanels::SceneGraph::SetSelectedEntity(pixelData);
-				EditorPanels::Viewport::ActivateGizmo();
+		if (event.GetMouseButton() == MOUSE_BUTTON_LEFT && shift && EditorPanels::Viewport::IsHovered()) {
+			auto [mouseX, mouseY] = EditorPanels::Viewport::GetMousePos();
+			// HVE_INFO("Shot fired from {0} {1}", mouseX, mouseY);
+			auto [origin, direction] = CastRay(mouseX, mouseY);
+
+			auto meshEntities = m_CurrentScene->GetAllEntitiesByType<MeshComponent>();
+
+			std::vector<SelectionData> selected_entities{};
+
+			for (const auto& [entity, component] : *meshEntities)
+			{
+				if (!component.mesh)
+				{
+					continue;
+				}
+
+				for (const auto& submesh : component.mesh->GetMeshSource()->GetSubmeshes())
+				{
+					
+					Math::Ray ray = {
+						glm::inverse(submesh.WorldTransform) * glm::vec4(origin, 1.0f),
+						glm::inverse(glm::mat3(submesh.WorldTransform)) * direction
+					};
+
+					float t;
+					Math::BoundingBox bounding_box = submesh.Bounds;
+					if (ray.IntersectsAABB(bounding_box, t))
+					{
+						const auto& triangleCache = component.mesh->GetMeshSource()->GetTriangleCache(submesh.Index);
+						for (const auto& triangle : triangleCache)
+						{
+
+							if (ray.IntersectsTriangle(triangle.V0.coordinates, triangle.V1.coordinates, triangle.V2.coordinates, t))
+							{
+								selected_entities.push_back({ entity, t });
+								break;
+							}
+						}
+					}
+				}
+
 			}
-		}*/
+
+			std::sort(selected_entities.begin(), selected_entities.end(), [](auto& a, auto& b) { return a.Distance < b.Distance; });
+
+			if (selected_entities.size() > 0)
+			{
+				auto selected_entity = EditorPanels::SceneGraph::GetSelectedEntity();
+				if (selected_entity && selected_entity->GetHandle()->GetID() == selected_entities[0].entity.GetID())
+				{
+					EditorPanels::SceneGraph::SetSelectedEntity(0);
+				}
+				else
+				{
+					EditorPanels::SceneGraph::SetSelectedEntity(selected_entities[0].entity.GetID());
+				}
+			}
+			else
+			{
+				EditorPanels::SceneGraph::SetSelectedEntity(0);
+			}
+			
+
+		}
 		return true;
 	}
 	bool EditorLayer::OnScrolled(MouseScrolledEvent& event)
 	{
+		if (m_SceneState == SceneState::Play)
+		{
+			return false;
+		}
 		if (EditorPanels::Viewport::IsHovered())
 		{
 			m_Camera->Zoom(event.GetYOffset());
 		}
 		return false;
 	}
+
+
+	std::pair<glm::vec3, glm::vec3> EditorLayer::CastRay(float mx, float my)
+	{
+		glm::vec4 mouseClipPos = { mx, my, -1.0f, 1.0f };
+		auto raw_camera = m_Camera->GetCamera();
+
+		auto inverseProj = glm::inverse(raw_camera->GetProjection());
+		auto inverseView = glm::inverse(glm::mat3(raw_camera->GetView()));
+
+		glm::vec4 ray = inverseProj * mouseClipPos;
+		glm::vec3 rayPos = raw_camera->CalculatePosition();
+		glm::vec3 rayDir = inverseView * glm::vec3(ray);
+
+		return { rayPos, rayDir };
+	}
+
 	void EditorLayer::CreateEntityFromMesh(const std::filesystem::path& file_path)
 	{
-		auto handle = m_Scene->CreateEntity("New Mesh Entity", nullptr);
+		auto handle = m_CurrentScene->CreateEntity("New Mesh Entity", nullptr);
 		AssetHandle asset_handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(file_path);
 		Ref<MeshSource> mesh_source = AssetManager::GetAsset<MeshSource>(asset_handle);
 		Ref<Mesh> mesh = CreateRef<Mesh>(mesh_source);
 		MeshComponent mesh_comp{};
 		mesh_comp.mesh = mesh;
-		m_Scene->GetEntity(handle)->AddComponent<MeshComponent>(mesh_comp);
+		m_CurrentScene->GetEntity(handle)->AddComponent<MeshComponent>(mesh_comp);
 	}
 	void EditorLayer::SaveScene()
 	{
 		std::filesystem::path scene_file_path = m_Project->GetSettings().AssetPath / std::filesystem::path("Scenes");
-		if (AssetManager::GetMetadata(m_Scene->Handle))
+		if (AssetManager::GetMetadata(m_EditorScene->Handle))
 		{
-			scene_file_path = AssetManager::GetMetadata(m_Scene->Handle).FilePath;
+			scene_file_path = AssetManager::GetMetadata(m_EditorScene->Handle).FilePath;
 		}
-		m_Scene->SaveScene(Project::GetFullFilePath(scene_file_path));
+		m_EditorScene->SaveScene(Project::GetFullFilePath(scene_file_path));
 	}
 	void EditorLayer::OpenScene(AssetHandle handle)
 	{
 		auto scene = AssetManager::GetAsset<Scene>(handle);
 		m_Camera = Engine::CreateRef<EditorCamera>(scene);
-		scene->SetCurrentCamera(m_Camera->GetCamera());
-		m_Scene = scene;
+		m_CurrentScene = scene;
+		m_EditorScene = scene;
 	}
 }

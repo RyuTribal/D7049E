@@ -12,7 +12,7 @@ namespace Editor {
 			m_CurrentMouseOrientation.x = Input::GetMouseX();
 			m_CurrentMouseOrientation.y = Input::GetMouseY();
 			m_Camera->Zoom(m_InitialZoomFactor);
-			m_Camera->RotateWithVector(m_InitialRotation);
+			m_Camera->SetRotationAroundFocalPoint(m_InitialRotation);
 			m_Camera->Move(m_InitialPosition);
 		}
 		~EditorCamera() = default;
@@ -46,6 +46,6 @@ namespace Editor {
 		glm::vec3 m_InitialRotation = { -32.f, 30.f, 0.f };
 		bool m_FirstClick = true;
 		glm::vec2 m_DeltaMouseOrientation = { 0.f, 0.f };
-		glm::vec2 m_CurrentMouseOrientation = { 0.f, 0.f };
+		glm::vec2 m_CurrentMouseOrientation = { Engine::Input::GetMouseX(), Engine::Input::GetMouseY() };
 	};
 }

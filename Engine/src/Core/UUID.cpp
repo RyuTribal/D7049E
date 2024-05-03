@@ -3,8 +3,6 @@
 
 #include <random>
 
-#include <unordered_map>
-
 namespace Engine {
 
 	static std::random_device s_RandomDevice;
@@ -14,33 +12,33 @@ namespace Engine {
 	static std::mt19937 eng32(s_RandomDevice());
 	static std::uniform_int_distribution<uint32_t> s_UniformDistribution32;
 
-	UUID64::UUID64()
+	UUID::UUID()
 		: m_UUID(s_UniformDistribution(eng))
 	{
 	}
 
-	UUID64::UUID64(uint64_t uuid)
-		: m_UUID(uuid)
-	{
-	}
-
-	UUID64::UUID64(const UUID64& other)
-		: m_UUID(other.m_UUID)
-	{
-	}
-
-
-	UUID::UUID()
-		: m_UUID(s_UniformDistribution32(eng32))
-	{
-	}
-
-	UUID::UUID(uint32_t uuid)
+	UUID::UUID(uint64_t uuid)
 		: m_UUID(uuid)
 	{
 	}
 
 	UUID::UUID(const UUID& other)
+		: m_UUID(other.m_UUID)
+	{
+	}
+
+
+	UUID32::UUID32()
+		: m_UUID(s_UniformDistribution32(eng32))
+	{
+	}
+
+	UUID32::UUID32(uint32_t uuid)
+		: m_UUID(uuid)
+	{
+	}
+
+	UUID32::UUID32(const UUID32& other)
 		: m_UUID(other.m_UUID)
 	{
 	}

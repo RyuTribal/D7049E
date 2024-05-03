@@ -5,7 +5,7 @@
 class EditorLauncherApp : public Engine::Application
 {
 public:
-	EditorLauncherApp(Engine::WindowProps props) : Application(props)
+	EditorLauncherApp(Engine::WindowProps props, Engine::ApplicationProps app_props) : Application(props, app_props)
 	{
 		PushLayer(new EditorLauncher::EditorLauncherLayer());
 	}
@@ -27,5 +27,9 @@ Engine::Application* Engine::CreateApplication(int argc, char** argv)
 	props.ScreenMaximized = false;
 	props.VSync = false;
 	props.Resizable = false;
-	return new EditorLauncherApp(props);
+
+	ApplicationProps app_props{};
+	app_props.NoScripting = true;
+
+	return new EditorLauncherApp(props, app_props);
 }

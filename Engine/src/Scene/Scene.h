@@ -1,9 +1,11 @@
 #pragma once
+#include "Core/Input.h"
 #include "Registry.h"
 #include "Renderer/Camera.h"
 #include "EntityHandle.h"
 #include "SceneSerializer.h"
-#include <Assets/AssetMetadata.h>
+#include "Assets/AssetMetadata.h"
+#include "Renderer/Renderer.h"
 
 namespace Engine {
 
@@ -21,20 +23,6 @@ namespace Engine {
 			for (const auto& child : other.children)
 			{
 				children.emplace_back(std::make_unique<SceneNode>(*child));  // Deep copy each child
-			}
-		}
-
-		static void Copy(SceneNode* node, SceneNode* target)
-		{
-			if (node->children.size() < 1)
-			{
-				return;
-			}
-
-			for (size_t i = 0; i < node->children.size(); i++)
-			{
-				target->AddChild(node->GetID(), node->children[i]->GetID());
-				Copy(node->children[i].get(), target);
 			}
 		}
 
@@ -113,10 +101,20 @@ namespace Engine {
 		std::vector<Scope<SceneNode>> children;
 	};
 
+
+	enum class SceneRunType
+	{
+		Edit,
+		Simulation,
+		Runtime
+	};
+
+
 	class Scene : public Asset {
 	public:
 		static Ref<Scene> CreateScene(std::string name = "A scene");
 		static Ref<Scene> LoadScene(AssetHandle handle, const AssetMetadata& metadata);
+		static Ref<Scene> Copy(Ref<Scene> original_scene);
 		bool SaveScene(const std::filesystem::path& folder_path);
 		bool SaveScene();
 		Scene(std::string name);
@@ -141,9 +139,13 @@ namespace Engine {
 		void ReparentSceneNode(EntityHandle* id, EntityHandle* new_parent_id);
 		void ReparentSceneNode(UUID* id, UUID* new_parent_id);
 
-		Camera* GetCurrentCamera();
+		void OnRuntimeStart();
+		void OnRuntimeStop();
+		void OnSimulateStart();
+		void OnSimulateStop();
 
-		void SetCurrentCamera(Ref<Camera> camera);
+		Camera* GetCurrentCamera();
+		void SetCurrentCamera(Camera* camera);
 
 		void UpdateScene();
 
@@ -153,8 +155,14 @@ namespace Engine {
 
 		std::string& GetName() { return m_Name; }
 
-		Entity* GetEntity(UUID& id);
+		Entity* GetEntity(const UUID& id);
 		Entity* GetEntity(EntityHandle* id);
+
+		template<typename T>
+		auto GetAllEntitiesByType()
+		{
+			return m_Registry.GetComponentRegistry<T>();
+		}
 
 		void ForEachEntity(std::function<void(const UUID, const Ref<Entity>)> func) const;
 
@@ -163,6 +171,10 @@ namespace Engine {
 
 		bool IsReloading() { return m_IsReloading; }
 
+		Camera* GetPrimaryEntityCamera();
+
+		void SetSkybox(SkyboxSettings skybox) { m_Skybox = skybox; }
+
 	private:
 
 		void FindNodeAndParent(SceneNode* current, UUID id, SceneNode** node, SceneNode** parent);
@@ -170,11 +182,12 @@ namespace Engine {
 		void UpdateWorldTransform(SceneNode* node, glm::mat4& parentWorldTransform);
 		void UpdateTransforms();
 		void DrawSystem();
+		void SyncPhysicsTransforms();
 
 	private:
 		UUID m_ID = UUID();
 
-		Ref<Camera> m_CurrentCamera;
+		Camera* m_CurrentCamera;
 
 		std::string m_Name;
 
@@ -185,6 +198,10 @@ namespace Engine {
 		std::unordered_map<UUID, Ref<Entity>> entities;
 
 		bool m_IsReloading = false;
+
+		SceneRunType m_SceneState = SceneRunType::Edit;
+
+		SkyboxSettings m_Skybox;
 
 		friend class Entity;
 	};

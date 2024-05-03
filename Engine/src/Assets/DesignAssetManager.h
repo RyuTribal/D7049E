@@ -9,7 +9,7 @@ namespace Engine {
 	class DesignAssetManager : public AssetManagerBase
 	{
 	public:
-		Ref<Asset> GetAsset(AssetHandle handle) const override;
+		Ref<Asset> GetAsset(AssetHandle handle) override;
 		bool IsAssetHandleValid(AssetHandle handle) const override;
 		bool IsAssetLoaded(AssetHandle handle) const override;
 		const AssetMetadata& GetMetadata(AssetHandle handle) const override;
@@ -30,7 +30,7 @@ namespace Engine {
 			return asset->Handle;
 		}
 
-		void RegisterAsset(AssetHandle handle, std::filesystem::path& file_path);
+		void RegisterAsset(AssetHandle handle, const std::filesystem::path& file_path);
 		void UnregsiterAsset(AssetHandle handle);
 
 		bool IsAssetRegistered(const std::filesystem::path& file_path);

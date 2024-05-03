@@ -25,6 +25,10 @@
 #include "Lights/DirectionalLight.h"
 #include "Renderer/Texture.h"
 
+// ------------- Physics -----------------
+#include "Physics/PhysicsEngine.h"
+#include "Physics/Auxiliary/HEMotionType.h"
+
 
 // ---------------- Scene ----------------
 #include "Scene/Scene.h"
@@ -40,6 +44,7 @@
 #include "Project/Project.h"
 
 //---------------- Sound ----------------
-#include "Sound/Sound.h"
+#include "Sound/SoundEngine.h"
+#include "Sound/GlobalSource.h"
 
 // -----------------------------------------

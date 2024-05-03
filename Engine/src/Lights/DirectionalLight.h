@@ -1,6 +1,10 @@
 #pragma once
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+
 namespace Engine {
+
 	class DirectionalLight
 	{
 	public:
@@ -11,8 +15,8 @@ namespace Engine {
 		}
 		~DirectionalLight() = default;
 
-		glm::vec3& GetDirection() { return m_Direction; }
-		void SetDirection(glm::vec3& direction) { m_Direction = direction; }
+		glm::quat& GetDirection() { return m_Direction; }
+		void SetDirection(glm::quat& direction) { m_Direction = direction; }
 
 		glm::vec3& GetColor() { return m_Color; }
 		void SetColor(glm::vec3& color) { m_Color = color; }
@@ -20,8 +24,15 @@ namespace Engine {
 		float GetIntensity() { return m_Intensity; }
 		void SetIntensity(float intensity) { m_Intensity = intensity; }
 
+		glm::vec3 DirectionToVec3()
+		{
+			glm::vec3 initialDir(0.0f, 0.0f, -1.0f);
+			glm::vec3 lightDirection = glm::rotate(m_Direction, initialDir);
+			return lightDirection;
+		}
+
 	private:
-		glm::vec3 m_Direction = { -0.2f, -1.0f, -0.3f };
+		glm::quat m_Direction = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 		glm::vec3 m_Color = { 1.f, 1.f, 1.f };
 		float m_Intensity = 1.f;
 	};

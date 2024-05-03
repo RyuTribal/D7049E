@@ -23,6 +23,7 @@ namespace Engine {
 	Ref<MeshSource> ModelImporter::ImportSource(AssetHandle handle, const AssetMetadata& metadata)
 	{
 		Ref<MeshSource> meshSource = CreateRef<MeshSource>();
+		Math::BoundingBox globalBounds;
 		std::filesystem::path full_asset_path = Project::GetFullFilePath(metadata.FilePath);
 		HVE_CORE_INFO_TAG("Mesh loader", "Loading mesh: {0}", full_asset_path);
 
@@ -42,7 +43,7 @@ namespace Engine {
 		const std::filesystem::path directory = full_asset_path.parent_path();
 
 		int vertex_count = 0, index_count = 0;
-		uint32_t root_node_index = ProcessNode(scene->mRootNode, scene, nodes, meshes, vertex_count, index_count);
+		uint32_t root_node_index = ProcessNode(scene->mRootNode, scene, nodes, meshes, meshSource, globalBounds, vertex_count, index_count);
 
 		// Materials
 		Ref<Texture2D> WhiteTexture = Renderer::GetWhiteTexture();
@@ -323,32 +324,36 @@ namespace Engine {
 		meshSource->SetNodes(nodes);
 		meshSource->SetSubmeshes(meshes);
 		meshSource->SetMaterials(materials);
+		meshSource->GetBounds()->ExpandBy(globalBounds);
 
 		return meshSource;
 	}
 
-	uint32_t ModelImporter::ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count)
+	uint32_t ModelImporter::ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshNode>& node_destination, std::vector<Submesh>& mesh_destination, Ref<MeshSource> mesh_source, Math::BoundingBox& global_bounds, int& vertex_count, int& index_count)
 	{
 		MeshNode mesh_node{};
 		mesh_node.Name = node->mName.C_Str();
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			mesh_node.Submeshes.push_back(ModelImporter::ProcessMesh(mesh, scene, mesh_destination, vertex_count, index_count));
+			uint32_t submesh_index = ModelImporter::ProcessMesh(mesh, scene, mesh_destination, mesh_source, vertex_count, index_count);
+			mesh_node.Submeshes.push_back(submesh_index);
+			global_bounds.ExpandBy(mesh_destination[submesh_index].Bounds);
 		}
 
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
-			mesh_node.Children.push_back(ModelImporter::ProcessNode(node->mChildren[i], scene, node_destination, mesh_destination, vertex_count, index_count));
+			mesh_node.Children.push_back(ModelImporter::ProcessNode(node->mChildren[i], scene, node_destination, mesh_destination, mesh_source, global_bounds, vertex_count, index_count));
 		}
 
 		node_destination.push_back(mesh_node);
 		return node_destination.size() - 1;
 	}
 
-	uint32_t ModelImporter::ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, int& vertex_count, int& index_count)
+	uint32_t ModelImporter::ProcessMesh(aiMesh* mesh, const aiScene* scene, std::vector<Submesh>& mesh_destination, Ref<MeshSource> mesh_source, int& vertex_count, int& index_count)
 	{
 		mesh_destination.push_back(Submesh());
+		mesh_destination[mesh_destination.size() - 1].Index = mesh_destination.size() - 1;
 		mesh_destination[mesh_destination.size() - 1].MeshName = mesh->mName.C_Str();
 		mesh_destination[mesh_destination.size() - 1].MaterialIndex = mesh->mMaterialIndex;
 		HVE_CORE_TRACE_TAG("Mesh", "Material Index: {}", mesh->mMaterialIndex);
@@ -360,6 +365,7 @@ namespace Engine {
 			vertex.coordinates.x = mesh->mVertices[i].x;
 			vertex.coordinates.y = mesh->mVertices[i].y;
 			vertex.coordinates.z = mesh->mVertices[i].z;
+			mesh_destination[mesh_destination.size() - 1].Bounds.ExpandBy(vertex.coordinates);
 
 			vertex.normal.x = mesh->mNormals[i].x;
 			vertex.normal.y = mesh->mNormals[i].y;
@@ -396,7 +402,22 @@ namespace Engine {
 		{
 			aiFace face = mesh->mFaces[i];
 			for (unsigned int j = 0; j < face.mNumIndices; j++)
+			{
 				indices.push_back(face.mIndices[j]);
+			}
+		}
+
+		for (size_t i = 0; i < indices.size(); i += 3)
+		{
+			if (i + 2 < indices.size())
+			{
+				Triangle new_triangle{};
+				new_triangle.V0 = vertices[indices[i]];
+				new_triangle.V1 = vertices[indices[i + 1]];
+				new_triangle.V2 = vertices[indices[i + 2]];
+
+				mesh_source->AddTriangleCache(mesh_destination.size() - 1, new_triangle);
+			}
 		}
 
 		mesh_destination[mesh_destination.size() - 1].VertexArray = VertexArray::Create();

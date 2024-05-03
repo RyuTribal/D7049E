@@ -16,6 +16,14 @@ namespace EditorPanels {
 		float ColumnPadding = 16.f;
 	};
 
+	struct DirectoryElement
+	{
+		std::filesystem::path FullFilePath;
+		bool IsRegistered = false;
+		bool IsDirectory = false;
+		ImTextureID TextureID = 0;
+	};
+
 
 	class ContentBrowser
 	{
@@ -58,6 +66,10 @@ namespace EditorPanels {
 
 		bool ShouldShowFile(const std::filesystem::path& path);
 
+		void LoadDirectoryElement(const std::filesystem::path& path);
+
+		void RefreshBrowser();
+
 	private:
 		static ContentBrowser* s_Instance;
 		std::filesystem::path m_RootDirectory;
@@ -66,9 +78,9 @@ namespace EditorPanels {
 		std::filesystem::path m_DraggingPath;
 		bool m_IsRenaming = false;
 		char m_NameBuffer[256] = {};
-		std::unordered_map<std::string, Ref<Texture2D>> m_FileIcons;
 		Ref<Scene> m_Scene;
 		ButtonSettings m_ButtonSettings{};
 		bool m_ShowRegisteredAssetsOnly = true;
+		std::unordered_map<std::string, DirectoryElement> m_DirectoryElements;
 	};
 }

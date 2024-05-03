@@ -17,7 +17,7 @@ namespace Engine {
 		std::scoped_lock<std::mutex> lock(s_AssetRegistryMutex);
 
 		HVE_CORE_ASSERT(m_AssetRegistry.find(handle) != m_AssetRegistry.end());
-		HVE_CORE_TRACE_TAG("Asset Registry", "Retrieving const handle {}", handle);
+		//HVE_CORE_TRACE_TAG("Asset Registry", "Retrieving const handle {}", handle);
 		return m_AssetRegistry.at(handle);
 	}
 
@@ -25,7 +25,7 @@ namespace Engine {
 	{
 		std::scoped_lock<std::mutex> lock(s_AssetRegistryMutex);
 
-		HVE_CORE_TRACE_TAG("Asset Registry", "Retrieving handle {}", handle);
+		//HVE_CORE_TRACE_TAG("Asset Registry", "Retrieving handle {}", handle);
 		return m_AssetRegistry[handle];
 	}
 
@@ -33,7 +33,7 @@ namespace Engine {
 	{
 		std::scoped_lock<std::mutex> lock(s_AssetRegistryMutex);
 
-		HVE_CORE_TRACE_TAG("Asset Registry", "Contains handle {}", handle);
+		//HVE_CORE_TRACE_TAG("Asset Registry", "Contains handle {}", handle);
 		return m_AssetRegistry.find(handle) != m_AssetRegistry.end();
 	}
 

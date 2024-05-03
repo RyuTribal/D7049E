@@ -743,7 +743,7 @@ struct _GLFWplatform
     void (*waitEventsTimeout)(double);
     void (*postEmptyEvent)(void);
 
-    // Hazel
+    // Helios
     void (*setWindowTitleBar)(_GLFWwindow*,GLFWbool);
 
     // EGL

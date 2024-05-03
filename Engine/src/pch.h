@@ -40,9 +40,14 @@
 #include "Core/Timer.h"
 #include "Core/Buffer.h"
 #include "Core/UUID.h"
+#include "Math/Math.h"
 
 #ifdef PLATFORM_WINDOWS
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#undef near
-#undef far
 #endif
+
+#ifdef DEBUG 
+#define JPH_ENABLE_ASSERTS
+#endif
+#include <Jolt/Jolt.h>

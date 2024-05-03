@@ -18,7 +18,6 @@ project "Engine"
         "vendor/yaml-cpp/src/**.cpp",
         "vendor/yaml-cpp/src/**.h",
         "vendor/yaml-cpp/include/**.h",
-        "vendor/filewatch/include/**.hpp",
         "vendor/SoLoud/**.cpp",
         "vendor/SoLoud/**.h",
         "vendor/SoLoud/**.c",
@@ -33,7 +32,8 @@ project "Engine"
     libdirs
     {
         "vendor/GLFW/lib-vc2022",
-        "vendor/assimp/lib/x64"
+        "vendor/assimp/lib/x64",
+        "%{LibraryDir.mono}"
     }
 
     links
@@ -43,10 +43,9 @@ project "Engine"
         "ImGui",
         "JoltPhysics",
         "%{Library.Tracy}",
-        "Ws2_32",
-        "Dbghelp",
         "assimp-vc143-mt.lib",
         "vendor/nativefiledialog-extended/lib/nfd.lib",
+        "%{Library.mono}"
     }
 
     defines
@@ -76,7 +75,9 @@ project "Engine"
         "%{IncludeDir.YamlCpp}",
         "vendor/nativefiledialog-extended/src/include",
         "vendor/filewatch/include",
+        "%{IncludeDir.mono}",
         "src/",
+        
     }
 
     flags { "NoPCH" }
@@ -92,6 +93,11 @@ project "Engine"
         
         links 
         {
+            "%{Library.WinSock}",
+			"%{Library.WinMM}",
+			"%{Library.WinVersion}",
+			"%{Library.BCrypt}",
+            "%{Library.DebugHelp}",
             "opengl32.lib"
         }
 
@@ -120,12 +126,22 @@ project "Engine"
         }
 
     filter "configurations:Debug"
-        defines "DEBUG"
+    defines {
+            "DEBUG",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            -- "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Debug"
         symbols "on"
 
     filter "configurations:Release"
-        defines "RELEASE"
+        defines {
+            "RELEASE",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Release"
         optimize "on"
 

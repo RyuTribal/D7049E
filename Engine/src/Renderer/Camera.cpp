@@ -28,10 +28,10 @@ namespace Engine {
 			SetOrthographic();
 		}
 	}
-	void Camera::SetClippingRange(float near, float far)
+	void Camera::SetClippingRange(float near_value, float far_value)
 	{
-		m_Near = near;
-		m_Far = far;
+		m_Near = near_value;
+		m_Far = far_value;
 		if (m_Type == CameraType::PERSPECTIVE)
 		{
 			SetPerspective();
@@ -108,7 +108,7 @@ namespace Engine {
 		m_ProjectionMatrix = glm::perspective(m_PerspectiveFOVY, m_AspectRatio, m_Near, m_Far);
 	}
 
-	void Camera::Rotate(const glm::vec2& delta, float rotation_speed, bool inverse_controls)
+	void Camera::RotateAroundFocalPoint(const glm::vec2& delta, float rotation_speed, bool inverse_controls)
 	{
 		float sign = inverse_controls ? -1.0f : 1.0f;
 
@@ -126,17 +126,53 @@ namespace Engine {
 		CalculatePosition();
 	}
 
+	void Camera::SetRotationAroundFocalPoint(const glm::vec2& rotation)
+	{
+
+		m_Yaw = rotation.y;
+		m_Pitch = rotation.x;
+
+		glm::quat pitchQuat = glm::angleAxis(m_Pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::quat yawQuat = glm::angleAxis(m_Yaw, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		m_Orientation = glm::normalize(yawQuat * pitchQuat);
+
+		CalculatePosition();
+	}
+
+	void Camera::Rotate(const glm::vec2& delta, float rotation_speed, bool inverse_controls)
+	{
+		float sign = inverse_controls ? 1.0f : -1.0f;
+		m_Yaw += delta.x * rotation_speed * sign;
+		m_Pitch += delta.y * rotation_speed * sign;
+
+		float pitchLimit = glm::radians(89.0f); // Prevent flipping over
+		m_Pitch = glm::clamp(m_Pitch, -pitchLimit, pitchLimit);
+
+		glm::quat pitchQuat = glm::angleAxis(m_Pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::quat yawQuat = glm::angleAxis(m_Yaw, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		m_Orientation = glm::normalize(yawQuat * pitchQuat);
+	}
+
+	void Camera::SetRotation(const glm::vec2& rotation)
+	{
+		m_Yaw = rotation.x;
+		m_Pitch = rotation.y;
+
+		float pitchLimit = glm::radians(89.0f);
+		m_Pitch = glm::clamp(m_Pitch, -pitchLimit, pitchLimit);
+
+		glm::quat pitchQuat = glm::angleAxis(m_Pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::quat yawQuat = glm::angleAxis(m_Yaw, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		m_Orientation = glm::normalize(yawQuat * pitchQuat);
+	}
+
 	void Camera::LookAt(glm::vec3& center)
 	{
 		glm::vec3 direction = glm::normalize(center - m_Position);
 		m_Orientation = glm::quatLookAt(direction, glm::vec3(0.0f, 1.0f, 0.0f));
-	}
-
-
-
-	void Camera::RotateWithVector(glm::vec3& rotation)
-	{
-
 	}
 
 	/*void Camera::LookAt(glm::vec3& center)

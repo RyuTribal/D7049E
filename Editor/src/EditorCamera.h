@@ -24,6 +24,8 @@ namespace Editor {
 		void Zoom(float offset);
 		void UpdateKeyState(int keyCode, bool isPressed);
 
+		void UpdateContext(Ref<Scene> context) { m_Context = context; }
+
 	private:
 		void BuildVelocityVector(float delta_time);
 		bool HasMovement();

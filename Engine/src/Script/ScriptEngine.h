@@ -73,6 +73,7 @@ namespace Engine {
 		static void ReloadAssembly(const std::filesystem::path& app_assembly_path);
 
 		static bool ShouldReload();
+		static void MarkForReload();
 
 		static void OnCreateEntityClass(Entity* entity);
 

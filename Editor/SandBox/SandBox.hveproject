@@ -1,0 +1,10 @@
+Project: SandBox
+AssetPath: Assets
+AssetRegistry: AssetRegistry.hvereg
+StartingScene: 9399366225547529480
+ScriptAssembly: Binaries/SandBox.dll
+Renderer:
+  AntiAliasing:
+    Type: None
+    PostProcessing: None
+    Multiplier: 2

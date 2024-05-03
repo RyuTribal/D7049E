@@ -275,6 +275,11 @@ namespace Engine {
 		return s_Data->ShouldReload;
 	}
 
+	void ScriptEngine::MarkForReload()
+	{
+		s_Data->ShouldReload = true;
+	}
+
 	std::unordered_map<UUID, Ref<ScriptInstance>>& ScriptEngine::GetEntityInstances()
 	{
 		return s_Data->EntityInstances;

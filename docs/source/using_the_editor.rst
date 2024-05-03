@@ -1,4 +1,4 @@
-Using the Editor
+Using The Editor
 =============
 
 When starting up the Editor you will start with an empty
@@ -11,7 +11,8 @@ the **ScriptProject** folder. This is your
 C# scripting project. Use this for creating scripts.
 
 
-### Some basic concepts
+Some basic concepts
+-------------------
 
 - **Entity**: An entity is an object in the scene. Can be either created by right clicking on the scene graph and selecting **Create Entity** or by dragging a mesh into the viewport.
 - **Assets**: Assets have to be registered in order to be used by the engine. Uncheck the **Show registered assets only** checkbox in the asset browser to see all assets. To register an asset, double click on it.

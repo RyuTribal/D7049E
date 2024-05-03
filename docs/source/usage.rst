@@ -20,4 +20,14 @@ After installing clone the repository:
 
 Go to the root directory of the repository and 
 run (**AS AN ADMIN**) the **generate_win_projects.bat** script to generate the 
-Visual Studio solution
+Visual Studio solution.
+
+Now there are two projects which you can run in the solution:
+
+- **Editor** - The main editor project **Default startup project**
+
+- **Editor Launcher** - A launcher that starts the editor **Fairly untested**
+
+
+To run the startup project, press either **F5** or **Local windows debugger**
+in Visual Studio.

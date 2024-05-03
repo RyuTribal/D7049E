@@ -8,7 +8,12 @@ but has since been heavily modified and expanded.
 Check out the :doc:`usage` section for further information, including
 how to :ref:`installation` the project.
 
+Contents
+--------
+
 .. toctree::
 
-..    usage
-..    api
+   usage
+   libraries
+   using_the_editor
+   engine

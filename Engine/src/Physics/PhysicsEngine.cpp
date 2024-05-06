@@ -145,6 +145,7 @@ namespace Engine {
 			this->m_object_vs_object_layer_filter
 		);
 
+		m_physics_system->SetContactListener(this->m_contact_listener);
 
 		/*m_physics_system->SetBodyActivationListener(&(this->m_body_activation_listener));
 
@@ -192,6 +193,18 @@ namespace Engine {
 				sphereComponent->MotionType,
 				sphereComponent->Offset,
 				true
+			);
+		}
+		CharacterControllerComponent* characterComponent = entity->GetComponent <CharacterControllerComponent>(); {}
+		if (characterComponent)
+		{
+			return PhysicsEngine::Get()->CreateCharacter(
+				entity->GetID(),
+				characterComponent->Mass,
+				characterComponent->HalfHeight,
+				characterComponent->Radius,
+				characterComponent->Position,
+				characterComponent->UserData
 			);
 		}
 	}
@@ -284,6 +297,28 @@ namespace Engine {
 		s_JoltData->numberOfBodies++;
 		s_JoltData->hasOptimized = false;
 		return HBodyID(entity_id ,sphere_id);
+	}
+
+	HBodyID PhysicsEngine::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, std::uint64_t userData)
+	{
+		JPH::CharacterSettings* character_settings = new JPH::CharacterSettings();
+		character_settings->mMass = mass;
+		//character_settings->mMaxStrength = strength;
+		character_settings->mShape = JPH::CapsuleShapeSettings(halfHeight, radius)		// TODO: add material
+			.Create().Get();
+
+		JPH::Character character = JPH::Character(
+			character_settings,
+			PhysicsEngine::makeRVec3(position),
+			JPH::Quat::sIdentity(),
+			userData,
+			this->m_physics_system.get()
+		);
+		character.SetLayer(Layers::MOVING);
+		character.AddToPhysicsSystem();
+		
+		delete character_settings;		// The chatacter should only use the attributes of character_settings and never actually store it itself. This should be fine. 
+		return HBodyID(entity_id, character.GetBodyID());
 	}
 
 	void PhysicsEngine::InsertObjectByID(UUID entity_id, bool activate)
@@ -390,12 +425,15 @@ namespace Engine {
 			s_JoltData->TemporariesAllocator,
 			s_JoltData->JobThreadPool.get()
 		);
+
+		// TODO: Add post simulation step 
+		// character.PostSimulation();
 	}
 
 	void PhysicsEngine::RemoveShape(UUID entity_id)
 	{
 		JPH::BodyID h_id = HBodyID::GetBodyID(entity_id);
-		(this->m_body_interface)->RemoveShape(h_id);
+		(this->m_body_interface)->RemoveBody(h_id);
 	}
 
 	void PhysicsEngine::DestroyShape(UUID entity_id)
@@ -410,7 +448,7 @@ namespace Engine {
 		auto& body_id_map = HBodyID::GetMap();
 		for (auto& [entity_id, jolt_id] : body_id_map)
 		{
-			(this->m_body_interface)->RemoveShape(jolt_id);
+			(this->m_body_interface)->RemoveBody(jolt_id);
 			(this->m_body_interface)->DestroyBody(jolt_id);
 		}		
 		s_JoltData->numberOfBodies = 0;

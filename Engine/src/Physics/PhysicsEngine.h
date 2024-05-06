@@ -10,7 +10,10 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/MutableCompoundShape.h>
+//#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Character/Character.h>
 
 #include "Auxiliary/HVec3.h"
 #include "Auxiliary/HVec3.h"
@@ -166,6 +169,7 @@ namespace Engine {
 		HBodyID CreateBody(Entity* entity);
 		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
 		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
+		HBodyID CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, std::uint64_t userData);
 		void InsertObjectByID(UUID entity_id, bool activate);
 		void SetPosition(UUID entity_id, glm::vec3 position, bool activate);
 		void SetLinearVelocity(UUID entity_id, glm::vec3& velocity);
@@ -200,7 +204,7 @@ namespace Engine {
 		//JPH::TempAllocatorImpl* m_temp_allocator;
 		//JPH::JobSystemThreadPool* m_job_system;
 		Ref<JPH::PhysicsSystem> m_physics_system;
-
+		MyContactListener* m_contact_listener;
 
 
 		BPLayerInterfaceImpl m_broad_phase_layer_interface;

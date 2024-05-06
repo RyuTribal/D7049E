@@ -301,14 +301,14 @@ namespace Engine {
 
 	HBodyID PhysicsEngine::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, std::uint64_t userData)
 	{
-		JPH::CharacterSettings* character_settings = new JPH::CharacterSettings();
+		Scope<JPH::CharacterSettings> character_settings =  CreateScope<JPH::CharacterSettings>();
 		character_settings->mMass = mass;
 		//character_settings->mMaxStrength = strength;
 		character_settings->mShape = JPH::CapsuleShapeSettings(halfHeight, radius)		// TODO: add material
 			.Create().Get();
 
 		JPH::Character character = JPH::Character(
-			character_settings,
+			character_settings.get(),
 			PhysicsEngine::makeRVec3(position),
 			JPH::Quat::sIdentity(),
 			userData,
@@ -317,7 +317,6 @@ namespace Engine {
 		character.SetLayer(Layers::MOVING);
 		character.AddToPhysicsSystem();
 		
-		delete character_settings;		// The chatacter should only use the attributes of character_settings and never actually store it itself. This should be fine. 
 		return HBodyID(entity_id, character.GetBodyID());
 	}
 

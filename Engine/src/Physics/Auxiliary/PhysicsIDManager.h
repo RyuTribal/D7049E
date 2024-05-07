@@ -30,5 +30,16 @@ namespace Engine {
 
 	};
 
+	class SceneID
+	{
+	public:
+		SceneID();
+
+	private:
+		inline static unsigned int s_id = 0;
+
+		unsigned int m_id;
+	};
+
 }
 

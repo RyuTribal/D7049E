@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "HBodyID.h"
+#include "PhysicsIDManager.h"
 
 namespace Engine {
 
@@ -63,6 +63,9 @@ namespace Engine {
 	}
 	*/
 
-
+	SceneID::SceneID()
+	{
+		this->m_id = SceneID::s_id++;
+	}
 
 }

@@ -166,10 +166,10 @@ namespace Engine {
 		void Init(int allocationSize);
 		void Shutdown();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);
-		HBodyID CreateBody(Entity* entity);
+		std::vector<HBodyID> CreateBody(Entity* entity);
 		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
 		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
-		HBodyID CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, std::uint64_t userData);
+		HBodyID CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset, std::uint64_t userData);
 		void InsertObjectByID(UUID entity_id, bool activate);
 		void SetPosition(UUID entity_id, glm::vec3 position, bool activate);
 		void SetLinearVelocity(UUID entity_id, glm::vec3& velocity);
@@ -221,7 +221,6 @@ namespace Engine {
 		//static HVec3 makeHVec3(JPH::RVec3 arr);
 		static JPH::EMotionType makeEMotionType(HEMotionType movability);
 		static HEMotionType makeHEMotionType(JPH::EMotionType movability);
-
 
 	};
 

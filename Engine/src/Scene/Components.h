@@ -141,17 +141,17 @@ namespace Engine {
 
 	struct CharacterControllerComponent
 	{
-		float Mass = 70;
+		float Mass = 70.f;
 		float HalfHeight = 0.7f;
 		float Radius = 0.35f;
-		glm::vec3 Position = glm::vec3(0, 0, 0);
+		glm::vec3 Offset = glm::vec3(0, 0, 0);
 		std::uint64_t UserData = 0;
 
 		CharacterControllerComponent() = default;
 		CharacterControllerComponent(const CharacterControllerComponent&) = default;
 		CharacterControllerComponent(float halfHeight, float radius) : HalfHeight(halfHeight), Radius(radius) {}
-		CharacterControllerComponent(float mass, float halfHeight, float radius, glm::vec3 position, std::uint64_t userData)
-			: Mass(mass), HalfHeight(halfHeight), Radius(radius), Position(position), UserData(userData) {}
+		CharacterControllerComponent(float mass, float halfHeight, float radius, glm::vec3 offset, std::uint64_t userData)
+			: Mass(mass), HalfHeight(halfHeight), Radius(radius), Offset(offset), UserData(userData) {}
 	};
 
 	struct BoxColliderComponent

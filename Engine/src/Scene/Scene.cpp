@@ -190,6 +190,7 @@ namespace Engine {
 		CopyComponent<DirectionalLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<SoundComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<ScriptComponent>(original_scene->m_Registry, new_scene->m_Registry);
+		CopyComponent<CharacterControllerComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<BoxColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<SphereColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);
 
@@ -238,14 +239,29 @@ namespace Engine {
 
 		PhysicsEngine::Get()->OnRuntimeStart(1, 1);
 
+		std::set<UUID> finished_assets;
+
+		auto character_controllers = m_Registry.GetComponentRegistry<CharacterControllerComponent>();
+		if (character_controllers)
+		{
+			for (auto& [entity_id, character_controller] : *character_controllers)
+			{
+				if (finished_assets.contains(entity_id))
+					continue;
+				PhysicsEngine::Get()->CreateBody(GetEntity(entity_id));
+				finished_assets.insert(entity_id);
+			}
+		}
+
 		auto box_colliders = m_Registry.GetComponentRegistry<BoxColliderComponent>();
 		if (box_colliders)
 		{
 			for (auto& [entity_id, box_collider] : *box_colliders)
 			{
-				glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
-				glm::vec3 entity_world_scale = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.scale;
-				PhysicsEngine::Get()->CreateBox(entity_id, box_collider.HalfSize + entity_world_scale - 1.f, entity_world_translation, box_collider.MotionType, box_collider.Offset, true);
+				if (finished_assets.contains(entity_id))
+					continue;
+				PhysicsEngine::Get()->CreateBody(GetEntity(entity_id));
+				finished_assets.insert(entity_id);
 			}
 		}
 
@@ -254,13 +270,12 @@ namespace Engine {
 		{
 			for (auto& [entity_id, sphere_collider] : *sphere_colliders)
 			{
-				glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
-				glm::vec3 entity_world_scale = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.scale;
-				float max_value = std::max({ entity_world_scale.x, entity_world_scale.y, entity_world_scale.z });
-				PhysicsEngine::Get()->CreateSphere(entity_id, sphere_collider.Radius + max_value, entity_world_translation, sphere_collider.MotionType, sphere_collider.Offset, true);
+				if (finished_assets.contains(entity_id))
+					continue;
+				PhysicsEngine::Get()->CreateBody(GetEntity(entity_id));
+				finished_assets.insert(entity_id);
 			}
 		}
-
 	}
 
 	void Scene::OnRuntimeStop()

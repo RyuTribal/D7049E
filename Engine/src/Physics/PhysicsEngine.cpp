@@ -167,46 +167,52 @@ namespace Engine {
 		JPH::Factory::sInstance = nullptr;
 	}
 
-	HBodyID PhysicsEngine::CreateBody(Entity* entity)	//TODO: return differently if we're adding multiple shapes to the entity
+	std::vector<HBodyID> PhysicsEngine::CreateBody(Entity* entity)	//TODO: return differently if we're adding multiple shapes to the entity
 	{
+		std::vector<HBodyID> res;
+
 		BoxColliderComponent* boxComponent = entity->GetComponent<BoxColliderComponent>();
 		if (boxComponent)
 		{
-			glm::vec3 posistion(0, 0, 0);		// TODO: ask about position
-			return PhysicsEngine::Get()->CreateBox( 
+			glm::vec3 position = entity->GetComponent<TransformComponent>()->world_transform.translation;
+
+			res.push_back(PhysicsEngine::Get()->CreateBox( 
 				entity->GetID(), 
 				boxComponent->HalfSize, 
-				posistion,
+				position,
 				boxComponent->MotionType, 
 				boxComponent->Offset, 
 				true 
-			);
+			));
 		}
 		SphereColliderComponent* sphereComponent = entity->GetComponent<SphereColliderComponent>();
 		if (sphereComponent)
 		{
-			glm::vec3 posistion(0, 0, 0);
-			return PhysicsEngine::Get()->CreateSphere(
+			glm::vec3 position = entity->GetComponent<TransformComponent>()->world_transform.translation;
+			res.push_back(PhysicsEngine::Get()->CreateSphere(
 				entity->GetID(),
 				sphereComponent->Radius,
-				posistion,
+				position,
 				sphereComponent->MotionType,
 				sphereComponent->Offset,
 				true
-			);
+			));
 		}
 		CharacterControllerComponent* characterComponent = entity->GetComponent <CharacterControllerComponent>(); {}
 		if (characterComponent)
 		{
-			return PhysicsEngine::Get()->CreateCharacter(
+			glm::vec3 position = entity->GetComponent<TransformComponent>()->world_transform.translation;
+			res.push_back(PhysicsEngine::Get()->CreateCharacter(
 				entity->GetID(),
 				characterComponent->Mass,
 				characterComponent->HalfHeight,
 				characterComponent->Radius,
-				characterComponent->Position,
+				position,
+				characterComponent->Offset,
 				characterComponent->UserData
-			);
+			));
 		}
+		return res;
 	}
 
 	HBodyID PhysicsEngine::CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate)
@@ -299,13 +305,18 @@ namespace Engine {
 		return HBodyID(entity_id ,sphere_id);
 	}
 
-	HBodyID PhysicsEngine::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, std::uint64_t userData)
+	HBodyID PhysicsEngine::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset, std::uint64_t userData)
 	{
 		Scope<JPH::CharacterSettings> character_settings =  CreateScope<JPH::CharacterSettings>();
-		character_settings->mMass = mass;
+		//character_settings->mMass = mass;
 		//character_settings->mMaxStrength = strength;
-		character_settings->mShape = JPH::CapsuleShapeSettings(halfHeight, radius)		// TODO: add material
-			.Create().Get();
+		JPH::RVec3 jolt_offset = PhysicsEngine::makeRVec3(offset);
+		JPH::CapsuleShapeSettings* capShapeSettings = new JPH::CapsuleShapeSettings(halfHeight, radius);	
+		JPH::ShapeSettings::ShapeResult capsuleResult = capShapeSettings->Create();
+		JPH::Shape* capsule = capsuleResult.Get();
+		//character_settings->mShape = JPH::RotatedTranslatedShapeSettings(jolt_offset, JPH::Quat::sIdentity(), capsule)		// TODO: add material
+		//	.Create().Get();
+		character_settings->mShape = capsule;
 
 		JPH::Character character = JPH::Character(
 			character_settings.get(),
@@ -314,9 +325,13 @@ namespace Engine {
 			userData,
 			this->m_physics_system.get()
 		);
+		character.SetShape(capsule, FLT_MAX);
 		character.SetLayer(Layers::MOVING);
+		JPH::RotatedTranslatedShapeSettings(jolt_offset, JPH::Quat::sIdentity(), JPH::CapsuleShapeSettings(halfHeight, radius).Create().Get()).Create().Get();
 		character.AddToPhysicsSystem();
-		
+
+		// TODO: preserve characters
+		delete capShapeSettings;
 		return HBodyID(entity_id, character.GetBodyID());
 	}
 

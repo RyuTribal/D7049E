@@ -34,6 +34,11 @@ namespace Engine {
 		s_idMap.clear();
 	}
 
+	void HBodyID::RemoveEntry(UUID entity_id)
+	{
+		s_idMap.erase(entity_id);
+	}
+
 	std::unordered_map<UUID, JPH::BodyID>& HBodyID::GetMap()
 	{
 		return s_idMap;
@@ -63,9 +68,8 @@ namespace Engine {
 	}
 	*/
 
-	SceneID::SceneID()
-	{
-		this->m_id = SceneID::s_id++;
+	SceneID::SceneID() {
+		this->m_id = s_id++;
 	}
 
 }

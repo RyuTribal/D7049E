@@ -24,7 +24,7 @@ namespace Engine
 		if (!m_AppProps.NoScripting)
 		{
 			ScriptEngine::Init();
-			PhysicsEngine::Get()->Init(10);
+			PhysicsEngine::Get()->Init();
 		}
 	}
 
@@ -79,6 +79,7 @@ namespace Engine
 		m_Window->SetFullScreen(m_Window->GetFullScreen(), m_Window->GetFullScreenType());
 
 		auto last_frame = std::chrono::high_resolution_clock::now();
+		PhysicsEngine::tmpRunner();
 		while (m_Running)
 		{
 			auto newTime = std::chrono::high_resolution_clock::now();

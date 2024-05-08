@@ -248,7 +248,7 @@ namespace Engine {
 			{
 				if (finished_assets.contains(entity_id))
 					continue;
-				PhysicsEngine::Get()->CreateBody(GetEntity(entity_id));
+				PhysicsEngine::Get()->GetCurrentScene()->CreateBody(GetEntity(entity_id));
 				finished_assets.insert(entity_id);
 			}
 		}
@@ -260,7 +260,7 @@ namespace Engine {
 			{
 				if (finished_assets.contains(entity_id))
 					continue;
-				PhysicsEngine::Get()->CreateBody(GetEntity(entity_id));
+				PhysicsEngine::Get()->GetCurrentScene()->CreateBody(GetEntity(entity_id));
 				finished_assets.insert(entity_id);
 			}
 		}
@@ -272,7 +272,7 @@ namespace Engine {
 			{
 				if (finished_assets.contains(entity_id))
 					continue;
-				PhysicsEngine::Get()->CreateBody(GetEntity(entity_id));
+				PhysicsEngine::Get()->GetCurrentScene()->CreateBody(GetEntity(entity_id));
 				finished_assets.insert(entity_id);
 			}
 		}
@@ -333,7 +333,7 @@ namespace Engine {
 				for (auto& [entity_id, box_collider] : *box_colliders)
 				{
 					glm::vec3 entity_world_translation = GetEntity(entity_id)->GetComponent<TransformComponent>()->world_transform.translation;
-					PhysicsEngine::Get()->SetPosition(entity_id, entity_world_translation, true);
+					PhysicsEngine::Get()->GetCurrentScene()->SetPosition(entity_id, entity_world_translation, true);
 				}
 
 				PhysicsEngine::Get()->Step(Application::Get().GetFrameData().DeltaTime);
@@ -440,7 +440,7 @@ namespace Engine {
 			for (auto& [entity_id, box_collider] : *box_colliders)
 			{
 				auto transform = GetEntity(entity_id)->GetComponent<TransformComponent>();
-				glm::mat4 collider_transform = PhysicsEngine::Get()->GetTransform(entity_id);
+				glm::mat4 collider_transform = PhysicsEngine::Get()->GetCurrentScene()->GetTransform(entity_id);
 				glm::mat4 worldTransform = collider_transform;
 
 				glm::vec3 scale;
@@ -477,7 +477,7 @@ namespace Engine {
 			for (auto& [entity_id, sphere_collider] : *sphere_colliders)
 			{
 				auto transform = GetEntity(entity_id)->GetComponent<TransformComponent>();
-				glm::mat4 collider_transform = PhysicsEngine::Get()->GetTransform(entity_id);
+				glm::mat4 collider_transform = PhysicsEngine::Get()->GetCurrentScene()->GetTransform(entity_id);
 				glm::mat4 worldTransform = collider_transform;
 
 				glm::vec3 scale;

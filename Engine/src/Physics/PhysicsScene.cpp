@@ -6,8 +6,9 @@
 
 namespace Engine {
 
-	PhysicsScene::PhysicsScene(int allocationSize)
+	PhysicsScene::PhysicsScene(int allocationSize, Scene* scene) : m_scene(scene)
 	{
+		//this->m_scene = scene;
 
 		s_temporariesAllocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
 		s_jobThreadPool = std::unique_ptr<JPH::JobSystemThreadPool>(
@@ -36,6 +37,11 @@ namespace Engine {
 		gravity = PhysicsScene::makeGLMVec3(m_physics_system->GetGravity());
 	}
 
+	PhysicsScene::~PhysicsScene()
+	{
+		delete s_temporariesAllocator;
+	}
+
 	glm::vec3 PhysicsScene::GetGravity()
 	{
 		return gravity;
@@ -47,21 +53,25 @@ namespace Engine {
 		this->m_physics_system->SetGravity(PhysicsScene::makeVec3(this->gravity));
 	}
 
-	void PhysicsScene::Update()
+	void PhysicsScene::Update(float deltaTime)
 	{
 		if (!s_hasOptimized)
 		{
 			this->OptimizeBroadPhase();
 		}
 
-
 		(this->m_physics_system)->Update(
-			deltaTime,				// check where to get
+			deltaTime,
 			collisionSteps,
 			integrationSubSteps,
 			s_temporariesAllocator,
 			s_jobThreadPool.get()
 		);
+
+		for (auto& [entity_id, character] : m_characterMap)
+		{
+			character->PostSimulation(0.0f);		// TODO: check if this works on removed but undeleted characters
+		}
 	}
 
 	std::vector<HBodyID> PhysicsScene::CreateBody(Entity* entity)
@@ -164,8 +174,7 @@ namespace Engine {
 
 		//this->m_numberOfBodies++;
 		this->s_hasOptimized = false;
-		HBodyID res = HBodyID(entity_id, box_id);
-		this->m_bodyMap[res] = box_body;
+		this->m_bodyMap[entity_id] = box_body;
 
 		return HBodyID(entity_id, box_id);
 	}
@@ -212,10 +221,9 @@ namespace Engine {
 
 		//this->m_numberOfBodies++;
 		this->s_hasOptimized = false;
-		HBodyID res = HBodyID(entity_id, sphere_id);
-		this->m_bodyMap[res] = sphere_body;
+		this->m_bodyMap[entity_id] = sphere_body;
 
-		return res;
+		return HBodyID(entity_id, sphere_id);
 	}
 
 	HBodyID PhysicsScene::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset, std::uint64_t userData)
@@ -231,21 +239,22 @@ namespace Engine {
 		//	.Create().Get();
 		character_settings->mShape = capsule;
 
-		JPH::Character character = JPH::Character(
+		Ref<JPH::Character> character = CreateScope<JPH::Character>(
 			character_settings.get(),
 			PhysicsScene::makeRVec3(position),
 			JPH::Quat::sIdentity(),
 			userData,
 			this->m_physics_system.get()
 		);
-		character.SetShape(capsule, FLT_MAX);
-		character.SetLayer(Layers::MOVING);
+		character.get()->SetShape(capsule, FLT_MAX);
+		character.get()->SetLayer(Layers::MOVING);
 		JPH::RotatedTranslatedShapeSettings(jolt_offset, JPH::Quat::sIdentity(), JPH::CapsuleShapeSettings(halfHeight, radius).Create().Get()).Create().Get();
-		character.AddToPhysicsSystem();
+		character.get()->AddToPhysicsSystem();
 
-		// TODO: preserve characters
 		delete capShapeSettings;
-		return HBodyID(entity_id, character.GetBodyID());
+
+		m_characterMap[entity_id] = character.get();
+		return HBodyID(entity_id, character.get()->GetBodyID());
 	}
 
 	void PhysicsScene::InsertObjectByID(UUID entity_id, bool activate)
@@ -358,19 +367,60 @@ namespace Engine {
 		JPH::BodyID jolt_id = HBodyID::GetBodyID(entity_id);
 
 		(this->m_body_interface)->DestroyBody(jolt_id);
+		HBodyID::RemoveEntry(entity_id);
+		m_bodyMap.erase(entity_id);
 	}
 
 	void PhysicsScene::DestroyAllShapes()
 	{
-		auto& body_id_map = HBodyID::GetMap();
-		for (auto& [entity_id, jolt_id] : body_id_map)
+		std::vector<UUID> toKill = std::vector<UUID>();
+		for (auto& [entity_id, body] : m_bodyMap)
 		{
-			(this->m_body_interface)->RemoveBody(jolt_id);
-			(this->m_body_interface)->DestroyBody(jolt_id);
+			(this->m_body_interface)->RemoveBody(body->GetID());
+			(this->m_body_interface)->DestroyBody(body->GetID());
+			HBodyID::RemoveEntry(entity_id);
+			toKill.push_back(entity_id);
 		}
-		//s_JoltData->numberOfBodies = 0;
-		HBodyID::EmptyMap();
+		for (auto& entity_id : toKill)
+		{
+			m_bodyMap.erase(entity_id);
+		}
+		//HBodyID::EmptyMap();
 	}
+
+	void PhysicsScene::RemoveCharacter(UUID entity_id)
+	{
+		m_characterMap[entity_id]->RemoveFromPhysicsSystem();
+	}
+
+	void PhysicsScene::DestroyCharacter(UUID entity_id)
+	{
+		this->RemoveCharacter(entity_id);
+		m_characterMap.erase(entity_id);
+		HBodyID::RemoveEntry(entity_id);
+	}
+
+	void PhysicsScene::DestroyAllCharacters()
+	{
+		std::vector<UUID> toKill = std::vector<UUID>();
+		for (auto& [entity_id, character] : m_characterMap)
+		{
+			toKill.push_back(entity_id);
+			character->RemoveFromPhysicsSystem();
+		}
+		for (auto& entity_id : toKill)
+		{
+			m_characterMap.erase(entity_id);
+			HBodyID::RemoveEntry(entity_id);
+		}
+	}
+
+	void PhysicsScene::DestroyAll()
+	{
+		DestroyAllShapes();
+		DestroyAllCharacters();
+	}
+
 
 	bool PhysicsScene::IsActive(UUID entity_id)
 	{
@@ -384,6 +434,18 @@ namespace Engine {
 		auto& entity_map = HBodyID::GetMap();
 
 		return entity_map.find(entity_id) != entity_map.end();
+	}
+
+	void PhysicsScene::SetCollisionAndIntegrationSteps(int collisionSteps, int integrationSubSteps)
+	{
+		if (collisionSteps != 0)
+		{
+			this->collisionSteps = collisionSteps;
+		}
+		if (integrationSubSteps != 0)
+		{
+			this->integrationSubSteps = integrationSubSteps;
+		}
 	}
 
 	glm::vec3 PhysicsScene::GetCenterOfMassPosition(UUID id)

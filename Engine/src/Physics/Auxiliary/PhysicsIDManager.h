@@ -18,6 +18,8 @@ namespace Engine {
 
 			static void EmptyMap();
 
+			static void RemoveEntry(UUID entity_id);
+
 			static std::unordered_map<UUID, JPH::BodyID>& GetMap();
 
 
@@ -25,8 +27,6 @@ namespace Engine {
 			UUID mID;
 
 			static inline std::unordered_map<UUID, JPH::BodyID> s_idMap = std::unordered_map<UUID, JPH::BodyID>();
-			// Create a std::hash for BodyID
-			//JPH_MAKE_HASHABLE(JPH::BodyID, t.GetIndexAndSequenceNumber())	// TODO: this??
 
 	};
 
@@ -34,6 +34,17 @@ namespace Engine {
 	{
 	public:
 		SceneID();
+
+
+		inline bool operator < (const SceneID& inScene) const
+		{
+			return m_id < inScene.m_id;
+		}
+
+		inline bool operator > (const SceneID& inScene) const
+		{
+			return m_id > inScene.m_id;
+		}
 
 	private:
 		inline static unsigned int s_id = 0;

@@ -33,7 +33,7 @@ namespace Engine {
 			s_Instance = new PhysicsEngine();
 			return s_Instance;
 		}
-		void Init(int allocationSize);
+		void Init();
 		void Shutdown();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);
 		
@@ -42,9 +42,12 @@ namespace Engine {
 		void OnRuntimeStart(int collisionSteps, int integrationSubStep);
 		void OnRuntimeStop();
 
-		SceneID CreateScene(int allocationSize);
+		SceneID CreateScene(Scene* scene, float allocationSize);
 		PhysicsScene* GetScene(SceneID sceneID);
+		PhysicsScene* GetCurrentScene();
 		void SwitchScene(SceneID sceneID);
+
+		static void tmpRunner();
 
 	private:
 		static PhysicsEngine* s_Instance;

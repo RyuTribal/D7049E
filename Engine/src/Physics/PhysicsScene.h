@@ -139,10 +139,11 @@ namespace Engine {
 	class PhysicsScene
 	{
 	public: 
-		PhysicsScene(int allocationSize);
+		PhysicsScene(int allocationSize, Scene* scene);
+		~PhysicsScene();
 		glm::vec3 GetGravity();
 		void SetGravity(glm::vec3);
-		void Update();
+		void Update(float deltaTime);
 
 		std::vector<HBodyID> CreateBody(Entity* entity);
 		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
@@ -165,8 +166,13 @@ namespace Engine {
 		void RemoveShape(UUID entity_id);
 		void DestroyShape(UUID entity_id);
 		void DestroyAllShapes();
+		void RemoveCharacter(UUID entity_id);
+		void DestroyCharacter(UUID entity_id);
+		void DestroyAllCharacters();
+		void DestroyAll();
 		bool IsActive(UUID entity_id);
 		bool HasCollider(UUID entity_id);
+		void SetCollisionAndIntegrationSteps(int collisionSteps, int integrationSubSteps);
 		glm::vec3 GetCenterOfMassPosition(UUID id);
 		glm::vec3 GetPosition(UUID id);
 		glm::mat4x4 GetCenterOfMassTransform(UUID id);
@@ -175,6 +181,8 @@ namespace Engine {
 		glm::vec3 GetAngularVelocity(UUID entity_id);
 
 	private:
+
+		Scene* m_scene;
 
 		std::string m_LastErrorMessage = "";
 		Ref<JPH::PhysicsSystem> m_physics_system;
@@ -201,7 +209,8 @@ namespace Engine {
 
 		inline static bool s_hasOptimized = false;
 
-		std::map<HBodyID, JPH::Body*> m_bodyMap = std::map<HBodyID, JPH::Body*>();
+		std::map<UUID, JPH::Body*> m_bodyMap = std::map<UUID, JPH::Body*>();
+		std::map<UUID, JPH::Character*> m_characterMap = std::map<UUID, JPH::Character*>();
 
 		static JPH::RVec3 makeRVec3(glm::vec3 arr);
 		static JPH::Vec3 makeVec3(glm::vec3 arr);

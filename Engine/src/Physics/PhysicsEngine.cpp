@@ -41,7 +41,7 @@ namespace Engine {
 
 	PhysicsEngine* PhysicsEngine::s_Instance = nullptr;
 
-	void PhysicsEngine::Init(int allocationSize)
+	void PhysicsEngine::Init()
 	{
 		JPH::RegisterDefaultAllocator();
 
@@ -57,6 +57,11 @@ namespace Engine {
 
 	void PhysicsEngine::Shutdown()
 	{
+		for (auto& [scene_id, scene] : s_sceneMap)
+		{
+			delete scene;
+		}
+
 		delete s_JoltData;
 
 		JPH::UnregisterTypes();
@@ -71,34 +76,33 @@ namespace Engine {
 	void PhysicsEngine::Step(float deltaTime)
 	{
 
-		s_current_scene->Update();
+		s_current_scene->Update(deltaTime);
 
 		// TODO: Add post simulation step 
-		// character.PostSimulation();
 	}
 
 	
 
 	void PhysicsEngine::OnRuntimeStart(int collisionSteps, int integrationSubStep)
 	{
-		s_JoltData->collisionSteps = collisionSteps;
-		s_JoltData->integrationSubSteps = integrationSubStep;
+		s_current_scene->SetCollisionAndIntegrationSteps(collisionSteps, integrationSubStep);
+
 	}
 
 	void PhysicsEngine::OnRuntimeStop()
 	{
 		s_current_scene->SetOptimized(false);
-		s_current_scene->DestroyAllShapes();
+		s_current_scene->DestroyAll();
 	}
 
-	SceneID PhysicsEngine::CreateScene(int allocationSize = 10)
+	SceneID PhysicsEngine::CreateScene(Scene* scene, float allocationSize = 10.0f)
 	{
-		PhysicsScene scene = PhysicsScene(allocationSize);
+		PhysicsScene* phys_scene = new PhysicsScene(allocationSize, scene);
 		SceneID id = SceneID();
-		s_sceneMap[id] = &scene;
+		s_sceneMap[id] = phys_scene;
 		if (s_current_scene == nullptr)
 		{
-			s_current_scene = &scene;
+			s_current_scene = phys_scene;
 		}
 
 		return id;
@@ -107,6 +111,11 @@ namespace Engine {
 	PhysicsScene* PhysicsEngine::GetScene(SceneID sceneID)
 	{
 		return s_sceneMap[sceneID];
+	}
+
+	PhysicsScene* PhysicsEngine::GetCurrentScene()
+	{
+		return this->s_current_scene;
 	}
 
 	// TODO: add a way to handle scene directly
@@ -120,33 +129,37 @@ namespace Engine {
 		else
 		{
 			HVE_CONSOLE_LOG_ERROR("No scene with that sceneID");
+			HVE_ASSERT(false);
 		}
 	}
 
-	//void PhysicsEngine::tmpRunner()
-	//{
-	//	PhysicsEngine* engin = PhysicsEngine::Get();
+	void PhysicsEngine::tmpRunner()
+	{
+		PhysicsEngine* engin = PhysicsEngine::Get();
 
-	//	engin->Init(10);
-	//	SceneID scene_id = engin->CreateScene();
-	//	PhysicsScene* scene = engin->GetScene(scene_id);
+		engin->Init();
+		Scene scn = Scene("Boogey");
+		SceneID scene_id = engin->CreateScene(&scn);
+		PhysicsScene* scene = engin->GetScene(scene_id);
 
-	//	HBodyID box_id = scene->CreateBox(3, glm::vec3(100.0f, 1.0f, 100.0f), glm::vec3(0.0, -1.0, 0.0), HEMotionType::Static, &(glm::vec3(0.0, 0.0, 0.0)), false);
-	//	HBodyID sphere_id = scene->CreateSphere(0.5f, glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-	//	//HBodyID sphere_id = engin->CreateBox(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-	//	scene->SetLinearVelocity(sphere_id, glm::vec3(0.0f, -5.0f, 0.0f));
-	//	engin->OptimizeBroadPhase();
+		glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
+		HBodyID box_id = scene->CreateBox(3, glm::vec3(100.0f, 1.0f, 100.0f), glm::vec3(0.0, -1.0, 0.0), HEMotionType::Static, offset, false);
+		HBodyID sphere_id = scene->CreateSphere(6, 0.5f, glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, offset, true);
+		//HBodyID sphere_id = engin->CreateBox(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
+		glm::vec3 velocity = glm::vec3(1.0f, 0.0f, 0.0f);;
+		scene->SetLinearVelocity(6, velocity);
+		scene->OptimizeBroadPhase();
 
-	//	int stepCounter = 0;
-	//	while (scene->IsActive(sphere_id) && stepCounter < 200)
-	//	{
-	//		++stepCounter;
-	//		glm::vec3 position = scene->GetCenterOfMassPosition(sphere_id);
-	//		glm::vec3 velocity = scene->GetLinearVelocity(sphere_id);
-	//		std::cout << "Step " << stepCounter << ": Position = (" << position.x << ", " << position.y << ", " << position.z << "), Velocity = (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")" << std::endl;
-	//		engin->Step(1.0 / 60.0);
+		int stepCounter = 0;
+		while (scene->IsActive(6) && stepCounter < 200)
+		{
+			++stepCounter;
+			glm::vec3 position = scene->GetCenterOfMassPosition(6);
+			glm::vec3 velocity = scene->GetLinearVelocity(6);
+			std::cout << "Step " << stepCounter << ": Position = (" << position.x << ", " << position.y << ", " << position.z << "), Velocity = (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")" << std::endl;
+			engin->Step(1.0 / 60.0);
 
-	//	}
-	//	std::cout << "Finished the tmp simulation" << std::endl;
-	//}
+		}
+		std::cout << "Finished the tmp simulation" << std::endl;
+	}
 }

@@ -33,7 +33,7 @@ namespace Engine {
 			s_Instance = new PhysicsEngine();
 			return s_Instance;
 		}
-		void Init();
+		void Init(int allocationSize);
 		void Shutdown();
 		//HBodyID createBox(JPH::Vec3 dimensions, JPH::RVec3 position, JPH::EMotionType movability, bool activate);
 		

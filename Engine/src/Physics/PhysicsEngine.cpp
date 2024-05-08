@@ -8,7 +8,8 @@ namespace Engine {
 
 	struct JoltData
 	{
-
+		JPH::TempAllocator* TemporariesAllocator;
+		std::unique_ptr<JPH::JobSystemThreadPool> JobThreadPool;
 		std::string LastErrorMessage = "";
 
 	};
@@ -40,8 +41,9 @@ namespace Engine {
 	
 
 	PhysicsEngine* PhysicsEngine::s_Instance = nullptr;
+	PhysicsScene* PhysicsEngine::s_current_scene = nullptr;
 
-	void PhysicsEngine::Init()
+	void PhysicsEngine::Init(int allocationSize)
 	{
 		JPH::RegisterDefaultAllocator();
 
@@ -53,6 +55,10 @@ namespace Engine {
 
 		s_JoltData = new JoltData();
 
+		s_JoltData->TemporariesAllocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
+		s_JoltData->JobThreadPool = std::unique_ptr<JPH::JobSystemThreadPool>(
+			new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1)
+		);
 	}
 
 	void PhysicsEngine::Shutdown()
@@ -62,6 +68,7 @@ namespace Engine {
 			delete scene;
 		}
 
+		delete s_JoltData->TemporariesAllocator;
 		delete s_JoltData;
 
 		JPH::UnregisterTypes();
@@ -97,7 +104,7 @@ namespace Engine {
 
 	SceneID PhysicsEngine::CreateScene(Scene* scene, float allocationSize = 10.0f)
 	{
-		PhysicsScene* phys_scene = new PhysicsScene(allocationSize, scene);
+		PhysicsScene* phys_scene = new PhysicsScene(scene, s_JoltData->TemporariesAllocator, s_JoltData->JobThreadPool.get());
 		SceneID id = SceneID();
 		s_sceneMap[id] = phys_scene;
 		if (s_current_scene == nullptr)
@@ -137,25 +144,29 @@ namespace Engine {
 	{
 		PhysicsEngine* engin = PhysicsEngine::Get();
 
-		engin->Init();
+		engin->Init(10);
 		Scene scn = Scene("Boogey");
 		SceneID scene_id = engin->CreateScene(&scn);
 		PhysicsScene* scene = engin->GetScene(scene_id);
 
+		UUID box = UUID();
+		UUID sphere = UUID();
+
 		glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
-		HBodyID box_id = scene->CreateBox(3, glm::vec3(100.0f, 1.0f, 100.0f), glm::vec3(0.0, -1.0, 0.0), HEMotionType::Static, offset, false);
-		HBodyID sphere_id = scene->CreateSphere(6, 0.5f, glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, offset, true);
+		HBodyID box_id = scene->CreateBox(box, glm::vec3(100.0f, 1.0f, 100.0f), glm::vec3(0.0, -1.0, 0.0), HEMotionType::Static, offset, false);
+		HBodyID sphere_id = scene->CreateSphere(sphere, 0.5f, glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, offset, true);
 		//HBodyID sphere_id = engin->CreateBox(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
 		glm::vec3 velocity = glm::vec3(1.0f, 0.0f, 0.0f);;
-		scene->SetLinearVelocity(6, velocity);
+		scene->SetLinearVelocity(sphere, velocity);
 		scene->OptimizeBroadPhase();
 
 		int stepCounter = 0;
-		while (scene->IsActive(6) && stepCounter < 200)
+		std::cout << "Starting simulation" << std::endl;
+		while (scene->IsActive(sphere) && stepCounter < 200)
 		{
 			++stepCounter;
-			glm::vec3 position = scene->GetCenterOfMassPosition(6);
-			glm::vec3 velocity = scene->GetLinearVelocity(6);
+			glm::vec3 position = scene->GetCenterOfMassPosition(sphere);
+			glm::vec3 velocity = scene->GetLinearVelocity(sphere);
 			std::cout << "Step " << stepCounter << ": Position = (" << position.x << ", " << position.y << ", " << position.z << "), Velocity = (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")" << std::endl;
 			engin->Step(1.0 / 60.0);
 

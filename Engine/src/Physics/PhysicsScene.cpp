@@ -6,14 +6,17 @@
 
 namespace Engine {
 
-	PhysicsScene::PhysicsScene(int allocationSize, Scene* scene) : m_scene(scene)
-	{
-		//this->m_scene = scene;
+	static BPLayerInterfaceImpl s_broad_phase_layer_interface;
+	static ObjectVsBroadPhaseLayerFilterImpl s_object_vs_broadphase_layer_filter;
+	static ObjectLayerPairFilterImpl s_object_vs_object_layer_filter;
 
-		s_temporariesAllocator = new JPH::TempAllocatorImpl(allocationSize * 1024 * 1024);
-		s_jobThreadPool = std::unique_ptr<JPH::JobSystemThreadPool>(
-			new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1)
-		);
+	PhysicsScene::PhysicsScene(Scene* scene, JPH::TempAllocator* temporariesAllocator = nullptr, JPH::JobSystemThreadPool* jobThreadPool = nullptr) : m_scene(scene)
+	{
+		if (s_temporariesAllocator == nullptr || s_jobThreadPool == nullptr)
+		{
+			JPH::TempAllocator* s_temporariesAllocator = temporariesAllocator;
+			JPH::JobSystemThreadPool* s_jobThreadPool = jobThreadPool;
+		}
 
 		m_physics_system = CreateRef<JPH::PhysicsSystem>();
 		(this->m_physics_system)->Init(
@@ -21,9 +24,9 @@ namespace Engine {
 			cNumBodyMutexes,
 			cMaxBodyPairs,
 			cMaxContactConstraints,
-			this->s_broad_phase_layer_interface,
-			this->s_object_vs_broadphase_layer_filter,
-			this->s_object_vs_object_layer_filter
+			s_broad_phase_layer_interface,
+			s_object_vs_broadphase_layer_filter,
+			s_object_vs_object_layer_filter
 		);
 
 		m_contact_listener = CreateRef<MyContactListener>();
@@ -35,11 +38,6 @@ namespace Engine {
 		this->m_body_interface = &(m_physics_system->GetBodyInterface());
 
 		gravity = PhysicsScene::makeGLMVec3(m_physics_system->GetGravity());
-	}
-
-	PhysicsScene::~PhysicsScene()
-	{
-		delete s_temporariesAllocator;
 	}
 
 	glm::vec3 PhysicsScene::GetGravity()
@@ -65,7 +63,7 @@ namespace Engine {
 			collisionSteps,
 			integrationSubSteps,
 			s_temporariesAllocator,
-			s_jobThreadPool.get()
+			s_jobThreadPool
 		);
 
 		for (auto& [entity_id, character] : m_characterMap)

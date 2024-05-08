@@ -139,8 +139,7 @@ namespace Engine {
 	class PhysicsScene
 	{
 	public: 
-		PhysicsScene(int allocationSize, Scene* scene);
-		~PhysicsScene();
+		PhysicsScene(Scene* scene, JPH::TempAllocator* temporariesAllocator, JPH::JobSystemThreadPool* jobThreadPool);
 		glm::vec3 GetGravity();
 		void SetGravity(glm::vec3);
 		void Update(float deltaTime);
@@ -189,11 +188,8 @@ namespace Engine {
 		JPH::BodyInterface* m_body_interface;
 		Ref<MyContactListener> m_contact_listener;
 
-		static JPH::TempAllocator* s_temporariesAllocator;
-		static std::unique_ptr<JPH::JobSystemThreadPool> s_jobThreadPool;
-		static BPLayerInterfaceImpl s_broad_phase_layer_interface;
-		static ObjectVsBroadPhaseLayerFilterImpl s_object_vs_broadphase_layer_filter;
-		static ObjectLayerPairFilterImpl s_object_vs_object_layer_filter;
+		inline static JPH::TempAllocator* s_temporariesAllocator = nullptr;
+		inline static JPH::JobSystemThreadPool* s_jobThreadPool = nullptr;
 
 		std::string LastErrorMessage = "";
 

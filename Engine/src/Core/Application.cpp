@@ -24,7 +24,7 @@ namespace Engine
 		if (!m_AppProps.NoScripting)
 		{
 			ScriptEngine::Init();
-			PhysicsEngine::Get()->Init();
+			PhysicsEngine::Get()->Init(10);
 		}
 	}
 

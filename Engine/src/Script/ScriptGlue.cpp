@@ -271,13 +271,86 @@ namespace Engine {
 	static void SphereCollider_AddLinearAngularImpulse(uint64_t entity_id, glm::vec3* linear_impulse, glm::vec3* angular_impulse)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
+		auto sphere_collider = entity->GetComponent<CharacterControllerComponent>();
 		if (sphere_collider)
 		{
 			PhysicsEngine::Get()->GetCurrentScene()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
 		}
 	}
 
+	static void CharacterController_GetLinearVelocity(uint64_t entity_id, glm::vec3* out_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			*out_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
+		}
+	}
+
+	static void CharacterController_SetLinearVelocity(uint64_t entity_id, glm::vec3* in_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, *in_velocity);
+		}
+	}
+
+	static void CharacterController_AddLinearVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
+		}
+	}
+
+	static void CharacterController_AddAngularVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetAngularVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
+		}
+	}
+
+	static void CharacterController_AddImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearImpulse(entity_id, *impulse);
+		}
+	}
+
+	static void CharacterController_AddAngularImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->AddAngularImpulse(entity_id, *impulse);
+		}
+	}
+
+	static void CharacterController_AddLinearAngularImpulse(uint64_t entity_id, glm::vec3* linear_impulse, glm::vec3* angular_impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
+		}
+	}
 
 	template <typename... Component>
 	static void RegisterComponent()
@@ -345,6 +418,13 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(SphereCollider_AddAngularImpulse);
 		HVE_ADD_INTERNAL_CALL(SphereCollider_AddLinearAngularImpulse);
 
+		HVE_ADD_INTERNAL_CALL(CharacterController_GetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_SetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddAngularVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddImpulse);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddAngularImpulse);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddLinearAngularImpulse);
 
 	}
 }

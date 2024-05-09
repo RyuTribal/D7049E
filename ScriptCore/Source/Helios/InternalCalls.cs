@@ -102,5 +102,28 @@ namespace Helios
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void SphereCollider_AddLinearAngularImpulse(ulong entity_id, ref Vector3 linear_impulse, ref Vector3 angular_impulse);
 
+
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void CharacterController_GetLinearVelocity(ulong entity_id, out Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void CharacterController_SetLinearVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void CharacterController_AddLinearVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void CharacterController_AddAngularVelocity(ulong entity_id, ref Vector3 velocity);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void CharacterController_AddImpulse(ulong entity_id, ref Vector3 impulse);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void CharacterController_AddAngularImpulse(ulong entity_id, ref Vector3 impulse);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void CharacterController_AddLinearAngularImpulse(ulong entity_id, ref Vector3 linear_impulse, ref Vector3 angular_impulse);
+
 	}
 }

@@ -97,11 +97,13 @@ namespace Engine {
 	public:
 		virtual void		OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
 		{
+			std::cout << "Body activation" << std::endl;
 			HVE_CORE_TRACE("A body got activated");
 		}
 
 		virtual void		OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
 		{
+			std::cout << "Body sleep" << std::endl;
 			HVE_CORE_TRACE("A body went to sleep");
 		}
 	};
@@ -113,7 +115,11 @@ namespace Engine {
 		// See: ContactListener
 		virtual JPH::ValidateResult	OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override
 		{
-			HVE_CORE_TRACE("Contact validate callback");
+			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
+			{
+				HVE_CORE_TRACE("Contact validate callback");
+
+			}
 
 			// Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
 			return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
@@ -121,16 +127,21 @@ namespace Engine {
 
 		virtual void			OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
 		{
+			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
+				std::cout << "On Contact Added" << std::endl;
 			HVE_CORE_TRACE("A contact was added");
 		}
 
 		virtual void			OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
 		{
+			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
+				std::cout << "On Contact Persisted" << std::endl;
 			HVE_CORE_TRACE("A contact was persisted");
 		}
 
 		virtual void			OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
 		{
+			std::cout << "On Contact Removed" << std::endl;
 			HVE_CORE_TRACE("A contact was removed");
 		}
 	};
@@ -188,6 +199,7 @@ namespace Engine {
 		Ref<JPH::PhysicsSystem> m_physics_system;
 		JPH::BodyInterface* m_body_interface;
 		Ref<MyContactListener> m_contact_listener;
+		Ref<MyBodyActivationListener> m_activation_listener;
 
 		inline static JPH::TempAllocator* s_temporariesAllocator = nullptr;
 		inline static JPH::JobSystemThreadPool* s_jobThreadPool = nullptr;

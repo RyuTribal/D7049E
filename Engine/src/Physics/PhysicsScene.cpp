@@ -30,10 +30,11 @@ namespace Engine {
 		);
 
 		m_contact_listener = CreateRef<MyContactListener>();
+		m_activation_listener = CreateRef<MyBodyActivationListener>();
 
 		m_physics_system->SetContactListener(m_contact_listener.get());
 
-		//m_physics_system->SetBodyActivationListener(&(this->m_body_activation_listener));
+		m_physics_system->SetBodyActivationListener(m_activation_listener.get());
 		
 		this->m_body_interface = &(m_physics_system->GetBodyInterface());
 
@@ -80,10 +81,13 @@ namespace Engine {
 		if (boxComponent)
 		{
 			glm::vec3 position = entity->GetComponent<TransformComponent>()->world_transform.translation;
+			glm::vec3 scale = entity->GetComponent<TransformComponent>()->world_transform.scale;
+
+			glm::vec3 dimensions = glm::vec3(boxComponent->HalfSize.x * scale.x, boxComponent->HalfSize.y * scale.y, boxComponent->HalfSize.z * scale.z);
 
 			res.push_back(this->CreateBox(
 				entity->GetID(),
-				boxComponent->HalfSize,
+				dimensions,
 				position,
 				boxComponent->MotionType,
 				boxComponent->Offset,
@@ -227,30 +231,31 @@ namespace Engine {
 		Scope<JPH::CharacterSettings> character_settings = CreateScope<JPH::CharacterSettings>();
 		//character_settings->mMass = mass;
 		//character_settings->mMaxStrength = strength;
+		
 		JPH::RVec3 jolt_offset = PhysicsScene::makeRVec3(offset);
-		JPH::CapsuleShapeSettings* capShapeSettings = new JPH::CapsuleShapeSettings(halfHeight, radius);
+		JPH::CapsuleShapeSettings* capShapeSettings = new JPH::CapsuleShapeSettings(halfHeight, radius);		// TODO: add material
 		JPH::ShapeSettings::ShapeResult capsuleResult = capShapeSettings->Create();
-		JPH::Shape* capsule = capsuleResult.Get();
-		//character_settings->mShape = JPH::RotatedTranslatedShapeSettings(jolt_offset, JPH::Quat::sIdentity(), capsule)		// TODO: add material
-		//	.Create().Get();
+		
+		JPH::RotatedTranslatedShapeSettings capsuleTransSettings(jolt_offset, JPH::Quat::sIdentity(), capsuleResult.Get());
+		JPH::Shape* capsule = capsuleTransSettings.Create().Get();
+		
 		character_settings->mShape = capsule;
-
-		Ref<JPH::Character> character = CreateScope<JPH::Character>(
+		JPH::Character* character = new JPH::Character(
 			character_settings.get(),
 			PhysicsScene::makeRVec3(position),
 			JPH::Quat::sIdentity(),
 			userData,
 			this->m_physics_system.get()
 		);
-		character.get()->SetShape(capsule, FLT_MAX);
-		character.get()->SetLayer(Layers::MOVING);
-		JPH::RotatedTranslatedShapeSettings(jolt_offset, JPH::Quat::sIdentity(), JPH::CapsuleShapeSettings(halfHeight, radius).Create().Get()).Create().Get();
-		character.get()->AddToPhysicsSystem();
+		
+		character->SetShape(capsule, FLT_MAX);
+		character->SetLayer(Layers::MOVING);
+		character->AddToPhysicsSystem();
 
 		delete capShapeSettings;
 
-		m_characterMap[entity_id] = character.get();
-		return HBodyID(entity_id, character.get()->GetBodyID());
+		m_characterMap[entity_id] = character;
+		return HBodyID(entity_id, character->GetBodyID());
 	}
 
 	void PhysicsScene::InsertObjectByID(UUID entity_id, bool activate)
@@ -308,7 +313,10 @@ namespace Engine {
 
 	void PhysicsScene::AddLinearVelocity(UUID entity_id, glm::vec3& velocity)
 	{
+		JPH::BodyID jolt_id = HBodyID::GetBodyID(entity_id);
+		JPH::Vec3 vel = PhysicsScene::makeVec3(velocity);
 
+		(this->m_body_interface)->AddLinearVelocity(jolt_id, vel);
 	}
 
 	void PhysicsScene::AddLinearImpulse(UUID entity_id, glm::vec3& impulse)
@@ -392,6 +400,7 @@ namespace Engine {
 	void PhysicsScene::DestroyCharacter(UUID entity_id)
 	{
 		this->RemoveCharacter(entity_id);
+		delete m_characterMap[entity_id];
 		m_characterMap.erase(entity_id);
 		HBodyID::RemoveEntry(entity_id);
 	}
@@ -406,6 +415,7 @@ namespace Engine {
 		}
 		for (auto& entity_id : toKill)
 		{
+			delete m_characterMap[entity_id];
 			m_characterMap.erase(entity_id);
 			HBodyID::RemoveEntry(entity_id);
 		}

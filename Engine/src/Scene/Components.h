@@ -188,7 +188,7 @@ namespace Engine {
 		ComponentGroup< IDComponent, ParentIDComponent, TagComponent,
 		TransformComponent, MeshComponent, CameraComponent,
 		PointLightComponent, DirectionalLightComponent,
-		SoundComponent, ScriptComponent, 
+		SoundComponent, ScriptComponent, CharacterControllerComponent,
 		SphereColliderComponent, BoxColliderComponent>;
 
 }

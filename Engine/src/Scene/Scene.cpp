@@ -303,6 +303,12 @@ namespace Engine {
 		return nullptr;
 	}
 
+	void Scene::SetSkybox(SkyboxSettings& skybox)
+	{
+		m_Skybox = skybox;
+		Renderer::Get()->SetSkybox(m_Skybox);
+	}
+
 	void Scene::UpdateScene()
 	{
 		SetCurrentCamera(Renderer::Get()->GetCamera());

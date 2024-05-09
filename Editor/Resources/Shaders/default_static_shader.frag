@@ -33,6 +33,16 @@ layout(binding = 1) uniform sampler2D u_NormalTexture;
 layout(binding = 2) uniform sampler2D u_RoughnessTexture;
 layout(binding = 3) uniform sampler2D u_MetalnessTexture;
 layout(binding = 5) uniform sampler2D u_AlbedoTexture;
+layout(binding = 6) uniform sampler2D u_AOTexture;
+layout(binding = 7) uniform sampler2D u_EmissionTexture;
+layout(binding = 8) uniform sampler2D u_SpecularTexture;
+
+
+layout(binding = 10) uniform samplerCube u_IrradianceMap;
+layout(binding = 11) uniform samplerCube u_PrefilterMap;
+layout(binding = 12) uniform sampler2D u_BrdfLUT;
+
+uniform float u_EnvironmentBrightness;
 
 
 struct Material
@@ -75,6 +85,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness);
 float GeometrySchlickGGX(float NdotV, float roughness);
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness);
 vec3 fresnelSchlick(float cosTheta, vec3 F0);
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness);
 
 vec3 sRGBToLinear(vec3 sRGB) {
     return vec3(
@@ -86,18 +97,20 @@ vec3 sRGBToLinear(vec3 sRGB) {
 
 void main() {
     vec3 V = normalize(cameraPosition - worldSpacePosition);
-    vec3 N;
+    vec3 N = normal;
     if (u_MaterialUniforms.UseNormalMap) {
         vec3 normalMap = texture(u_NormalTexture, texCoords).xyz;
         normalMap = normalMap * 2.0 - 1.0;
         N = normalize(TBN * normalMap);
-    } else {
-        N = normalize(TBN * normal); 
     }
+    vec3 R = reflect(-V, N); 
 
-    vec3 albedo = texture(u_AlbedoTexture, texCoords).rgb * u_MaterialUniforms.AlbedoColor;
-    float roughness = texture(u_RoughnessTexture, texCoords).r * u_MaterialUniforms.Roughness;
-    float metalness = texture(u_MetalnessTexture, texCoords).r * u_MaterialUniforms.Metalness;
+    vec3 specular_color = texture(u_SpecularTexture, texCoords).rgb;
+    vec3 albedo = texture(u_AlbedoTexture, texCoords).rgb * u_MaterialUniforms.AlbedoColor * specular_color;
+    float roughness = texture(u_MetalnessTexture, texCoords).g * u_MaterialUniforms.Roughness;
+    float metalness = texture(u_MetalnessTexture, texCoords).b * u_MaterialUniforms.Metalness;
+    vec3 ao = texture(u_AOTexture, texCoords).rgb;
+    vec3 emission = texture(u_EmissionTexture, texCoords).rgb;
 
     vec3 F0 = mix(vec3(0.04), albedo, metalness);
     vec3 Lo = vec3(0.0);
@@ -118,8 +131,22 @@ void main() {
         Lo += CalcDirectionalLight(light, N, V, albedo, roughness, metalness);
     }
 
-    vec3 ambient = vec3(0.03) * albedo;
-    vec3 color = ambient + Lo;
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+
+    vec3 kS = F;
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metalness;	  
+    vec3 irradiance = texture(u_IrradianceMap, N).rgb;
+    vec3 diffuse      = irradiance * albedo * u_EnvironmentBrightness;
+
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(u_PrefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;    
+    vec2 brdf  = texture(u_BrdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+    vec3 ambient = (kD * diffuse + specular) * ao;
+
+    vec3 color = ambient + Lo + emission;
 
     fragColor = vec4(color, 1.0);
 }
@@ -183,6 +210,11 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }  
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}   
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {

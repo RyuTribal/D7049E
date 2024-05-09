@@ -30,6 +30,16 @@ namespace Engine{
 			{
 				glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalFormat, width, height, GL_FALSE);
 			}
+			else if (internalFormat == GL_RGBA16F || internalFormat == GL_RGB16F || internalFormat == GL_RGBA32F || internalFormat == GL_RGB32F)
+			{
+				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_FLOAT, nullptr);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			}
 			else
 			{
 				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
@@ -80,7 +90,10 @@ namespace Engine{
 			switch (format)
 			{
 			case FramebufferTextureFormat::RGBA8:       return GL_RGBA8;
+			case FramebufferTextureFormat::RG16F:		return GL_RG16F;
 			case FramebufferTextureFormat::RGBA16F:		return GL_RGBA16F;
+			case FramebufferTextureFormat::RG32F:		return GL_RG32F;
+			case FramebufferTextureFormat::RGBA32F:		return GL_RGBA32F;
 			case FramebufferTextureFormat::RED_INTEGER: return GL_RED_INTEGER;
 			}
 
@@ -156,8 +169,17 @@ namespace Engine{
 				case FramebufferTextureFormat::RGBA8:
 					Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA8, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
 					break;
+				case FramebufferTextureFormat::RG16F:
+					Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RG16F, GL_RG, m_Specification.Width, m_Specification.Height, i);
+					break;
 				case FramebufferTextureFormat::RGBA16F:
 					Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA16F, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
+					break;
+				case FramebufferTextureFormat::RG32F:
+					Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RG32F, GL_RG, m_Specification.Width, m_Specification.Height, i);
+					break;
+				case FramebufferTextureFormat::RGBA32F:
+					Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA32F, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
 					break;
 				case FramebufferTextureFormat::RED_INTEGER:
 					Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_R32I, GL_RED_INTEGER, m_Specification.Width, m_Specification.Height, i);
@@ -181,7 +203,7 @@ namespace Engine{
 		if (m_ColorAttachments.size() > 1)
 		{
 			HVE_CORE_ASSERT(m_ColorAttachments.size() <= 4);
-			GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+			GLenum buffers[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
 			glDrawBuffers(m_ColorAttachments.size(), buffers);
 		}
 		else if (m_ColorAttachments.empty())
@@ -238,6 +260,13 @@ namespace Engine{
 		glClearTexImage(m_ColorAttachments[attachmentIndex], 0,
 			Utils::HeliosFBTextureFormatToGL(spec.TextureFormat), GL_INT, &value);
 	}
+	void Framebuffer::SetTexture(uint32_t index, uint32_t texture_id, uint32_t mip_level)
+	{
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, index, texture_id, mip_level);
+
+		HVE_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer incomplete after setting texture");
+	}
+
 	void Framebuffer::CopyFramebufferContent(Ref<Framebuffer> other_buffer, FramebufferSamplingFormat sampling)
 	{
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, other_buffer->GetRendererID());

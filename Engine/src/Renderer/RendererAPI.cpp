@@ -2,6 +2,7 @@
 #include "RendererAPI.h"
 #include <glad/gl.h>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
 
 namespace Engine {
 
@@ -80,6 +81,24 @@ namespace Engine {
 			case GL_TEXTURE31:		return TEXTURE31;
 			}
 		}
+
+		static GLuint HeliosToNativeDepthFunction(DepthFunction func)
+		{
+			switch (func)
+			{
+				case LEqual:		return GL_LEQUAL;
+				case Less:			return GL_LESS;
+			}
+		}
+
+		static DepthFunction NativeToHeliosDepthFunction(GLuint func)
+		{
+			switch (func)
+			{
+				case GL_LEQUAL:		return LEqual;
+				case GL_LESS:		return Less;
+			}
+		}
 	}
 
 	void MessageCallback(
@@ -93,7 +112,7 @@ namespace Engine {
 	{
 		switch (severity)
 		{
-		case GL_DEBUG_SEVERITY_HIGH:		 HVE_CORE_FATAL(message); return;
+		case GL_DEBUG_SEVERITY_HIGH:		 HVE_CORE_FATAL(message); HVE_CORE_ASSERT(false); return;
 		case GL_DEBUG_SEVERITY_MEDIUM:       HVE_CORE_ERROR(message);  return;
 		case GL_DEBUG_SEVERITY_LOW:          HVE_CORE_WARN(message);  return;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: HVE_CORE_TRACE(message);  return;
@@ -145,6 +164,11 @@ namespace Engine {
 	void RendererAPI::ClearColor()
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
+	void RendererAPI::SetDepthFunction(DepthFunction func)
+	{
+		glDepthFunc(Util::HeliosToNativeDepthFunction(func));
 	}
 
 	void RendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount)
@@ -251,6 +275,86 @@ namespace Engine {
 		VAO->Unbind();
 	}
 
+	void RendererAPI::DrawQuad()
+	{
+
+		float vertices[] = {
+			// Positions         // Texture Coords (s, t)
+			-1.0f, -1.0f, 0.0f,  0.0f, 0.0f, // bottom left corner
+			-1.0f,  1.0f, 0.0f,  0.0f, 1.0f, // top left corner
+			 1.0f,  1.0f, 0.0f,  1.0f, 1.0f, // top right corner
+			 1.0f, -1.0f, 0.0f,  1.0f, 0.0f  // bottom right corner
+		};
+
+		uint32_t indices[] = {
+			0, 1, 2, // first triangle (bottom left - top left - top right)
+			0, 2, 3  // second triangle (bottom left - top right - bottom right)
+		};
+
+		unsigned int vertexSize = sizeof(vertices);
+		unsigned int indexCount = sizeof(indices) / sizeof(uint32_t);
+
+		Ref<VertexArray> VAO = VertexArray::Create();
+		auto vertexBuffer = VertexBuffer::Create(vertices, vertexSize);
+		vertexBuffer->SetLayout({
+			{ ShaderDataType::Float3, "a_position" },
+			{ ShaderDataType::Float2, "a_texture_coords" } });
+		vertexBuffer->SetData(&vertices, vertexSize);
+
+		auto indexBuffer = IndexBuffer::Create(indices, indexCount);
+		VAO->AddVertexBuffer(vertexBuffer);
+		VAO->SetIndexBuffer(indexBuffer);
+
+		DrawIndexed(VAO);
+	}
+
+
+
+	void RendererAPI::DrawCube()
+	{
+		float vertices[] = {
+			-1.0f, -1.0f, -1.0f, // 0
+			 1.0f, -1.0f, -1.0f, // 1
+			 1.0f,  1.0f, -1.0f, // 2
+			-1.0f,  1.0f, -1.0f, // 3
+			-1.0f, -1.0f,  1.0f, // 4
+			 1.0f, -1.0f,  1.0f, // 5
+			 1.0f,  1.0f,  1.0f, // 6
+			-1.0f,  1.0f,  1.0f  // 7
+		};
+
+		// Indices for the cube (12 triangles, two for each face)
+		uint32_t indices[] = {
+			// Back face
+			0, 1, 2, 2, 3, 0,
+			// Front face
+			4, 7, 6, 6, 5, 4,
+			// Left face
+			3, 2, 6, 6, 7, 3,
+			// Right face
+			1, 0, 4, 4, 5, 1,
+			// Top face
+			2, 1, 5, 5, 6, 2,
+			// Bottom face
+			0, 3, 7, 7, 4, 0
+		};
+
+		unsigned int vertexSize = sizeof(vertices);
+		unsigned int indexCount = sizeof(indices) / sizeof(uint32_t);
+
+		Ref<VertexArray> VAO = VertexArray::Create();
+		auto vertexBuffer = VertexBuffer::Create(vertices, vertexSize);
+		vertexBuffer->SetLayout({
+			{ ShaderDataType::Float3, "a_position" } });
+		vertexBuffer->SetData(&vertices, vertexSize);
+
+		auto indexBuffer = IndexBuffer::Create(indices, indexCount);
+		VAO->AddVertexBuffer(vertexBuffer);
+		VAO->SetIndexBuffer(indexBuffer);
+
+		DrawIndexed(VAO);
+	}
+
 	void RendererAPI::UseShaderProgram(uint32_t id)
 	{
 		glUseProgram(id);
@@ -271,6 +375,7 @@ namespace Engine {
 	{
 		glBindTexture(GL_TEXTURE_2D, texture_id);
 	}
+
 
 	void RendererAPI::UnBindTexture(uint32_t texture_id)
 	{

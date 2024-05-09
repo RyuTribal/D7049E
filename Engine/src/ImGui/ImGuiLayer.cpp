@@ -136,4 +136,14 @@ namespace Engine
 		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 	}
 
+	void ImGuiLayer::ResetKeyStates()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		for (int i = 0; i < IM_ARRAYSIZE(io.KeysDown); i++)
+			io.KeysDown[i] = false;
+
+		io.MouseDown[0] = io.MouseDown[1] = io.MouseDown[2] = io.MouseDown[3] = io.MouseDown[4] = false;
+		io.KeyCtrl = io.KeyShift = io.KeyAlt = io.KeySuper = false;
+	}
+
 }

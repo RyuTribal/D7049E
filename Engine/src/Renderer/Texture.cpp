@@ -8,8 +8,14 @@ namespace Engine {
 		{
 			switch (format)
 			{
-			case ImageFormat::RGB8:  return GL_RGB;
-			case ImageFormat::RGBA8: return GL_RGBA;
+			case ImageFormat::RG8:		return GL_RG;
+			case ImageFormat::RGB8:		return GL_RGB;
+			case ImageFormat::RGBA8:	return GL_RGBA;
+			case ImageFormat::RGB16F:	return GL_RGB;
+			case ImageFormat::RGBA16F:	return GL_RGBA;
+			case ImageFormat::RG32F:	return GL_RG;
+			case ImageFormat::RGB32F:	return GL_RGB;
+			case ImageFormat::RGBA32F:	return GL_RGBA;
 			}
 
 			HVE_CORE_ASSERT(false);
@@ -20,8 +26,14 @@ namespace Engine {
 		{
 			switch (format)
 			{
-			case ImageFormat::RGB8:  return GL_RGB8;
-			case ImageFormat::RGBA8: return GL_RGBA8;
+			case ImageFormat::RG8:		return GL_RG8;
+			case ImageFormat::RGB8:		return GL_RGB8;
+			case ImageFormat::RGBA8:	return GL_RGBA8;
+			case ImageFormat::RGB16F:	return GL_RGB16F;
+			case ImageFormat::RGBA16F:	return GL_RGBA16F;
+			case ImageFormat::RG32F:	return GL_RG32F;
+			case ImageFormat::RGB32F:	return GL_RGB32F;
+			case ImageFormat::RGBA32F:	return GL_RGBA32F;
 			}
 
 			HVE_CORE_ASSERT(false);
@@ -37,6 +49,7 @@ namespace Engine {
 
 		m_InternalFormat = Utils::HeliosImageFormatToGLInternalFormat(m_Specification.Format);
 		m_DataFormat = Utils::HeliosImageFormatToGLDataFormat(m_Specification.Format);
+		m_IsFloat = m_InternalFormat == GL_RGB16F || m_InternalFormat == GL_RGBA16F || m_InternalFormat == GL_RGBA32F || m_InternalFormat == GL_RGB32F || m_InternalFormat == GL_RG32F;
 
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
 		if (m_Specification.Format == ImageFormat::DEPTH_COMPONENT) {
@@ -69,6 +82,7 @@ namespace Engine {
 	{
 		m_InternalFormat = Utils::HeliosImageFormatToGLInternalFormat(m_Specification.Format);
 		m_DataFormat = Utils::HeliosImageFormatToGLDataFormat(m_Specification.Format);
+		m_IsFloat = m_InternalFormat == GL_RGB16F || m_InternalFormat == GL_RGBA16F || m_InternalFormat == GL_RGBA32F || m_InternalFormat == GL_RGB32F || m_InternalFormat == GL_RG32F;
 
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
 		glTextureStorage2D(m_RendererID, 1, m_InternalFormat, m_Width, m_Height);
@@ -107,8 +121,6 @@ namespace Engine {
 
 	Texture2D::~Texture2D()
 	{
-		
-
 		glDeleteTextures(1, &m_RendererID);
 	}
 
@@ -117,11 +129,55 @@ namespace Engine {
 		uint32_t bpp = m_DataFormat == GL_RGBA ? 4 : 3;
 		HVE_CORE_ASSERT(data.Size == m_Width * m_Height * bpp, "Data must be entire texture!");
 		m_IsLoaded = true;
-		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data.Data);
+
+		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, m_IsFloat ? GL_FLOAT : GL_UNSIGNED_BYTE, data.Data);
 	}
 
 	void Texture2D::Bind(uint32_t slot) const
 	{
 		glBindTextureUnit(slot, m_RendererID);
+	}
+
+
+	TextureCube::TextureCube(Ref<Texture2D> map_texture, uint32_t size, ImageFormat format) : m_FlattenedTexture(map_texture), m_Size(size)
+	{
+		bool is_proper_format = format == ImageFormat::RGB16F || format == ImageFormat::RGBA16F || format == ImageFormat::RGB32F || format == ImageFormat::RGBA32F;
+		HVE_CORE_ASSERT(is_proper_format, "Cubemap pixels must be of type float to capture those sweet sweet details");
+
+		glGenTextures(1, &m_RendererID);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID);
+		for (unsigned int i = 0; i < 6; ++i)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, Utils::HeliosImageFormatToGLInternalFormat(format), m_Size, m_Size, 0,
+						 GL_RGB, GL_FLOAT, nullptr);
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+	}
+
+	TextureCube::~TextureCube()
+	{
+		glDeleteTextures(1, &m_RendererID);
+	}
+
+	void TextureCube::Bind(uint32_t slot) const
+	{
+		glBindTextureUnit(slot, m_RendererID);
+	}
+	void TextureCube::SetData(Buffer data)
+	{
+		m_FlattenedTexture->SetData(data);
+	}
+	void TextureCube::GenerateMipMap()
+	{
+		Bind();
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 	}
 }

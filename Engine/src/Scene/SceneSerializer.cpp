@@ -12,12 +12,18 @@ namespace Engine{
 
 	void SceneSerializer::Serializer(const std::filesystem::path& directory, Scene* scene)
 	{
+		auto skybox_settings = scene->GetSkybox();
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene";
 		out << YAML::BeginMap;
 		out << YAML::Key << "Handle" << YAML::Value << scene->Handle;
 		out << YAML::Key << "Name" << YAML::Value << scene->GetName();
+		out << YAML::Key << "Skybox";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Texture" << YAML::Value << skybox_settings.Texture->Handle;
+		out << YAML::Key << "Brightness" << YAML::Value << skybox_settings.Brightness;
+		out << YAML::EndMap;
 		out << YAML::EndMap;
 
 		auto rootNode = scene->GetRootNode();
@@ -72,9 +78,19 @@ namespace Engine{
 			return nullptr;
 		};
 
+		SkyboxSettings skybox_settings{};
+
+
 		AssetHandle handle = root_node["Scene"]["Handle"].as<AssetHandle>(0);
 		std::string sceneName = root_node["Scene"]["Name"].as<std::string>();
+		if (root_node["Scene"]["Skybox"])
+		{
+			skybox_settings.Texture = AssetManager::GetAsset<TextureCube>(root_node["Scene"]["Skybox"]["Texture"].as<AssetHandle>(0));
+			skybox_settings.Brightness = root_node["Scene"]["Skybox"]["Brightness"].as<float>();
+		}
+
 		Ref<Scene> new_scene = CreateRef<Scene>(sceneName);
+		new_scene->SetSkybox(skybox_settings);
 
 		if (root_node["Entities"])
 		{

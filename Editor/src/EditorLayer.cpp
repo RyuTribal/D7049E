@@ -3,6 +3,7 @@
 #include "Panels/SceneGraph.h"
 #include "Panels/ContentBrowser.h"
 #include "Panels/ProjectSettings.h"
+#include "Panels/SceneSettings.h"
 #include <imgui/imgui_internal.h>
 
 namespace Editor {
@@ -302,7 +303,7 @@ namespace Editor {
 		ImGui::End();
 
 		ImGui::Begin("Scene Settings");
-
+		EditorPanels::SceneSettings::Render(m_CurrentScene);
 		ImGui::End();
 
 		UIToolBar();
@@ -582,6 +583,8 @@ namespace Editor {
 
 		std::string new_title = std::filesystem::path(project_path).stem().string() + " - Editor";
 		Application::Get().GetWindow().SetTitle(new_title);
+
+		EditorPanels::ContentBrowser::Recreate();
 	}
 
 	void EditorLayer::BeginOpenProject()
@@ -595,6 +598,8 @@ namespace Editor {
 			m_NewProjectPathBuffer[sizeof(m_NewProjectPathBuffer) - 1] = '\0';
 			OpenNewProject(std::string(m_NewProjectPathBuffer));
 		}
+		Input::ClearKeyStates(); // Needed because if you open it through the shortcuts, since it locks the thread, the keystate for control will stay as pressed and not as released
+		ImGuiLayer::ResetKeyStates(); // Same for ImGui
 	}
 
 	void EditorLayer::SaveProject()

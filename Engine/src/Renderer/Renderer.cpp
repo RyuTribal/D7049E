@@ -11,6 +11,8 @@ namespace Engine
 		Ref<Texture2D> Black;
 		Ref<Texture2D> Gray;
 		Ref<Texture2D> Blue;
+
+		Ref<Texture2D> Black_Flat_Cube;
 	};
 	
 	static DefaultTextures* s_DefaultTextures;
@@ -28,17 +30,24 @@ namespace Engine
 		default_texture_spec.Width = 1;
 		default_texture_spec.Height = 1;
 
+		TextureSpecification default_cube_texture_spec;
+		default_cube_texture_spec.Format = ImageFormat::RGBA16F;
+		default_cube_texture_spec.Width = 1;
+		default_cube_texture_spec.Height = 1;
+
 		uint32_t whiteTextureData = 0xffffffff;
 		s_DefaultTextures->White = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
 
 		uint32_t blackTextureData = 0xff000000;
-		s_DefaultTextures->Black = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
+		s_DefaultTextures->Black = Texture2D::Create(default_texture_spec, Buffer(&blackTextureData, sizeof(uint32_t)));
+
+		s_DefaultTextures->Black_Flat_Cube = Texture2D::Create(default_cube_texture_spec, Buffer(&blackTextureData, sizeof(uint32_t)));
 
 		uint32_t grayTextureData = 0xff808080;
-		s_DefaultTextures->Gray = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
+		s_DefaultTextures->Gray = Texture2D::Create(default_texture_spec, Buffer(&grayTextureData, sizeof(uint32_t)));
 
 		uint32_t blueTextureData = 0xffff8080;
-		s_DefaultTextures->Blue = Texture2D::Create(default_texture_spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
+		s_DefaultTextures->Blue = Texture2D::Create(default_texture_spec, Buffer(&blueTextureData, sizeof(uint32_t)));
 
 		m_LightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(PointLightInfo) * MAX_POINT_LIGHTS, 2);
 		m_DirLightsSSBO = CreateRef<ShaderStorageBuffer>(sizeof(DirectionalLightInfo) * MAX_DIR_LIGHTS, 0);
@@ -77,14 +86,157 @@ namespace Engine
 		m_ShaderLibrary.Load("forward_plus_light_culling", "Resources/Shaders/light_culling_shader");
 		m_ShaderLibrary.Load("hdr_shader", "Resources/Shaders/hdr_shader");
 		m_ShaderLibrary.Load("line_shader", "Resources/Shaders/line");
-		m_ShaderLibrary.Load("fxaa", "Resources/Shaders/FXAA");
+		m_ShaderLibrary.Load("rect_to_cube", "Resources/Shaders/equirectangular_map");
+		m_ShaderLibrary.Load("env_prefilter", "Resources/Shaders/env_map_prefilter");
+		m_ShaderLibrary.Load("env_brdf", "Resources/Shaders/env_brdf");
+		m_ShaderLibrary.Load("env_map_convolution", "Resources/Shaders/env_map_convolution");
+		m_ShaderLibrary.Load("skybox_shader", "Resources/Shaders/skybox");
 
 		ResizeBuffers();
+
+
+		CreateSkybox(m_Settings.Skybox);
+
+		auto brdf_shader = m_ShaderLibrary.Get("env_brdf");
+		if (brdf_shader)
+		{
+			FramebufferSpecification brdfSpec = {};
+			brdfSpec.Width = 512;
+			brdfSpec.Height = 512;
+			brdfSpec.Attachments = {
+					FramebufferTextureFormat::RG16F,
+					FramebufferTextureFormat::DEPTH24STENCIL8
+			};
+			m_BRDFBuffer = Framebuffer::Create(brdfSpec);
+
+			m_BRDFBuffer->Bind();
+			m_RendererAPI.SetViewport(0, 0, 512, 512);
+			brdf_shader->Activate();
+			m_RendererAPI.ClearAll();
+			m_RendererAPI.DrawQuad();
+			m_BRDFBuffer->Unbind();
+		}
+		else
+		{
+			HVE_CORE_WARN("No brdf shader detected, this will make the pbr shader look weird");
+		}
+
     }
 
     Renderer::~Renderer() {
 		delete s_DefaultTextures;
     }
+
+
+	void Renderer::CreateSkybox(SkyboxSettings& settings)
+	{
+		if (settings.Texture == nullptr)
+		{
+			return;
+		}
+
+		FramebufferSpecification skyboxSpec = {};
+		skyboxSpec.Width = settings.Texture->GetHeight(); // it returns the size anyway
+		skyboxSpec.Height = settings.Texture->GetHeight();
+		skyboxSpec.Attachments = {
+				FramebufferTextureFormat::RGBA32F,
+				FramebufferTextureFormat::DEPTH24STENCIL8
+		};
+		Ref<Framebuffer> skybox_fb = Framebuffer::Create(skyboxSpec);
+
+		auto rect_to_cube_shader = m_ShaderLibrary.Get("rect_to_cube");
+
+		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+		glm::mat4 captureViews[] =
+		{
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+		};
+
+		rect_to_cube_shader->Set("u_EnvironmentMap", 0);
+		rect_to_cube_shader->Set("u_Projection", captureProjection);
+		settings.Texture->GetFlatTexture()->Bind();
+
+		m_RendererAPI.SetViewport(0, 0, settings.Texture->GetHeight(), settings.Texture->GetHeight());
+		skybox_fb->Bind();
+		for (unsigned int i = 0; i < 6; ++i)
+		{
+			rect_to_cube_shader->Set("u_View", captureViews[i]);
+			skybox_fb->SetTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, settings.Texture->GetRendererID());
+			m_RendererAPI.ClearAll();
+
+			rect_to_cube_shader->Activate();
+			m_RendererAPI.DrawCube();
+		}
+
+		skybox_fb->Unbind();
+
+
+		settings.Texture->GenerateMipMap();
+
+
+		settings.PrefilterMap = TextureCube::Create(settings.Texture->GetFlatTexture(), settings.PrefilterResolution);
+		settings.PrefilterMap->GenerateMipMap();
+
+		auto prefilter_shader = m_ShaderLibrary.Get("env_prefilter");
+
+		prefilter_shader->Set("u_EnvironmentMap", 0);
+		prefilter_shader->Set("u_Projection", captureProjection);
+
+		settings.Texture->Bind();
+		unsigned int maxMipLevels = 5;
+		for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
+		{
+			// reisze framebuffer according to mip-level size.
+			unsigned int mipWidth = static_cast<unsigned int>(settings.PrefilterResolution * std::pow(0.5, mip));
+			unsigned int mipHeight = static_cast<unsigned int>(settings.PrefilterResolution * std::pow(0.5, mip));
+			skybox_fb->Resize(mipWidth, mipHeight);
+			m_RendererAPI.SetViewport(0, 0, mipWidth, mipHeight);
+
+			float roughness = (float)mip / (float)(maxMipLevels - 1);
+			prefilter_shader->Set("u_Roughness", roughness);
+			skybox_fb->Bind();
+			for (unsigned int i = 0; i < 6; ++i)
+			{
+				prefilter_shader->Set("u_View", captureViews[i]);
+				skybox_fb->SetTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, settings.PrefilterMap->GetRendererID(), mip);
+				prefilter_shader->Activate();
+
+				m_RendererAPI.ClearAll();
+				m_RendererAPI.DrawCube();
+			}
+			skybox_fb->Unbind();
+		}
+
+		skybox_fb->Resize(settings.IrradianceResolution, settings.IrradianceResolution);
+
+		auto irradiance_shader = m_ShaderLibrary.Get("env_map_convolution");
+		irradiance_shader->Set("u_EnvironmentMap", 0);
+		irradiance_shader->Set("u_Projection", captureProjection);
+
+		settings.IrradianceTexture = TextureCube::Create(settings.Texture->GetFlatTexture(), settings.IrradianceResolution);
+
+		settings.Texture->Bind();
+
+		skybox_fb->Bind();
+		m_RendererAPI.SetViewport(0, 0, settings.IrradianceResolution, settings.IrradianceResolution);
+
+		for (unsigned int i = 0; i < 6; ++i)
+		{
+			irradiance_shader->Set("u_View", captureViews[i]);
+			skybox_fb->SetTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, settings.IrradianceTexture->GetRendererID());
+			m_RendererAPI.ClearAll();
+
+			irradiance_shader->Activate();
+			m_RendererAPI.DrawCube();
+		}
+
+		skybox_fb->Unbind();
+	}
 
 	void Renderer::SubmitObject(Ref<Mesh> mesh)
 	{
@@ -138,6 +290,15 @@ namespace Engine
 	{
 		m_Settings.AntiAliasing = settings;
 		RecreateBuffers();
+	}
+
+	void Renderer::SetSkybox(SkyboxSettings& settings)
+	{
+		if (settings.Texture != m_Settings.Skybox.Texture)
+		{
+			CreateSkybox(settings);
+		}
+		m_Settings.Skybox = settings;
 	}
 
 	void Renderer::DepthPrePass()
@@ -215,6 +376,24 @@ namespace Engine
 		m_SceneFramebuffer->Unbind();
 	}
 
+	void Renderer::DrawSkybox()
+	{
+		if (m_Settings.Skybox.Texture != nullptr)
+		{
+			m_RendererAPI.SetDepthFunction(LEqual);
+			m_Settings.Skybox.Texture->Bind();
+			auto shader = m_ShaderLibrary.Get("skybox_shader");
+			glm::mat4 view = glm::mat4(glm::mat3(m_CurrentCamera->GetView()));
+			shader->Set("u_CameraView", view);
+			shader->Set("u_Brightness", m_Settings.Skybox.Brightness);
+			shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
+			shader->Activate();
+			m_RendererAPI.DrawCube();
+			m_RendererAPI.SetDepthFunction(Less);
+			m_Stats.draw_calls++;
+		}
+	}
+
 	void Renderer::DrawIndexed(Ref<Mesh> mesh, bool use_material)
 	{
 		HVE_PROFILE_FUNC();
@@ -223,6 +402,11 @@ namespace Engine
 			Ref<Material> material = mesh->GetMeshSource()->GetMaterials()[mesh->GetMeshSource()->GetSubmeshes()[i].MaterialIndex];
 			if (use_material)
 			{
+				m_Settings.Skybox.IrradianceTexture->Bind(10);
+				m_Settings.Skybox.PrefilterMap->Bind(11);
+				m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE12);
+				m_RendererAPI.BindTexture(m_BRDFBuffer->GetColorAttachmentRendererID());
+				material->Set("u_EnvironmentBrightness", m_Settings.Skybox.Brightness);
 				material->Set("u_CameraPos", GetCamera()->CalculatePosition());
 				material->Set("u_CameraView", GetCamera()->GetView());
 				material->Set("u_CameraProjection", Renderer::Get()->GetCamera()->GetProjection());
@@ -267,11 +451,14 @@ namespace Engine
 
 		m_HDRFramebuffer->Bind();
 		m_RendererAPI.ClearAll();
-		ShadeAllObjects();
 
 		m_RendererAPI.SetDepthWriting(false);
+		DrawSkybox();
 		DrawDebugObjects();
 		m_RendererAPI.SetDepthWriting(true);
+
+
+		ShadeAllObjects();
 
 		m_HDRFramebuffer->Unbind();
 
@@ -384,6 +571,7 @@ namespace Engine
 		glBindVertexArray(m_QuadVAO);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
+		m_Stats.draw_calls++;
 	}
 
 	void Renderer::DrawDebugObjects()
@@ -450,6 +638,7 @@ namespace Engine
 		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
 		shader->Activate();
 		m_RendererAPI.DrawInstancedLines(m_DebugLines);
+		m_Stats.draw_calls++;
 	}
 
 	void Renderer::ResizeViewport(int width, int height)

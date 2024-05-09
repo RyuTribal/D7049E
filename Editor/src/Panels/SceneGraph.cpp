@@ -541,7 +541,7 @@ namespace EditorPanels {
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
-			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f);
+			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f, 0.0f, 100.f);
 			light.SetIntensity(intensity);
 			ImGui::Columns(1);
 
@@ -550,7 +550,7 @@ namespace EditorPanels {
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Attenuations (constant, linear, quadratic)");
 			ImGui::NextColumn();
-			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f);
+			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f, 0.0f, 100.f);
 			light.SetConstantAttenuation(attenuations[0]);
 			light.SetLinearAttenuation(attenuations[1]);
 			light.SetQuadraticAttenuation(attenuations[2]);
@@ -574,12 +574,16 @@ namespace EditorPanels {
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
-			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f))
+			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f, 0.0f, 100.f))
 			{
 				light.SetIntensity(intensity);
 			}
 			ImGui::Columns(1);
 
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Direction");
+			ImGui::NextColumn();
 			glm::quat curr_direction = light.GetDirection();
 			quat qRot = quat(curr_direction.w, curr_direction.x, curr_direction.y, curr_direction.z);
 			if (ImGui::gizmo3D("##gizmo_light_dir", qRot, 100, imguiGizmo::modeDirection))
@@ -587,6 +591,7 @@ namespace EditorPanels {
 				curr_direction = glm::quat(qRot.w, qRot.x, qRot.y, qRot.z);
 				light.SetDirection(curr_direction);
 			}
+			ImGui::Columns(1);
 
 		});
 
@@ -711,6 +716,8 @@ namespace EditorPanels {
 
 			DrawDropBox("Add sound file here");
 		});
+
+		
 
 		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
 		{

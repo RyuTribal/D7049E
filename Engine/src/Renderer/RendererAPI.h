@@ -1,5 +1,6 @@
 #pragma once
 #include "VertexArray.h"
+#include "ShaderProgram.h"
 
 namespace Engine {
 	enum TextureUnits {
@@ -38,6 +39,12 @@ namespace Engine {
 		
 	};
 
+	enum DepthFunction
+	{
+		LEqual,
+		Less
+	};
+
 	struct Line
 	{
 		glm::vec3 Start;
@@ -56,9 +63,13 @@ namespace Engine {
 		void ClearDepth();
 		void ClearColor();
 
+		void SetDepthFunction(DepthFunction func);
+
 		void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0);
 		void DrawInstancedLines(std::vector<Line>& lines);
 		void DrawLine(const glm::vec3& start, const glm::vec3& end);
+		void DrawQuad();
+		void DrawCube();
 
 		void UseShaderProgram(uint32_t id);
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);

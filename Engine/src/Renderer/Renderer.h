@@ -72,9 +72,13 @@ namespace Engine
 
 	struct SkyboxSettings
 	{
-		Ref<Texture> Texture;
+		Ref<TextureCube> Texture;
 		float Brightness = 1.0f;
-		float AmbientLightIntensity = 1.0f;
+		int IrradianceResolution = 32;
+		Ref<TextureCube> IrradianceTexture;
+		int PrefilterResolution = 128;
+		Ref<TextureCube> PrefilterMap;
+		Ref<Framebuffer> BRDFBuffer;
 	};
 
 	struct RendererSettings
@@ -213,6 +217,7 @@ namespace Engine
 
 		RendererSettings& GetSettings() { return m_Settings; }
 		void SetAntiAliasing(AntiAliasingSettings& settings);
+		void SetSkybox(SkyboxSettings& settings);
 
 	private:
 
@@ -220,6 +225,9 @@ namespace Engine
 		void CullLights();
 		void ShadeAllObjects();
 		void ShadeHDR();
+		void DrawSkybox();
+
+		void CreateSkybox(SkyboxSettings& settings);
 
 		void ResetStats();
 		void RecreateBuffers();
@@ -244,6 +252,7 @@ namespace Engine
 		Ref<ShaderStorageBuffer> m_LightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_DirLightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_VisibleLightsSSBO = nullptr;
+		Ref<Framebuffer> m_BRDFBuffer = nullptr;
 		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
 		Ref<Framebuffer> m_Intermidiatebuffer = nullptr;
 		Ref<Framebuffer> m_SceneFramebuffer = nullptr;
@@ -257,6 +266,8 @@ namespace Engine
 		std::vector<Ref<Mesh>> m_Meshes{};
 		std::vector<PointLight*> m_PointLights{};
 		std::vector<DirectionalLight*> m_DirectionalLights{};
+
+
 
 		std::vector<Line> m_DebugLines{};
 		std::vector<DebugBox> m_DebugBoxes{};

@@ -23,6 +23,8 @@ namespace Engine
 
 		void BlockEvents(bool block) { m_BlockEvents = block; }
 		void SetDarkThemeColors();
+
+		static void ResetKeyStates();
 	private:
 		bool m_BlockEvents = true;
 

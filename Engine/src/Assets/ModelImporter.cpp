@@ -4,6 +4,7 @@
 #include "Project/Project.h"
 #include "TextureImporter.h"
 #include "Serialization/YAMLSerializer.h"
+#include <stb_image.h>
 
 static const uint32_t s_MeshImportFlags =
 	aiProcess_CalcTangentSpace |        // Create binormals/tangents just in case
@@ -48,6 +49,8 @@ namespace Engine {
 		// Materials
 		Ref<Texture2D> WhiteTexture = Renderer::GetWhiteTexture();
 		Ref<Texture2D> BlueTexture = Renderer::GetBlueTexture();
+		Ref<Texture2D> BlackTexture = Renderer::GetBlackTexture();
+		Ref<Texture2D> GrayTexture = Renderer::GetGrayTexture();
 		if (scene->HasMaterials())
 		{
 			materials.resize(scene->mNumMaterials);
@@ -80,7 +83,7 @@ namespace Engine {
 				if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) != aiReturn_SUCCESS)
 					roughness = 0.5f;
 
-				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
+				if (aiMaterial->Get(AI_MATKEY_METALLIC_FACTOR, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
 
 				HVE_CORE_TRACE_TAG("Model Library","    COLOR = {0}, {1}, {2}", aiColor.r, aiColor.g, aiColor.b);
@@ -95,10 +98,24 @@ namespace Engine {
 					TextureSpecification spec;
 					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
 					{
-						spec.Format = ImageFormat::RGBA8;
-						spec.Width = aiTexEmbedded->mWidth;
-						spec.Height = aiTexEmbedded->mHeight;
-						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
+						
+						Buffer image_data;
+						int width, height, channels;
+						if (aiTexEmbedded->mHeight == 0)
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth, &width, &height, &channels, 0);
+						}
+						else
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth * aiTexEmbedded->mHeight, &width, &height, &channels, 0);
+						}
+
+						spec.Format = channels == 3 ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+						spec.Width = (uint32_t)width;
+						spec.Height = (uint32_t)height;
+						image_data.Size = spec.Width * spec.Height * channels;
+
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, image_data);
 					}
 					else
 					{
@@ -109,7 +126,7 @@ namespace Engine {
 							texturePath = directory / texturePath.filename();
 						}
 						HVE_CORE_TRACE_TAG("Model Library", "    Albedo map path = {0}", texturePath);
-						auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
+						auto new_texture = TextureImporter::Import2DWithPath(texturePath.string());
 						if (new_texture)
 						{
 							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
@@ -136,6 +153,71 @@ namespace Engine {
 					material->Set("u_AlbedoTexture", WhiteTexture, TextureSlots::Albedo);
 				}
 
+				// Specular Color maps
+
+				bool hasSpecularMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == AI_SUCCESS;
+				fallback = !hasSpecularMap;
+
+				if (hasSpecularMap)
+				{
+					UUID texture_id;
+					TextureSpecification spec;
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+
+						Buffer image_data;
+						int width, height, channels;
+						if (aiTexEmbedded->mHeight == 0)
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth, &width, &height, &channels, 0);
+						}
+						else
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth * aiTexEmbedded->mHeight, &width, &height, &channels, 0);
+						}
+
+						spec.Format = channels == 3 ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+						spec.Width = (uint32_t)width;
+						spec.Height = (uint32_t)height;
+						image_data.Size = spec.Width * spec.Height * channels;
+
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, image_data);
+					}
+					else
+					{
+						auto texturePath = directory / aiTexPath.C_Str();
+						if (!std::filesystem::exists(texturePath))
+						{
+							HVE_CORE_TRACE_TAG("Model Library", "    Specular color map path = {0} --> NOT FOUND", texturePath);
+							texturePath = directory / texturePath.filename();
+						}
+						HVE_CORE_TRACE_TAG("Model Library", "    Specular color map path = {0}", texturePath);
+						auto new_texture = TextureImporter::Import2DWithPath(texturePath.string());
+						if (new_texture)
+						{
+							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
+						}
+					}
+
+					Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
+					if (texture && texture->IsLoaded())
+					{
+						material->Set("u_SpecularTexture", texture, TextureSlots::SpecularColor);
+					}
+					else
+					{
+						HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+						fallback = true;
+					}
+
+				}
+
+				if (fallback)
+				{
+					HVE_CORE_TRACE_TAG("Model Library", "    No specular color map");
+					material->Set("u_SpecularTexture", WhiteTexture, TextureSlots::SpecularColor);
+				}
+
 
 				// Normal maps
 				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == AI_SUCCESS;
@@ -146,11 +228,23 @@ namespace Engine {
 					TextureSpecification spec;
 					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
 					{
-						spec.Format = ImageFormat::RGBA8;
-						spec.Width = aiTexEmbedded->mWidth;
-						spec.Height = aiTexEmbedded->mHeight;
-						Ref<Texture2D> texture = Texture2D::Create(spec, aiTexEmbedded->pcData);
-						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
+						Buffer image_data;
+						int width, height, channels;
+						if (aiTexEmbedded->mHeight == 0)
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth, &width, &height, &channels, 0);
+						}
+						else
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth * aiTexEmbedded->mHeight, &width, &height, &channels, 0);
+						}
+
+						spec.Format = channels == 3 ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+						spec.Width = (uint32_t)width;
+						spec.Height = (uint32_t)height;
+						image_data.Size = spec.Width * spec.Height * channels;
+
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, image_data);
 					}
 					else
 					{
@@ -161,7 +255,7 @@ namespace Engine {
 							texturePath = directory / texturePath.filename();
 						}
 						HVE_CORE_TRACE_TAG("Model Library", "    Normal map path = {0}", texturePath);
-						auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
+						auto new_texture = TextureImporter::Import2DWithPath(texturePath.string());
 						if (new_texture)
 						{
 							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
@@ -199,11 +293,23 @@ namespace Engine {
 					TextureSpecification spec;
 					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
 					{
-						spec.Format = ImageFormat::RGBA8;
-						spec.Width = aiTexEmbedded->mWidth;
-						spec.Height = aiTexEmbedded->mHeight;
-						Ref<Texture2D> texture = Texture2D::Create(spec, aiTexEmbedded->pcData);
-						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
+						Buffer image_data;
+						int width, height, channels;
+						if (aiTexEmbedded->mHeight == 0)
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth, &width, &height, &channels, 0);
+						}
+						else
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth * aiTexEmbedded->mHeight, &width, &height, &channels, 0);
+						}
+
+						spec.Format = channels == 3 ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+						spec.Width = (uint32_t)width;
+						spec.Height = (uint32_t)height;
+						image_data.Size = spec.Width * spec.Height * channels;
+
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, image_data);
 					}
 					else
 					{
@@ -214,7 +320,7 @@ namespace Engine {
 							texturePath = directory / texturePath.filename();
 						}
 						HVE_CORE_TRACE_TAG("Model Library", "    Roughness map path = {0}", texturePath);
-						auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
+						auto new_texture = TextureImporter::Import2DWithPath(texturePath.string());
 						if (new_texture)
 						{
 							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
@@ -242,67 +348,193 @@ namespace Engine {
 				}
 
 				//Metalness
-
-				bool metalnessTextureFound = false;
-				for (uint32_t p = 0; p < aiMaterial->mNumProperties; p++)
+				bool hasMetalMap = aiMaterial->GetTexture(aiTextureType_UNKNOWN, 0, &aiTexPath) == AI_SUCCESS;
+				fallback = !hasMetalMap;
+				if (hasMetalMap)
 				{
-					auto prop = aiMaterial->mProperties[p];
-
-					if (prop->mType == aiPTI_String)
+					UUID texture_id;
+					TextureSpecification spec;
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
 					{
-						uint32_t strLength = *(uint32_t*)prop->mData;
-						std::string str(prop->mData + 4, strLength);
-
-						std::string key = prop->mKey.data;
-						if (key == "$raw.ReflectionFactor|file")
+						Buffer image_data;
+						int width, height, channels;
+						if (aiTexEmbedded->mHeight == 0)
 						{
-							UUID texture_id;
-							TextureSpecification spec;
-							if (auto aiTexEmbedded = scene->GetEmbeddedTexture(str.data()))
-							{
-								spec.Format = ImageFormat::RGBA8;
-								spec.Width = aiTexEmbedded->mWidth;
-								spec.Height = aiTexEmbedded->mHeight;
-								Ref<Texture2D> texture = Texture2D::Create(spec, aiTexEmbedded->pcData);
-								texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, aiTexEmbedded->pcData);
-							}
-							else
-							{
-								auto texturePath = directory / aiTexPath.C_Str();
-								if (!std::filesystem::exists(texturePath))
-								{
-									HVE_CORE_TRACE_TAG("Model Library", "    Albedo map path = {0} --> NOT FOUND", texturePath);
-									texturePath = directory / texturePath.filename();
-								}
-								HVE_CORE_TRACE_TAG("Model Library", "    Metalness map path = {0}", texturePath);
-								auto new_texture = TextureImporter::ImportWithPath(texturePath.string());
-								if (new_texture)
-								{
-									texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
-								}
-							}
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth, &width, &height, &channels, 0);
+						}
+						else
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth * aiTexEmbedded->mHeight, &width, &height, &channels, 0);
+						}
 
-							Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
-							if (texture && texture->IsLoaded())
-							{
-								material->Set("u_MetalnessTexture", texture, TextureSlots::Metalness);
-								material->Set("u_MaterialUniforms.Metalness", 1.0f);
-							}
-							else
-							{
-								HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
-							}
-							break;
+						spec.Format = channels == 3 ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+						spec.Width = (uint32_t)width;
+						spec.Height = (uint32_t)height;
+						image_data.Size = spec.Width * spec.Height * channels;
+
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, image_data);
+					}
+					else
+					{
+						auto texturePath = directory / aiTexPath.C_Str();
+						if (!std::filesystem::exists(texturePath))
+						{
+							HVE_CORE_TRACE_TAG("Model Library", "    Metalness map path = {0} --> NOT FOUND", texturePath);
+							texturePath = directory / texturePath.filename();
+						}
+						HVE_CORE_TRACE_TAG("Model Library", "    Metalness map path = {0}", texturePath);
+						auto new_texture = TextureImporter::Import2DWithPath(texturePath.string());
+						if (new_texture)
+						{
+							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
 						}
 					}
+
+					Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
+
+					if (texture && texture->IsLoaded())
+					{
+						material->Set("u_MetalnessTexture", texture, TextureSlots::Metalness);
+						material->Set("u_MaterialUniforms.Metalness", metalness);
+					}
+					else
+					{
+						HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+						fallback = true;
+					}
 				}
-				fallback = !metalnessTextureFound;
+
 				if (fallback)
 				{
 					HVE_CORE_TRACE_TAG("Model Library", "    No metalness map");
 					material->Set("u_MetalnessTexture", WhiteTexture, TextureSlots::Metalness);
-					material->Set("u_MaterialUniforms.Metalness", metalness);
+					material->Set("u_MaterialUniforms.Metalness", 0.0f);
+				}
 
+
+				// AOTexture
+				bool hasAOMap = aiMaterial->GetTexture(aiTextureType_LIGHTMAP, 0, &aiTexPath) == AI_SUCCESS;
+				fallback = !hasAOMap;
+				if (hasAOMap)
+				{
+					UUID texture_id;
+					TextureSpecification spec;
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						Buffer image_data;
+						int width, height, channels;
+						if (aiTexEmbedded->mHeight == 0)
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth, &width, &height, &channels, 0);
+						}
+						else
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth * aiTexEmbedded->mHeight, &width, &height, &channels, 0);
+						}
+
+						spec.Format = channels == 3 ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+						spec.Width = (uint32_t)width;
+						spec.Height = (uint32_t)height;
+						image_data.Size = spec.Width * spec.Height * channels;
+
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, image_data);
+					}
+					else
+					{
+						auto texturePath = directory / aiTexPath.C_Str();
+						if (!std::filesystem::exists(texturePath))
+						{
+							HVE_CORE_TRACE_TAG("Model Library", "    AO map path = {0} --> NOT FOUND", texturePath);
+							texturePath = directory / texturePath.filename();
+						}
+						HVE_CORE_TRACE_TAG("Model Library", "    AO map path = {0}", texturePath);
+						auto new_texture = TextureImporter::Import2DWithPath(texturePath.string());
+						if (new_texture)
+						{
+							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
+						}
+					}
+
+					Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
+
+					if (texture && texture->IsLoaded())
+					{
+						material->Set("u_AOTexture", texture, TextureSlots::AO);
+					}
+					else
+					{
+						HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+						fallback = true;
+					}
+				}
+
+				if (fallback)
+				{
+					HVE_CORE_TRACE_TAG("Model Library", "    No ao map");
+					material->Set("u_AOTexture", WhiteTexture, TextureSlots::AO);
+				}
+
+
+				// Emission
+				bool hasEmissionMap = aiMaterial->GetTexture(aiTextureType_EMISSIVE, 0, &aiTexPath) == AI_SUCCESS;
+				fallback = !hasEmissionMap;
+				if (hasEmissionMap)
+				{
+					UUID texture_id;
+					TextureSpecification spec;
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						Buffer image_data;
+						int width, height, channels;
+						if (aiTexEmbedded->mHeight == 0)
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth, &width, &height, &channels, 0);
+						}
+						else
+						{
+							image_data.Data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexEmbedded->pcData), aiTexEmbedded->mWidth * aiTexEmbedded->mHeight, &width, &height, &channels, 0);
+						}
+
+						spec.Format = channels == 3 ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+						spec.Width = (uint32_t)width;
+						spec.Height = (uint32_t)height;
+						image_data.Size = spec.Width * spec.Height * channels;
+
+						texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(spec, image_data);
+					}
+					else
+					{
+						auto texturePath = directory / aiTexPath.C_Str();
+						if (!std::filesystem::exists(texturePath))
+						{
+							HVE_CORE_TRACE_TAG("Model Library", "    Emission map path = {0} --> NOT FOUND", texturePath);
+							texturePath = directory / texturePath.filename();
+						}
+						HVE_CORE_TRACE_TAG("Model Library", "    Emission map path = {0}", texturePath);
+						auto new_texture = TextureImporter::Import2DWithPath(texturePath.string());
+						if (new_texture)
+						{
+							texture_id = Project::GetActive()->GetDesignAssetManager()->CreateMemoryOnlyAsset<Texture2D>(new_texture);
+						}
+					}
+
+					Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(texture_id);
+
+					if (texture && texture->IsLoaded())
+					{
+						material->Set("u_EmissionTexture", texture, TextureSlots::Emissive);
+					}
+					else
+					{
+						HVE_CORE_ERROR_TAG("Mesh", "Could not load texture: {0}", aiTexPath.C_Str());
+						fallback = true;
+					}
+				}
+
+				if (fallback)
+				{
+					HVE_CORE_TRACE_TAG("Model Library", "    No emission map");
+					material->Set("u_EmissionTexture", BlackTexture, TextureSlots::Emissive);
 				}
 			}
 			HVE_CORE_TRACE_TAG("Model Library", "------------------------");
@@ -318,6 +550,9 @@ namespace Engine {
 			material->Set("u_AlbedoTexture", WhiteTexture, TextureSlots::Albedo);
 			material->Set("u_MetalnessTexture", WhiteTexture, TextureSlots::Metalness);
 			material->Set("u_RoughnessTexture", WhiteTexture, TextureSlots::Roughness);
+			material->Set("u_AOTexture", WhiteTexture, TextureSlots::AO);
+			material->Set("u_EmissionTexture", BlackTexture, TextureSlots::Emissive);
+			material->Set("u_SpecularTexture", WhiteTexture, TextureSlots::SpecularColor);
 			materials.push_back(material);
 		}
 
@@ -383,6 +618,10 @@ namespace Engine {
 				vertex.bitangent.x = mesh->mBitangents[i].x;
 				vertex.bitangent.y = mesh->mBitangents[i].y;
 				vertex.bitangent.z = mesh->mBitangents[i].z;
+			}
+			else
+			{
+				vertex.bitangent = glm::cross(vertex.tangent, vertex.normal);
 			}
 
 			if (mesh->mTextureCoords[0])

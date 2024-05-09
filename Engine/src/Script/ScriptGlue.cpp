@@ -288,7 +288,6 @@ namespace Engine {
 		}
 	}
 
-
 	template <typename... Component>
 	static void RegisterComponent()
 	{
@@ -301,7 +300,7 @@ namespace Engine {
 			s_HasComponentFuncs[managed_type] = [](Entity* entity) {return entity->HasComponent<Component>(); };
 			if (!managed_type)
 			{
-				HVE_CORE_ERROR("Could not find component type - {}", managedTypename);
+				HVE_CORE_WARN("Could not find component type - {}", managedTypename);
 				return;
 			}
 			HVE_CORE_TRACE("Bound classes C#: <{0}> to C++: <{1}>", managedTypename, class_name);

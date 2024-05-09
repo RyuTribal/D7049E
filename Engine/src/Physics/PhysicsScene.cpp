@@ -14,8 +14,8 @@ namespace Engine {
 	{
 		if (s_temporariesAllocator == nullptr || s_jobThreadPool == nullptr)
 		{
-			JPH::TempAllocator* s_temporariesAllocator = temporariesAllocator;
-			JPH::JobSystemThreadPool* s_jobThreadPool = jobThreadPool;
+			s_temporariesAllocator = temporariesAllocator;
+			s_jobThreadPool = jobThreadPool;
 		}
 
 		m_physics_system = CreateRef<JPH::PhysicsSystem>();
@@ -152,7 +152,6 @@ namespace Engine {
 			// Note: it is possible to have more than two layers but that has not been implemented yet
 		}
 
-		JPH::BodyID box_id;
 		JPH::Body* box_body;
 		// Add it to the world
 		if (activate)
@@ -174,7 +173,7 @@ namespace Engine {
 		this->s_hasOptimized = false;
 		this->m_bodyMap[entity_id] = box_body;
 
-		return HBodyID(entity_id, box_id);
+		return HBodyID(entity_id, box_body->GetID());
 	}
 
 	HBodyID PhysicsScene::CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate)
@@ -200,7 +199,6 @@ namespace Engine {
 		{
 			sphere_settings = JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::MOVING);
 		}
-		JPH::BodyID sphere_id;
 		JPH::Body* sphere_body;
 		if (activate)
 		{
@@ -221,7 +219,7 @@ namespace Engine {
 		this->s_hasOptimized = false;
 		this->m_bodyMap[entity_id] = sphere_body;
 
-		return HBodyID(entity_id, sphere_id);
+		return HBodyID(entity_id, sphere_body->GetID());
 	}
 
 	HBodyID PhysicsScene::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset, std::uint64_t userData)
@@ -423,6 +421,13 @@ namespace Engine {
 	bool PhysicsScene::IsActive(UUID entity_id)
 	{
 		JPH::BodyID jolt_id = HBodyID::GetBodyID(entity_id);
+
+		return (this->m_body_interface)->IsActive(jolt_id);
+	}
+
+	bool PhysicsScene::IsActive(HBodyID h_id)
+	{
+		JPH::BodyID jolt_id = h_id.GetBodyID();
 
 		return (this->m_body_interface)->IsActive(jolt_id);
 	}

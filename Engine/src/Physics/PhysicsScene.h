@@ -170,6 +170,7 @@ namespace Engine {
 		void DestroyAllCharacters();
 		void DestroyAll();
 		bool IsActive(UUID entity_id);
+		bool IsActive(HBodyID h_id);
 		bool HasCollider(UUID entity_id);
 		void SetCollisionAndIntegrationSteps(int collisionSteps, int integrationSubSteps);
 		glm::vec3 GetCenterOfMassPosition(UUID id);

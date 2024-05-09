@@ -76,6 +76,9 @@ namespace Engine {
 		// Destroy the factory
 		delete JPH::Factory::sInstance;
 		JPH::Factory::sInstance = nullptr;
+
+		s_current_scene = nullptr;
+		s_sceneMap.clear();
 	}
 
 
@@ -156,13 +159,13 @@ namespace Engine {
 		HBodyID box_id = scene->CreateBox(box, glm::vec3(100.0f, 1.0f, 100.0f), glm::vec3(0.0, -1.0, 0.0), HEMotionType::Static, offset, false);
 		HBodyID sphere_id = scene->CreateSphere(sphere, 0.5f, glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, offset, true);
 		//HBodyID sphere_id = engin->CreateBox(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0, 2.0, 0.0), HEMotionType::Dynamic, true);
-		glm::vec3 velocity = glm::vec3(1.0f, 0.0f, 0.0f);;
+		glm::vec3 velocity = glm::vec3(0.0f, -5.0f, 0.0f);
 		scene->SetLinearVelocity(sphere, velocity);
 		scene->OptimizeBroadPhase();
 
 		int stepCounter = 0;
 		std::cout << "Starting simulation" << std::endl;
-		while (scene->IsActive(sphere) && stepCounter < 200)
+		while (scene->IsActive(sphere_id) && stepCounter < 200)
 		{
 			++stepCounter;
 			glm::vec3 position = scene->GetCenterOfMassPosition(sphere);
@@ -172,5 +175,7 @@ namespace Engine {
 
 		}
 		std::cout << "Finished the tmp simulation" << std::endl;
+
+		engin->Shutdown();
 	}
 }

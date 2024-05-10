@@ -13,7 +13,7 @@ namespace Engine {
 		public:
 			HBodyID(UUID entity_id, JPH::BodyID value);
 			// static UUID InsertNewID(JPH::BodyID value);
-			static JPH::BodyID GetBodyID(UUID id);		// TODO: remove these static functions
+			static JPH::BodyID GetBodyID(UUID id);
 			JPH::BodyID GetBodyID();
 
 			static void EmptyMap();

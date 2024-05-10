@@ -127,6 +127,11 @@ namespace Engine {
 
 		virtual void			OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
 		{
+			std::uint64_t data1 = (std::uint64_t) inBody1.GetUserData();
+			std::uint64_t data2 = (std::uint64_t) inBody2.GetUserData();
+			
+			this->m_CurrentScene->AddNewContact(data1, data2);
+
 			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
 				std::cout << "On Contact Added" << std::endl;
 			HVE_CORE_TRACE("A contact was added");
@@ -134,6 +139,12 @@ namespace Engine {
 
 		virtual void			OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
 		{
+			std::uint64_t data1 = (std::uint64_t)inBody1.GetUserData();
+			std::uint64_t data2 = (std::uint64_t)inBody2.GetUserData();
+			inBody1.GetID()
+
+			this->m_CurrentScene->AddPersistContact(data1, data2);
+
 			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
 				std::cout << "On Contact Persisted" << std::endl;
 			HVE_CORE_TRACE("A contact was persisted");
@@ -141,11 +152,28 @@ namespace Engine {
 
 		virtual void			OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
 		{
+			JPH::BodyID id1 = inSubShapePair.GetBody1ID();
+			JPH::BodyID id2 = inSubShapePair.GetBody2ID();
+
+			std::uint64_t data1 = m_CurrentScene->GetUserData(id1);
+			std::uint64_t data2 = m_CurrentScene->GetUserData(id2);
+
+			this->m_CurrentScene->AddRemoveContact(data1, data2);
+
 			std::cout << "On Contact Removed" << std::endl;
 			HVE_CORE_TRACE("A contact was removed");
 		}
+
+		void SetCurrentScene(PhysicsScene* current_scene)
+		{
+			this->m_CurrentScene = current_scene;
+		}
+
+	private:
+		PhysicsScene* m_CurrentScene;
 	};
 
+	//static PhysicsScene* s_CurrentScene = nullptr;
 
 	class PhysicsScene
 	{
@@ -184,12 +212,23 @@ namespace Engine {
 		bool IsActive(HBodyID h_id);
 		bool HasCollider(UUID entity_id);
 		void SetCollisionAndIntegrationSteps(int collisionSteps, int integrationSubSteps);
+
+		UUID GetUserData(JPH::BodyID id);	// This is actually internal
+
+		void AddNewContact(UUID id1, UUID id2);
+		void AddPersistContact(UUID id1, UUID id2);
+		void AddRemoveContact(UUID id1, UUID id2);
+		std::vector<std::pair<UUID, UUID>> GetNewContacts();
+		std::vector<std::pair<UUID, UUID>> GetPersistContacts();
+		std::vector<std::pair<UUID, UUID>> GetRemovedContacts();
+
 		glm::vec3 GetCenterOfMassPosition(UUID id);
 		glm::vec3 GetPosition(UUID id);
 		glm::mat4x4 GetCenterOfMassTransform(UUID id);
 		glm::mat4 GetTransform(UUID id);
 		glm::vec3 GetLinearVelocity(UUID entity_id);
 		glm::vec3 GetAngularVelocity(UUID entity_id);
+
 
 	private:
 
@@ -220,6 +259,9 @@ namespace Engine {
 
 		std::map<UUID, JPH::Body*> m_bodyMap = std::map<UUID, JPH::Body*>();
 		std::map<UUID, JPH::Character*> m_characterMap = std::map<UUID, JPH::Character*>();
+		std::vector<std::pair<UUID, UUID>> m_newContact = std::vector<std::pair<UUID, UUID>>();
+		std::vector<std::pair<UUID, UUID>> m_persistContact = std::vector<std::pair<UUID, UUID>>();
+		std::vector<std::pair<UUID, UUID>> m_removedContact = std::vector<std::pair<UUID, UUID>>();
 
 		static JPH::RVec3 makeRVec3(glm::vec3 arr);
 		static JPH::Vec3 makeVec3(glm::vec3 arr);

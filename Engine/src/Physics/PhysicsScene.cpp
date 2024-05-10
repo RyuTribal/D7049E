@@ -29,8 +29,9 @@ namespace Engine {
 			s_object_vs_object_layer_filter
 		);
 
-		m_contact_listener = CreateRef<MyContactListener>();
 		m_activation_listener = CreateRef<MyBodyActivationListener>();
+		m_contact_listener = CreateRef<MyContactListener>();
+		m_contact_listener->SetCurrentScene(this);
 
 		m_physics_system->SetContactListener(m_contact_listener.get());
 
@@ -54,6 +55,10 @@ namespace Engine {
 
 	void PhysicsScene::Update(float deltaTime)
 	{
+		this->m_newContact.clear();
+		this->m_persistContact.clear();
+		this->m_removedContact.clear();
+
 		if (!s_hasOptimized)
 		{
 			this->OptimizeBroadPhase();
@@ -67,9 +72,29 @@ namespace Engine {
 			s_jobThreadPool
 		);
 
+
+		// post simulation
 		for (auto& [entity_id, character] : m_characterMap)
 		{
 			character->PostSimulation(0.0f);		// TODO: check if this works on removed but undeleted characters
+		}
+
+		for (auto& [id1, id2] : this->m_newContact)
+		{
+			ScriptEngine::CallMethod<uint64_t>(id1, "newCollision", id2);
+			ScriptEngine::CallMethod<uint64_t>(id2, "newCollision", id1);
+		}
+
+		for (auto& [id1, id2] : this->m_persistContact)
+		{
+			ScriptEngine::CallMethod<uint64_t>(id1, "persistCollision", id2);
+			ScriptEngine::CallMethod<uint64_t>(id2, "persistCollision", id1);
+		}
+
+		for (auto& [id1, id2] : this->m_removedContact)
+		{
+			ScriptEngine::CallMethod<uint64_t>(id1, "removedCollision", id2);
+			ScriptEngine::CallMethod<uint64_t>(id2, "removedCollision", id1);
 		}
 	}
 
@@ -156,17 +181,16 @@ namespace Engine {
 			// Note: it is possible to have more than two layers but that has not been implemented yet
 		}
 
-		JPH::Body* box_body;
+		JPH::Body* box_body = (this->m_body_interface)->CreateBody(box_settings);
+		box_body->SetUserData(entity_id);
 		// Add it to the world
 		if (activate)
 		{
-			box_body = (this->m_body_interface)->CreateBody(box_settings);
 			(this->m_body_interface)->AddBody(box_body->GetID(), JPH::EActivation::Activate);
 			//box_id = (this->m_body_interface)->CreateAndAddBody(box_settings, JPH::EActivation::Activate);
 		}
 		else
 		{
-			box_body = (this->m_body_interface)->CreateBody(box_settings);
 			(this->m_body_interface)->AddBody(box_body->GetID(), JPH::EActivation::DontActivate);
 			//box_id = (this->m_body_interface)->CreateAndAddBody(box_settings, JPH::EActivation::DontActivate);
 		}
@@ -203,16 +227,15 @@ namespace Engine {
 		{
 			sphere_settings = JPH::BodyCreationSettings(sphere_shape, pos, JPH::Quat::sIdentity(), mov, Layers::MOVING);
 		}
-		JPH::Body* sphere_body;
+		JPH::Body* sphere_body = (this->m_body_interface)->CreateBody(sphere_settings);
+		sphere_body->SetUserData(entity_id);
 		if (activate)
 		{
-			sphere_body = (this->m_body_interface)->CreateBody(sphere_settings);
 			(this->m_body_interface)->AddBody(sphere_body->GetID(), JPH::EActivation::Activate);
 			//sphere_id = (this->m_body_interface)->CreateAndAddBody(sphere_settings, JPH::EActivation::Activate);
 		}
 		else
 		{
-			sphere_body = (this->m_body_interface)->CreateBody(sphere_settings);
 			(this->m_body_interface)->AddBody(sphere_body->GetID(), JPH::EActivation::DontActivate);
 			//sphere_id = (this->m_body_interface)->CreateAndAddBody(sphere_settings, JPH::EActivation::DontActivate);
 		}
@@ -238,6 +261,7 @@ namespace Engine {
 		
 		JPH::RotatedTranslatedShapeSettings capsuleTransSettings(jolt_offset, JPH::Quat::sIdentity(), capsuleResult.Get());
 		JPH::Shape* capsule = capsuleTransSettings.Create().Get();
+		capsule->SetUserData(entity_id);
 		
 		character_settings->mShape = capsule;
 		JPH::Character* character = new JPH::Character(
@@ -459,6 +483,41 @@ namespace Engine {
 		{
 			this->integrationSubSteps = integrationSubSteps;
 		}
+	}
+
+	void PhysicsScene::AddNewContact(UUID id1, UUID id2)
+	{
+		this->m_newContact.push_back(std::pair<UUID, UUID>(id1, id2));
+	}
+
+	void PhysicsScene::AddPersistContact(UUID id1, UUID id2)
+	{
+		this->m_persistContact.push_back(std::pair<UUID, UUID>(id1, id2));
+	}
+
+	void PhysicsScene::AddRemoveContact(UUID id1, UUID id2)
+	{
+		this->m_removedContact.push_back(std::pair<UUID, UUID>(id1, id2));
+	}
+
+	std::vector<std::pair<UUID, UUID>> PhysicsScene::GetNewContacts()
+	{
+		return this->m_newContact;
+	}
+
+	std::vector<std::pair<UUID, UUID>> PhysicsScene::GetPersistContacts()
+	{
+		return this->m_persistContact;
+	}
+
+	UUID PhysicsScene::GetUserData(JPH::BodyID id)
+	{
+		return this->m_body_interface->GetShape(id)->GetUserData();
+	}
+
+	std::vector<std::pair<UUID, UUID>> PhysicsScene::GetRemovedContacts()
+	{
+		return this->m_removedContact;
 	}
 
 	glm::vec3 PhysicsScene::GetCenterOfMassPosition(UUID id)

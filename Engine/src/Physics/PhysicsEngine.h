@@ -1,5 +1,5 @@
 #pragma once
-#include "PhysicsScene.h"
+#include "HPhysicsScene.h"
 
 
 namespace Engine {
@@ -43,8 +43,8 @@ namespace Engine {
 		void OnRuntimeStop();
 
 		SceneID CreateScene(Scene* scene, float allocationSize);
-		PhysicsScene* GetScene(SceneID sceneID);
-		PhysicsScene* GetCurrentScene();
+		HPhysicsScene* GetScene(SceneID sceneID);
+		HPhysicsScene* GetCurrentScene();
 		void SwitchScene(SceneID sceneID);
 
 		static void tmpRunner();
@@ -65,8 +65,8 @@ namespace Engine {
 		static JPH::BodyInterface* s_body_interface;*/
 
 
-		inline static std::map<SceneID, PhysicsScene*> s_sceneMap = std::map<SceneID, PhysicsScene*>();
-		static PhysicsScene* s_current_scene;
+		inline static std::map<SceneID, HPhysicsScene*> s_sceneMap = std::map<SceneID, HPhysicsScene*>();
+		static HPhysicsScene* s_current_scene;
 
 	};
 

@@ -41,7 +41,7 @@ namespace Engine {
 	
 
 	PhysicsEngine* PhysicsEngine::s_Instance = nullptr;
-	PhysicsScene* PhysicsEngine::s_current_scene = nullptr;
+	HPhysicsScene* PhysicsEngine::s_current_scene = nullptr;
 
 	void PhysicsEngine::Init(int allocationSize)
 	{
@@ -107,7 +107,7 @@ namespace Engine {
 
 	SceneID PhysicsEngine::CreateScene(Scene* scene, float allocationSize = 10.0f)
 	{
-		PhysicsScene* phys_scene = new PhysicsScene(scene, s_JoltData->TemporariesAllocator, s_JoltData->JobThreadPool.get());
+		HPhysicsScene* phys_scene = new HPhysicsScene(scene, s_JoltData->TemporariesAllocator, s_JoltData->JobThreadPool.get());
 		SceneID id = SceneID();
 		s_sceneMap[id] = phys_scene;
 		if (s_current_scene == nullptr)
@@ -118,12 +118,12 @@ namespace Engine {
 		return id;
 	}
 
-	PhysicsScene* PhysicsEngine::GetScene(SceneID sceneID)
+	HPhysicsScene* PhysicsEngine::GetScene(SceneID sceneID)
 	{
 		return s_sceneMap[sceneID];
 	}
 
-	PhysicsScene* PhysicsEngine::GetCurrentScene()
+	HPhysicsScene* PhysicsEngine::GetCurrentScene()
 	{
 		return this->s_current_scene;
 	}
@@ -150,7 +150,7 @@ namespace Engine {
 		engin->Init(10);
 		Scene scn = Scene("Boogey");
 		SceneID scene_id = engin->CreateScene(&scn);
-		PhysicsScene* scene = engin->GetScene(scene_id);
+		HPhysicsScene* scene = engin->GetScene(scene_id);
 
 		UUID box = UUID();
 		UUID sphere = UUID();

@@ -1,4 +1,7 @@
 #pragma once
+
+#ifndef HPhysicsScene_h
+
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/RegisterTypes.h>
@@ -24,7 +27,7 @@
 #include "Scene/Components.h"
 
 namespace Engine {
-
+	
 	class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
 	{
 	public:
@@ -109,76 +112,14 @@ namespace Engine {
 	};
 
 	// An example contact listener
-	class MyContactListener : public JPH::ContactListener
-	{
-	public:
-		// See: ContactListener
-		virtual JPH::ValidateResult	OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override
-		{
-			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
-			{
-				HVE_CORE_TRACE("Contact validate callback");
+	#ifndef HContactListener_h
+	class HContactListener;
+	#endif
 
-			}
-
-			// Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
-			return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
-		}
-
-		virtual void			OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
-		{
-			std::uint64_t data1 = (std::uint64_t) inBody1.GetUserData();
-			std::uint64_t data2 = (std::uint64_t) inBody2.GetUserData();
-			
-			this->m_CurrentScene->AddNewContact(data1, data2);
-
-			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
-				std::cout << "On Contact Added" << std::endl;
-			HVE_CORE_TRACE("A contact was added");
-		}
-
-		virtual void			OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
-		{
-			std::uint64_t data1 = (std::uint64_t)inBody1.GetUserData();
-			std::uint64_t data2 = (std::uint64_t)inBody2.GetUserData();
-			inBody1.GetID()
-
-			this->m_CurrentScene->AddPersistContact(data1, data2);
-
-			if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
-				std::cout << "On Contact Persisted" << std::endl;
-			HVE_CORE_TRACE("A contact was persisted");
-		}
-
-		virtual void			OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
-		{
-			JPH::BodyID id1 = inSubShapePair.GetBody1ID();
-			JPH::BodyID id2 = inSubShapePair.GetBody2ID();
-
-			std::uint64_t data1 = m_CurrentScene->GetUserData(id1);
-			std::uint64_t data2 = m_CurrentScene->GetUserData(id2);
-
-			this->m_CurrentScene->AddRemoveContact(data1, data2);
-
-			std::cout << "On Contact Removed" << std::endl;
-			HVE_CORE_TRACE("A contact was removed");
-		}
-
-		void SetCurrentScene(PhysicsScene* current_scene)
-		{
-			this->m_CurrentScene = current_scene;
-		}
-
-	private:
-		PhysicsScene* m_CurrentScene;
-	};
-
-	//static PhysicsScene* s_CurrentScene = nullptr;
-
-	class PhysicsScene
+	class HPhysicsScene
 	{
 	public: 
-		PhysicsScene(Scene* scene, JPH::TempAllocator* temporariesAllocator, JPH::JobSystemThreadPool* jobThreadPool);
+		HPhysicsScene(Scene* scene, JPH::TempAllocator* temporariesAllocator, JPH::JobSystemThreadPool* jobThreadPool);
 		glm::vec3 GetGravity();
 		void SetGravity(glm::vec3);
 		void Update(float deltaTime);
@@ -213,7 +154,7 @@ namespace Engine {
 		bool HasCollider(UUID entity_id);
 		void SetCollisionAndIntegrationSteps(int collisionSteps, int integrationSubSteps);
 
-		UUID GetUserData(JPH::BodyID id);	// This is actually internal
+		UUID GetUserData(JPH::BodyID id);	// This is actually internal, do not use
 
 		void AddNewContact(UUID id1, UUID id2);
 		void AddPersistContact(UUID id1, UUID id2);
@@ -237,7 +178,7 @@ namespace Engine {
 		std::string m_LastErrorMessage = "";
 		Ref<JPH::PhysicsSystem> m_physics_system;
 		JPH::BodyInterface* m_body_interface;
-		Ref<MyContactListener> m_contact_listener;
+		Ref<HContactListener> m_contact_listener;
 		Ref<MyBodyActivationListener> m_activation_listener;
 
 		inline static JPH::TempAllocator* s_temporariesAllocator = nullptr;
@@ -273,6 +214,8 @@ namespace Engine {
 		static HEMotionType makeHEMotionType(JPH::EMotionType movability);
 
 	};
+	
 }
+#endif
 
 

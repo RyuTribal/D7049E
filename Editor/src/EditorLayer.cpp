@@ -599,7 +599,6 @@ namespace Editor {
 			OpenNewProject(std::string(m_NewProjectPathBuffer));
 		}
 		Input::ClearKeyStates(); // Needed because if you open it through the shortcuts, since it locks the thread, the keystate for control will stay as pressed and not as released
-		ImGuiLayer::ResetKeyStates(); // Same for ImGui
 	}
 
 	void EditorLayer::SaveProject()

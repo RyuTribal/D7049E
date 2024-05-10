@@ -1,6 +1,7 @@
 #pragma once
 
 #ifndef HPhysicsScene_h
+#define HPhysicsScene_h
 
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
@@ -112,9 +113,9 @@ namespace Engine {
 	};
 
 	// An example contact listener
-	#ifndef HContactListener_h
+	//#ifndef HContactListener_h
 	class HContactListener;
-	#endif
+	//#endif
 
 	class HPhysicsScene
 	{

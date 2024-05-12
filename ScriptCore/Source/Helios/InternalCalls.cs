@@ -56,7 +56,10 @@ namespace Helios
 		internal extern static void TransformComponent_SetScale(ulong entity_id, ref Vector3 scale);
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
-		internal extern static void Sounds_PlaySoundAtIndex(ulong entity_id, int index);
+		internal extern static void Sounds_PlaySoundAtIndexGlobal(ulong entity_id, int index);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Sounds_PlaySoundAtIndexLocal(ulong entity_id, int index);
 
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]

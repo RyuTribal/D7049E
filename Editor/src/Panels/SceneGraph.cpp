@@ -784,7 +784,7 @@ namespace EditorPanels {
 
 				float rolloff[1] = { sound->GetRolloff() };
 				ImGui::Text("Sound rolloff factor:");
-				if (ImGui::SliderFloat(("##sound_rolloff" + idStr).c_str(), rolloff, 0.0f, 2.0f))
+				if (ImGui::SliderFloat(("##sound_rolloff" + idStr).c_str(), rolloff, 0.0f, 1.0f))
 				{
 					sound->SetRolloff(rolloff[0]);
 				}

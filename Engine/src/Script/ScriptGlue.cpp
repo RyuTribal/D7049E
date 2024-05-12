@@ -129,13 +129,23 @@ namespace Engine {
 		entity->GetComponent<TransformComponent>()->world_transform.scale = *in_scale;
 	}
 
-	static void Sounds_PlaySoundAtIndex(uint64_t entity_id, int index)
+	static void Sounds_PlaySoundAtIndexGlobal(uint64_t entity_id, int index)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
 		auto sounds_library = entity->GetComponent<GlobalSoundsComponent>();
 		if (sounds_library && index <= sounds_library->Sounds.size() - 1)
 		{
 			sounds_library->Sounds.at(index)->PlaySound(false);
+		}
+	}
+
+	static void Sounds_PlaySoundAtIndexLocal(uint64_t entity_id, int index)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sounds_library = entity->GetComponent<LocalSoundsComponent>();
+		if (sounds_library && index <= sounds_library->Sounds.size() - 1)
+		{
+			sounds_library->Sounds.at(index)->PlaySound(entity->GetComponent<TransformComponent>()->world_transform.translation, false);
 		}
 	}
 

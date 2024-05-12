@@ -16,12 +16,14 @@ namespace Engine {
 		float GetLinearAttenuation() { return m_LinearAttenuation; }
 		float GetQuadraticAttenuation() { return m_QuadraticAttenuation; }
 		float GetIntensity() { return m_Intensity; }
+		bool IsCastingShadows() { return m_CastShadows; }
 
 		void SetPosition(const glm::vec3& position) { m_Position = position; }
 		void SetConstantAttenuation(float attenuation) { m_ConstantAttenuation = attenuation; }
 		void SetLinearAttenuation(float attenuation) { m_LinearAttenuation = attenuation; }
 		void SetQuadraticAttenuation(float attenuation) { m_QuadraticAttenuation = attenuation; }
 		void SetIntensity(float intensity) { m_Intensity = intensity; }
+		void CastShadows(bool cast) { m_CastShadows = cast; }
 
 	private:
 		glm::vec3 m_Position = { 0.f, 0.f, 0.f };
@@ -31,5 +33,7 @@ namespace Engine {
 
 		glm::vec3 m_Color = { 1.f, 1.f, 1.f };
 		float m_Intensity = 1.f;
+
+		bool m_CastShadows = false;
 	};
 }

@@ -1,5 +1,4 @@
 #include "ProjectSettings.h"
-#include <Engine.h>
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui.h>
 
@@ -56,8 +55,72 @@ namespace EditorPanels {
 		s_InstanceData->UseAA = s_InstanceData->AASettings.Type != Engine::AAType::None;
 	}
 
-	void ProjectSettings::Render()
+	void ProjectSettings::Render(Engine::Ref<Engine::Camera> editor_camera)
 	{
+		DrawSection("Editor camera", [editor_camera]() {
+
+			const char* projectionTypeStrings[] = { "Perspective", "Orthographic" };
+			const char* currentProjectionTypeString = editor_camera->GetType() == Engine::CameraType::PERSPECTIVE ? "Perspective" : "Orthographic";
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Projection");
+			ImGui::NextColumn();
+			if (ImGui::BeginCombo("##projection", currentProjectionTypeString))
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
+					if (ImGui::Selectable(projectionTypeStrings[i], isSelected))
+					{
+						currentProjectionTypeString = projectionTypeStrings[i];
+						editor_camera->ChangeCameraType(i == 0 ? Engine::CameraType::PERSPECTIVE : Engine::CameraType::ORTHOGRAPHIC);
+					}
+
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::Columns(1);
+			float perspectiveVerticalFov = editor_camera->GetFOVY();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Vertical FOV");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##fov", &perspectiveVerticalFov))
+				editor_camera->SetFovy(perspectiveVerticalFov);
+
+			ImGui::Columns(1);
+			float perspectiveNear = editor_camera->GetNear();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Near");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##near", &perspectiveNear))
+				editor_camera->SetNear(perspectiveNear);
+			ImGui::Columns(1);
+			float perspectiveFar = editor_camera->GetFar();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Far");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##far", &perspectiveFar))
+				editor_camera->SetFar(perspectiveFar);
+
+			ImGui::Columns(1);
+
+			float camera_zoom = editor_camera->GetZoomDistance();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Zoom");
+			ImGui::NextColumn();
+			if (ImGui::DragFloat("##zoom", &camera_zoom))
+				editor_camera->SetZoomDistance(camera_zoom);
+			ImGui::Columns(1);
+		
+		});
+
 		DrawSection("Anti Aliasing", []() {
 
 			DrawOption("Use Antialiasing", []() {

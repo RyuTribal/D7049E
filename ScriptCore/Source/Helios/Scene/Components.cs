@@ -131,7 +131,16 @@ namespace Helios
 	{
 		public void PlaySoundAtIndex(int index)
 		{
-			InternalCalls.Sounds_PlaySoundAtIndex(Entity.ID, index);
+			InternalCalls.Sounds_PlaySoundAtIndexGlobal(Entity.ID, index);
+		}
+	}
+
+	public class LocalSoundsComponent : Component
+	{
+		//
+		public void PlaySoundAtIndex(int index)
+		{
+			InternalCalls.Sounds_PlaySoundAtIndexLocal(Entity.ID, index);
 		}
 	}
 
@@ -174,6 +183,47 @@ namespace Helios
 		public void AddLinearAndAngularImpulse(Vector3 linear_impulse, Vector3 angular_impulse)
 		{
 			InternalCalls.SphereCollider_AddLinearAngularImpulse(Entity.ID, ref linear_impulse, ref angular_impulse);
+		}
+	}
+
+	public class CharacterControllerComponent : Component
+	{
+		public Vector3 LinearVelocity
+		{
+			get
+			{
+				InternalCalls.CharacterController_GetLinearVelocity(Entity.ID, out Vector3 velocity);
+				return velocity;
+			}
+			set
+			{
+				InternalCalls.CharacterController_SetLinearVelocity(Entity.ID, ref value);
+			}
+		}
+
+		public void AddLinearVelocity(Vector3 velocity)
+		{
+			InternalCalls.CharacterController_AddLinearVelocity(Entity.ID, ref velocity);
+		}
+
+		public void AddAngularVelocity(Vector3 velocity)
+		{
+			InternalCalls.CharacterController_AddAngularVelocity(Entity.ID, ref velocity);
+		}
+
+		public void AddImpulse(Vector3 impulse)
+		{
+			InternalCalls.CharacterController_AddImpulse(Entity.ID, ref impulse);
+		}
+
+		public void AddAngularImpulse(Vector3 impulse)
+		{
+			InternalCalls.CharacterController_AddAngularImpulse(Entity.ID, ref impulse);
+		}
+
+		public void AddLinearAndAngularImpulse(Vector3 linear_impulse, Vector3 angular_impulse)
+		{
+			InternalCalls.CharacterController_AddLinearAngularImpulse(Entity.ID, ref linear_impulse, ref angular_impulse);
 		}
 	}
 }

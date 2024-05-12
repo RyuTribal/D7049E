@@ -13,10 +13,11 @@ namespace Engine {
 		{ ".fbx", AssetType::MeshSource },
 		{ ".FBX", AssetType::MeshSource },
 		{ ".gltf", AssetType::MeshSource },
+		{ ".glb", AssetType::MeshSource },
 		{ ".png", AssetType::Texture },
 		{ ".jpg", AssetType::Texture },
 		{ ".jpeg", AssetType::Texture },
-		{ ".hdr", AssetType::Texture },
+		{ ".hdr", AssetType::CubeMap },
 		{ ".wav", AssetType::Audio },
 		{ ".ogg", AssetType::Audio },
 		{ ".mp3", AssetType::Audio }
@@ -93,7 +94,7 @@ namespace Engine {
 		return "";
 	}
 
-	void DesignAssetManager::ImportAsset(const std::filesystem::path& file_path)
+	AssetHandle DesignAssetManager::ImportAsset(const std::filesystem::path& file_path)
 	{
 		AssetHandle handle;
 		AssetMetadata metadata;
@@ -102,12 +103,12 @@ namespace Engine {
 		metadata.Type = GetAssetTypeFromFileExtension(file_path.extension());
 		if (metadata.Type == AssetType::None)
 		{
-			return;
+			return 0;
 		}
 
 		if (GetHandleByPath(file_path) != 0)
 		{
-			return; // means it's already imported
+			return 0; // means it's already imported
 		}
 
 		Ref<Asset> asset = AssetImporter::Import(handle, metadata);
@@ -117,9 +118,10 @@ namespace Engine {
 			m_LoadedAssets[handle] = asset;
 			m_AssetRegistry[handle] = metadata;
 			SerializeAssetRegistry();
-			return;
+			return handle;
 		}
 		HVE_CORE_ERROR_TAG("Asset Importer", "Failed to import asset at path {0}", file_path.string());
+		return 0;
 	}
 	void DesignAssetManager::RegisterAsset(AssetHandle handle, const std::filesystem::path& file_path)
 	{

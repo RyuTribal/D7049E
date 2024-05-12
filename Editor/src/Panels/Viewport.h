@@ -17,6 +17,12 @@ namespace EditorPanels {
 				s_Instance = new Viewport();
 			}
 		}
+
+		static void Recreate()
+		{
+			s_Instance = new Viewport();
+		}
+
 		static void Render(Camera* camera) {
 			Create();
 

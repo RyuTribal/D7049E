@@ -53,6 +53,10 @@ namespace Engine {
 		virtual void SetFullScreen(bool fullscreen, FullscreenType type) = 0;
 		virtual void SetMaximized(bool maximized) = 0;
 
+		virtual bool IsKeyPressed(uint32_t key) = 0;
+		virtual void SetKeyState(uint32_t key, bool state) = 0;
+		virtual void ClearKeyStates() = 0;
+
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 
 		virtual void* GetNativeWindow() const = 0;

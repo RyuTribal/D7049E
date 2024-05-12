@@ -3,6 +3,7 @@
 #include "Panels/SceneGraph.h"
 #include "Panels/ContentBrowser.h"
 #include "Panels/ProjectSettings.h"
+#include "Panels/SceneSettings.h"
 #include <imgui/imgui_internal.h>
 
 namespace Editor {
@@ -56,6 +57,19 @@ namespace Editor {
 					debug_sphere.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
 					debug_sphere.Radius = collider->Radius;
 					Renderer::Get()->SubmitDebugSphere(debug_sphere);
+				}
+
+				if (entity->HasComponent<CharacterControllerComponent>())
+				{
+					auto collider = entity->GetComponent<CharacterControllerComponent>();
+					DebugCapsule debug_capsule{};
+					auto transform = entity->GetComponent<TransformComponent>()->world_transform;
+					transform.translation += collider->Offset;
+					debug_capsule.Transform = transform.mat4();
+					debug_capsule.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					debug_capsule.Radius = collider->Radius;
+					debug_capsule.HalfHeight = collider->HalfHeight;
+					Renderer::Get()->SubmitDebugCapsule(debug_capsule);
 				}
 			}
 		}
@@ -298,11 +312,11 @@ namespace Editor {
 		ImGui::End();
 
 		ImGui::Begin("Project Settings");
-		EditorPanels::ProjectSettings::Render();
+		EditorPanels::ProjectSettings::Render(m_Camera->GetCamera());
 		ImGui::End();
 
 		ImGui::Begin("Scene Settings");
-
+		EditorPanels::SceneSettings::Render(m_CurrentScene);
 		ImGui::End();
 
 		UIToolBar();
@@ -582,6 +596,8 @@ namespace Editor {
 
 		std::string new_title = std::filesystem::path(project_path).stem().string() + " - Editor";
 		Application::Get().GetWindow().SetTitle(new_title);
+
+		EditorPanels::ContentBrowser::Recreate();
 	}
 
 	void EditorLayer::BeginOpenProject()
@@ -595,6 +611,7 @@ namespace Editor {
 			m_NewProjectPathBuffer[sizeof(m_NewProjectPathBuffer) - 1] = '\0';
 			OpenNewProject(std::string(m_NewProjectPathBuffer));
 		}
+		Input::ClearKeyStates(); // Needed because if you open it through the shortcuts, since it locks the thread, the keystate for control will stay as pressed and not as released
 	}
 
 	void EditorLayer::SaveProject()

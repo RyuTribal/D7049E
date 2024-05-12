@@ -10,10 +10,11 @@ namespace Engine
 
 	bool WindowsInput::IsKeyPressedImpl(int keycode)
 	{
-		auto window = static_cast<GLFWwindow *>(Application::Get().GetWindow().GetNativeWindow());
+		auto& window = Application::Get().GetWindow();
+		auto native_window = static_cast<GLFWwindow *>(window.GetNativeWindow());
 
-		auto state = glfwGetKey(window, keycode);
-		return state == GLFW_PRESS || state == GLFW_REPEAT;
+		auto state = glfwGetKey(native_window, keycode);
+		return window.IsKeyPressed(keycode) || state == GLFW_REPEAT;
 	}
 
 	void WindowsInput::SetLockMouseModeImpl(bool lock_mouse)
@@ -52,5 +53,9 @@ namespace Engine
 		glfwGetCursorPos(window, &xpos, &ypos);
 
 		return {(float)xpos, (float)ypos};
+	}
+	void WindowsInput::ClearKeyStatesImpl()
+	{
+		Application::Get().GetWindow().ClearKeyStates();
 	}
 }

@@ -11,9 +11,15 @@ AssetRegistry:
   - Handle: 2792375910441021471
     FilePath: Assets\Meshes\Primitives\Cube.fbx
     Type: MeshSource
+  - Handle: 16352973183468804330
+    FilePath: Assets\Sounds\delphi_loop.ogg
+    Type: Audio
   - Handle: 6780194786338401178
     FilePath: Assets\Meshes\Primitives\Pyramid.fbx
     Type: MeshSource
+  - Handle: 6432032947443732002
+    FilePath: Assets\Textures\default_skybox.hdr
+    Type: CubeMap
   - Handle: 5925530805202965140
     FilePath: Assets\Meshes\Primitives\Sphere.fbx
     Type: MeshSource

@@ -72,15 +72,19 @@ namespace Engine {
 		bool IsRotationLocked() { return b_LockedRotation; }
 		void SetIsRotationLocked(bool locked) { b_LockedRotation = locked; }
 
+		std::vector<glm::vec4>& GetFrustumCornersWorldSpace();
+
 	private:
 		void RecalculateViewMatrix();
 		void SetOrthographic();
 		void SetPerspective();
 		void UpdateOrientation();
+		void SetFrustumCornersWorldSpace();
 	private:
 		glm::mat4 m_ProjectionMatrix;
 		glm::mat4 m_ViewMatrix{ 1.f };
 		glm::mat4 m_ViewProjectionMatrix{ 1.f };
+		std::vector<glm::vec4> m_FurstumCorners;
 		
 		glm::quat m_Orientation = { 0.f, 0.f, 0.f, 0.f };
 		glm::vec3 m_Position = { 0.f, 0.f, 0.f };
@@ -92,7 +96,7 @@ namespace Engine {
 		float m_OrthographicSize = 1.f;
 
 		float m_Near = 0.1f;
-		float m_Far = 1000.f;
+		float m_Far = 500.f;
 
 		float m_PerspectiveFOVY = glm::radians(45.f);
 

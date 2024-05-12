@@ -7,14 +7,13 @@ namespace Engine{
 		None = 0,
 		Project,
 		AssetRegistry,
-
-
 		Scene,
 		Mesh,
 		MeshSource,
 		Material,
 		Audio,
-		Texture
+		Texture,
+		CubeMap
 	};
 
 	namespace Utils {
@@ -31,6 +30,7 @@ namespace Engine{
 				case AssetType::Material:     return "Material";
 				case AssetType::Audio:        return "Audio";
 				case AssetType::Texture:      return "Texture";
+				case AssetType::CubeMap:      return "CubeMap";
 			}
 		}
 
@@ -42,6 +42,7 @@ namespace Engine{
 			if (type_string == "MeshSource")          return AssetType::MeshSource;
 			if (type_string == "Material")            return AssetType::Material;
 			if (type_string == "Texture")             return AssetType::Texture;
+			if (type_string == "CubeMap")             return AssetType::CubeMap;
 			if (type_string == "Audio")               return AssetType::Audio;
 		}
 	}

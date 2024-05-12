@@ -129,7 +129,7 @@ namespace Engine {
 		entity->GetComponent<TransformComponent>()->world_transform.scale = *in_scale;
 	}
 
-	static void Sounds_PlaySoundAtIndex(uint64_t entity_id, int index)
+	static void Sounds_PlaySoundAtIndexGlobal(uint64_t entity_id, int index)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
 		auto sounds_library = entity->GetComponent<GlobalSoundsComponent>();
@@ -139,13 +139,23 @@ namespace Engine {
 		}
 	}
 
+	static void Sounds_PlaySoundAtIndexLocal(uint64_t entity_id, int index)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto sounds_library = entity->GetComponent<LocalSoundsComponent>();
+		if (sounds_library && index <= sounds_library->Sounds.size() - 1)
+		{
+			sounds_library->Sounds.at(index)->PlaySound(entity->GetComponent<TransformComponent>()->world_transform.translation, false);
+		}
+	}
+
 	static void BoxCollider_GetLinearVelocity(uint64_t entity_id, glm::vec3* out_velocity)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
 		auto box_collider = entity->GetComponent<BoxColliderComponent>();
 		if (box_collider)
 		{
-			*out_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+			*out_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
 		}
 	}
 
@@ -155,7 +165,7 @@ namespace Engine {
 		auto box_collider = entity->GetComponent<BoxColliderComponent>();
 		if (box_collider)
 		{
-			PhysicsEngine::Get()->SetLinearVelocity(entity_id, *in_velocity);
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, *in_velocity);
 		}
 	}
 
@@ -165,9 +175,9 @@ namespace Engine {
 		auto box_collider = entity->GetComponent<BoxColliderComponent>();
 		if (box_collider)
 		{
-			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
 			curr_velocity += *velocity;
-			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
 		}
 	}
 
@@ -177,9 +187,9 @@ namespace Engine {
 		auto box_collider = entity->GetComponent<BoxColliderComponent>();
 		if (box_collider)
 		{
-			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetAngularVelocity(entity_id);
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetAngularVelocity(entity_id);
 			curr_velocity += *velocity;
-			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
 		}
 	}
 
@@ -189,7 +199,7 @@ namespace Engine {
 		auto box_collider = entity->GetComponent<BoxColliderComponent>();
 		if (box_collider)
 		{
-			PhysicsEngine::Get()->AddLinearImpulse(entity_id, *impulse);
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearImpulse(entity_id, *impulse);
 		}
 	}
 
@@ -199,7 +209,7 @@ namespace Engine {
 		auto box_collider = entity->GetComponent<BoxColliderComponent>();
 		if (box_collider)
 		{
-			PhysicsEngine::Get()->AddAngularImpulse(entity_id, *impulse);
+			PhysicsEngine::Get()->GetCurrentScene()->AddAngularImpulse(entity_id, *impulse);
 		}
 	}
 
@@ -209,7 +219,7 @@ namespace Engine {
 		auto box_collider = entity->GetComponent<BoxColliderComponent>();
 		if (box_collider)
 		{
-			PhysicsEngine::Get()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
 		}
 	}
 
@@ -220,7 +230,7 @@ namespace Engine {
 		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
-			*out_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+			*out_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
 		}
 	}
 
@@ -230,7 +240,7 @@ namespace Engine {
 		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
-			PhysicsEngine::Get()->SetLinearVelocity(entity_id, *in_velocity);
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, *in_velocity);
 		}
 	}
 
@@ -240,9 +250,9 @@ namespace Engine {
 		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
-			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetLinearVelocity(entity_id);
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
 			curr_velocity += *velocity;
-			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
 		}
 	}
 
@@ -252,9 +262,9 @@ namespace Engine {
 		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
-			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetAngularVelocity(entity_id);
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetAngularVelocity(entity_id);
 			curr_velocity += *velocity;
-			PhysicsEngine::Get()->SetLinearVelocity(entity_id, curr_velocity);
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
 		}
 	}
 
@@ -264,7 +274,7 @@ namespace Engine {
 		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
-			PhysicsEngine::Get()->AddLinearImpulse(entity_id, *impulse);
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearImpulse(entity_id, *impulse);
 		}
 	}
 
@@ -274,7 +284,7 @@ namespace Engine {
 		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
-			PhysicsEngine::Get()->AddAngularImpulse(entity_id, *impulse);
+			PhysicsEngine::Get()->GetCurrentScene()->AddAngularImpulse(entity_id, *impulse);
 		}
 	}
 
@@ -284,10 +294,84 @@ namespace Engine {
 		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
-			PhysicsEngine::Get()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
 		}
 	}
 
+	static void CharacterController_GetLinearVelocity(uint64_t entity_id, glm::vec3* out_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			*out_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
+		}
+	}
+
+	static void CharacterController_SetLinearVelocity(uint64_t entity_id, glm::vec3* in_velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, *in_velocity);
+		}
+	}
+
+	static void CharacterController_AddLinearVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetLinearVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
+		}
+	}
+
+	static void CharacterController_AddAngularVelocity(uint64_t entity_id, glm::vec3* velocity)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			glm::vec3 curr_velocity = PhysicsEngine::Get()->GetCurrentScene()->GetAngularVelocity(entity_id);
+			curr_velocity += *velocity;
+			PhysicsEngine::Get()->GetCurrentScene()->SetLinearVelocity(entity_id, curr_velocity);
+		}
+	}
+
+	static void CharacterController_AddImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearImpulse(entity_id, *impulse);
+		}
+	}
+
+
+	static void CharacterController_AddAngularImpulse(uint64_t entity_id, glm::vec3* impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->AddAngularImpulse(entity_id, *impulse);
+		}
+	}
+
+	static void CharacterController_AddLinearAngularImpulse(uint64_t entity_id, glm::vec3* linear_impulse, glm::vec3* angular_impulse)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);
+		}
+	}
 
 	template <typename... Component>
 	static void RegisterComponent()
@@ -301,7 +385,7 @@ namespace Engine {
 			s_HasComponentFuncs[managed_type] = [](Entity* entity) {return entity->HasComponent<Component>(); };
 			if (!managed_type)
 			{
-				HVE_CORE_ERROR("Could not find component type - {}", managedTypename);
+				HVE_CORE_WARN("Could not find component type - {}", managedTypename);
 				return;
 			}
 			HVE_CORE_TRACE("Bound classes C#: <{0}> to C++: <{1}>", managedTypename, class_name);
@@ -339,7 +423,8 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(TransformComponent_GetScale);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetScale);
 
-		HVE_ADD_INTERNAL_CALL(Sounds_PlaySoundAtIndex);
+		HVE_ADD_INTERNAL_CALL(Sounds_PlaySoundAtIndexGlobal);
+		HVE_ADD_INTERNAL_CALL(Sounds_PlaySoundAtIndexLocal);
 
 		HVE_ADD_INTERNAL_CALL(BoxCollider_GetLinearVelocity);
 		HVE_ADD_INTERNAL_CALL(BoxCollider_SetLinearVelocity);
@@ -357,6 +442,13 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(SphereCollider_AddAngularImpulse);
 		HVE_ADD_INTERNAL_CALL(SphereCollider_AddLinearAngularImpulse);
 
+		HVE_ADD_INTERNAL_CALL(CharacterController_GetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_SetLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddLinearVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddAngularVelocity);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddImpulse);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddAngularImpulse);
+		HVE_ADD_INTERNAL_CALL(CharacterController_AddLinearAngularImpulse);
 
 	}
 }

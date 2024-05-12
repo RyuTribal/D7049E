@@ -12,12 +12,18 @@ namespace Engine{
 
 	void SceneSerializer::Serializer(const std::filesystem::path& directory, Scene* scene)
 	{
+		auto skybox_settings = scene->GetSkybox();
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene";
 		out << YAML::BeginMap;
 		out << YAML::Key << "Handle" << YAML::Value << scene->Handle;
 		out << YAML::Key << "Name" << YAML::Value << scene->GetName();
+		out << YAML::Key << "Skybox";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Texture" << YAML::Value << skybox_settings.Texture->Handle;
+		out << YAML::Key << "Brightness" << YAML::Value << skybox_settings.Brightness;
+		out << YAML::EndMap;
 		out << YAML::EndMap;
 
 		auto rootNode = scene->GetRootNode();
@@ -72,9 +78,19 @@ namespace Engine{
 			return nullptr;
 		};
 
+		SkyboxSettings skybox_settings{};
+
+
 		AssetHandle handle = root_node["Scene"]["Handle"].as<AssetHandle>(0);
 		std::string sceneName = root_node["Scene"]["Name"].as<std::string>();
+		if (root_node["Scene"]["Skybox"])
+		{
+			skybox_settings.Texture = AssetManager::GetAsset<TextureCube>(root_node["Scene"]["Skybox"]["Texture"].as<AssetHandle>(0));
+			skybox_settings.Brightness = root_node["Scene"]["Skybox"]["Brightness"].as<float>();
+		}
+
 		Ref<Scene> new_scene = CreateRef<Scene>(sceneName);
+		new_scene->SetSkybox(skybox_settings);
 
 		if (root_node["Entities"])
 		{
@@ -167,6 +183,7 @@ namespace Engine{
 			out << YAML::Key << "Position" << YAML::Value << light.GetPosition();
 			out << YAML::Key << "Intensity" << YAML::Value << light.GetIntensity();
 			out << YAML::Key << "AttenuationFactors" << YAML::Value << glm::vec3(light.GetConstantAttenuation(), light.GetLinearAttenuation(), light.GetQuadraticAttenuation());
+			out << YAML::Key << "IsCastingShadows" << YAML::Value << light.IsCastingShadows();
 			out << YAML::EndMap;
 		}
 
@@ -178,6 +195,7 @@ namespace Engine{
 			out << YAML::Key << "Color" << YAML::Value << light.GetColor();
 			out << YAML::Key << "Direction" << YAML::Value << light.GetDirection();
 			out << YAML::Key << "Intensity" << YAML::Value << light.GetIntensity();
+			out << YAML::Key << "IsCastingShadows" << YAML::Value << light.IsCastingShadows();
 			out << YAML::EndMap;
 		}
 
@@ -212,6 +230,18 @@ namespace Engine{
 			out << YAML::EndMap;
 		}
 
+		if (entity->HasComponent<CharacterControllerComponent>())
+		{
+			auto collider = entity->GetComponent<CharacterControllerComponent>();
+			out << YAML::Key << "CharacterController";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Radius" << YAML::Value << collider->Radius;
+			out << YAML::Key << "Offset" << YAML::Value << collider->Offset;
+			out << YAML::Key << "HalfHeight" << YAML::Value << collider->HalfHeight;
+			out << YAML::Key << "Mass" << YAML::Value << collider->Mass;
+			out << YAML::EndMap;
+		}
+
 		if (entity->HasComponent<GlobalSoundsComponent>())
 		{
 			auto& sounds_vector = entity->GetComponent<GlobalSoundsComponent>()->Sounds;
@@ -226,6 +256,27 @@ namespace Engine{
 				out << YAML::Key << "Handle" << YAML::Value << sound->GetSoundAsset();
 				out << YAML::Key << "Looping" << YAML::Value << sound->IsLooping();
 				out << YAML::Key << "Volume" << YAML::Value << sound->GetVolume();
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
+
+		if (entity->HasComponent<LocalSoundsComponent>())
+		{
+			auto& sounds_vector = entity->GetComponent<LocalSoundsComponent>()->Sounds;
+
+			out << YAML::Key << "LocalSounds";
+			out << YAML::BeginSeq;
+
+			for (const auto& sound : sounds_vector)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Title" << YAML::Value << sound->GetTitle();
+				out << YAML::Key << "Handle" << YAML::Value << sound->GetSoundAsset();
+				out << YAML::Key << "Looping" << YAML::Value << sound->IsLooping();
+				out << YAML::Key << "Volume" << YAML::Value << sound->GetVolume();
+				out << YAML::Key << "Rolloff" << YAML::Value << sound->GetRolloff();
 				out << YAML::EndMap;
 			}
 
@@ -295,6 +346,11 @@ namespace Engine{
 			light.light.SetConstantAttenuation(attenuation_factors.x);
 			light.light.SetLinearAttenuation(attenuation_factors.y);
 			light.light.SetQuadraticAttenuation(attenuation_factors.z);
+			if (entity_node["PointLight"]["IsCastingShadows"])
+			{
+				light.light.CastShadows(entity_node["PointLight"]["IsCastingShadows"].as<bool>());
+			}
+
 			scene->GetEntity(entity)->AddComponent<PointLightComponent>(light);
 		}
 
@@ -304,9 +360,14 @@ namespace Engine{
 			light.light = DirectionalLight();
 			glm::vec3 color = entity_node["DirectionalLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f));
 			light.light.SetColor(color);
-			glm::quat direction = entity_node["DirectionalLight"]["Direction"].as<glm::quat>(glm::quat(1.0f, 0.f, 0.f, 0.f));
+			glm::vec3 direction = entity_node["DirectionalLight"]["Direction"].as<glm::vec3>(glm::vec3(0.f));
 			light.light.SetDirection(direction);
 			light.light.SetIntensity(entity_node["DirectionalLight"]["Intensity"].as<float>());
+			if (entity_node["DirectionalLight"]["IsCastingShadows"])
+			{
+				light.light.CastShadows(entity_node["DirectionalLight"]["IsCastingShadows"].as<bool>());
+			}
+
 			scene->GetEntity(entity)->AddComponent<DirectionalLightComponent>(light);
 		}
 
@@ -336,6 +397,16 @@ namespace Engine{
 			scene->GetEntity(entity)->AddComponent<SphereColliderComponent>(collider);
 		}
 
+		if (entity_node["CharacterController"])
+		{
+			CharacterControllerComponent collider{};
+			collider.Radius = entity_node["CharacterController"]["Radius"].as<float>();
+			collider.HalfHeight = entity_node["CharacterController"]["HalfHeight"].as<float>();
+			collider.Offset = entity_node["CharacterController"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
+			collider.Mass = entity_node["CharacterController"]["Mass"].as<float>();
+			scene->GetEntity(entity)->AddComponent<CharacterControllerComponent>(collider);
+		}
+
 		if (entity_node["GlobalSounds"])
 		{
 			std::vector<Ref<GlobalSource>> sounds_vector;
@@ -362,6 +433,36 @@ namespace Engine{
 			GlobalSoundsComponent new_comp{};
 			new_comp.Sounds = sounds_vector;
 			scene->GetEntity(entity)->AddComponent<GlobalSoundsComponent>(new_comp);
+		}
+
+		if (entity_node["LocalSounds"])
+		{
+			std::vector<Ref<LocalSource>> sounds_vector;
+
+			YAML::Node soundsNode = entity_node["LocalSounds"];
+
+			for (const auto& soundNode : soundsNode)
+			{
+				std::string title = soundNode["Title"].as<std::string>();
+				AssetHandle handle = soundNode["Handle"].as<AssetHandle>(0);
+				bool looping = soundNode["Looping"].as<bool>();
+				float volume = soundNode["Volume"].as<float>();
+				float rolloff = soundNode["Rolloff"].as<float>();
+
+				// Create and configure a new sound
+				auto newSound = CreateRef<LocalSource>(handle);
+
+				newSound->SetTitle(title);
+				newSound->SetLooping(looping);
+				newSound->SetVolume(volume);
+				newSound->SetRolloff(rolloff);
+
+				sounds_vector.push_back(newSound);
+			}
+
+			LocalSoundsComponent new_comp{};
+			new_comp.Sounds = sounds_vector;
+			scene->GetEntity(entity)->AddComponent<LocalSoundsComponent>(new_comp);
 		}
 
 

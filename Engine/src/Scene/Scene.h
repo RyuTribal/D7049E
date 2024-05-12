@@ -173,7 +173,8 @@ namespace Engine {
 
 		Camera* GetPrimaryEntityCamera();
 
-		void SetSkybox(SkyboxSettings skybox) { m_Skybox = skybox; }
+		const SkyboxSettings& GetSkybox() { return m_Skybox; }
+		void SetSkybox(SkyboxSettings& skybox);
 
 	private:
 

@@ -9,6 +9,7 @@
 #include <Script/ScriptEngine.h>
 #include <Physics/Auxiliary/HEMotionType.h>
 #include <Sound/GlobalSource.h>
+#include <Sound/LocalSource.h>
 
 namespace Engine {
 
@@ -164,6 +165,14 @@ namespace Engine {
 		GlobalSoundsComponent(const GlobalSoundsComponent&) = default;
 	};
 
+	struct LocalSoundsComponent
+	{
+		std::vector<Ref<LocalSource>> Sounds;
+
+		LocalSoundsComponent() = default;
+		LocalSoundsComponent(const LocalSoundsComponent&) = default;
+	};
+
 	struct ScriptComponent 
 	{
 		Ref<ScriptClass> script = nullptr;
@@ -175,11 +184,24 @@ namespace Engine {
 	};
 
 	/// Physics stuff
-
 	struct ColliderMaterial
 	{
 		float Friction = 1.f;
 		float Restituion = 1.f;
+
+	};
+	struct CharacterControllerComponent
+	{
+		float Mass = 70.f;
+		float HalfHeight = 0.5f;
+		float Radius = 0.5f;
+		glm::vec3 Offset = glm::vec3(0, 0, 0);
+
+		CharacterControllerComponent() = default;
+		CharacterControllerComponent(const CharacterControllerComponent&) = default;
+		CharacterControllerComponent(float halfHeight, float radius) : HalfHeight(halfHeight), Radius(radius) {}
+		CharacterControllerComponent(float mass, float halfHeight, float radius, glm::vec3 offset)
+			: Mass(mass), HalfHeight(halfHeight), Radius(radius), Offset(offset){}
 	};
 
 	struct BoxColliderComponent
@@ -219,7 +241,7 @@ namespace Engine {
 		ComponentGroup< IDComponent, ParentIDComponent, TagComponent,
 		TransformComponent, MeshComponent, CameraComponent,
 		PointLightComponent, DirectionalLightComponent,
-		GlobalSoundsComponent, ScriptComponent,
-		SphereColliderComponent, BoxColliderComponent>;
+		GlobalSoundsComponent, LocalSoundsComponent, ScriptComponent,
+		SphereColliderComponent, BoxColliderComponent, CharacterControllerComponent >;
 
 }

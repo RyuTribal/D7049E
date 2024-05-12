@@ -24,6 +24,13 @@ namespace Engine {
             shaders.push_back(CreateScope<Shader>(full_path, GL_COMPUTE_SHADER));
             glAttachShader(m_ShaderProgram, shaders[shaders.size() - 1]->Handle());
         }
+
+		full_path = path + ".geo";
+		if (stat(full_path.c_str(), &buffer) == 0)
+		{
+			shaders.push_back(CreateScope<Shader>(full_path, GL_GEOMETRY_SHADER));
+			glAttachShader(m_ShaderProgram, shaders[shaders.size() - 1]->Handle());
+		}
         
         glLinkProgram(m_ShaderProgram);
 
@@ -161,5 +168,16 @@ namespace Engine {
 	{
 		HVE_CORE_ASSERT(m_Shaders.find(name) != m_Shaders.end());
 		return m_Shaders.at(name);
+	}
+	const Ref<ShaderProgram>& ShaderLibrary::GetByShaderID(uint32_t id) const
+	{
+		for (auto [name, shader] : m_Shaders)
+		{
+			if (shader->GetProgram() == id)
+			{
+				return shader;
+			}
+		}
+		HVE_CORE_ASSERT(false);
 	}
 }

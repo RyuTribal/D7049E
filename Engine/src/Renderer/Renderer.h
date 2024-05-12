@@ -72,15 +72,33 @@ namespace Engine
 
 	struct SkyboxSettings
 	{
-		Ref<Texture> Texture;
+		Ref<TextureCube> Texture;
 		float Brightness = 1.0f;
-		float AmbientLightIntensity = 1.0f;
+		int IrradianceResolution = 32;
+		Ref<TextureCube> IrradianceTexture;
+		int PrefilterResolution = 128;
+		Ref<TextureCube> PrefilterMap;
+		Ref<Framebuffer> BRDFBuffer;
+	};
+
+	struct ShadowSettings
+	{
+		int Resolution = 4096;
+		glm::mat4 DirLightProjection;
+
+
+		float LastCameraFarPlane = 500.f;
+		std::vector<float> ShadowCascadeLevels{ LastCameraFarPlane / 50.0f, LastCameraFarPlane / 25.0f, LastCameraFarPlane / 10.0f, LastCameraFarPlane / 2.0f };
+
+		// Temp
+		glm::mat4 DirLightView;
 	};
 
 	struct RendererSettings
 	{
 		AntiAliasingSettings AntiAliasing{};
 		SkyboxSettings Skybox{};
+		ShadowSettings ShadowSettings{};
 	};
 
 
@@ -107,6 +125,14 @@ namespace Engine
 	struct DebugSphere
 	{
 		float Radius;
+		glm::mat4 Transform;
+		glm::vec4 Color;
+	};
+
+	struct DebugCapsule
+	{
+		float Radius;
+		float HalfHeight;
 		glm::mat4 Transform;
 		glm::vec4 Color;
 	};
@@ -168,6 +194,7 @@ namespace Engine
 		void SubmitDebugLine(Line line);
 		void SubmitDebugBox(DebugBox box);
 		void SubmitDebugSphere(DebugSphere sphere);
+		void SubmitDebugCapsule(DebugCapsule capsule);
 
 		void BeginFrame(Camera* camera);
 		void DrawIndexed(Ref<Mesh> mesh, bool use_material);
@@ -213,6 +240,7 @@ namespace Engine
 
 		RendererSettings& GetSettings() { return m_Settings; }
 		void SetAntiAliasing(AntiAliasingSettings& settings);
+		void SetSkybox(SkyboxSettings& settings);
 
 	private:
 
@@ -220,6 +248,10 @@ namespace Engine
 		void CullLights();
 		void ShadeAllObjects();
 		void ShadeHDR();
+		void DrawSkybox();
+		void RecreateDirLightShadowBuffer();
+
+		void CreateSkybox(SkyboxSettings& settings);
 
 		void ResetStats();
 		void RecreateBuffers();
@@ -244,6 +276,11 @@ namespace Engine
 		Ref<ShaderStorageBuffer> m_LightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_DirLightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_VisibleLightsSSBO = nullptr;
+
+		Ref<UniformBuffer> m_LightMatricesBuffer = nullptr;
+
+		Ref<Framebuffer> m_SunShadowBuffer = nullptr;
+		Ref<Framebuffer> m_BRDFBuffer = nullptr;
 		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
 		Ref<Framebuffer> m_Intermidiatebuffer = nullptr;
 		Ref<Framebuffer> m_SceneFramebuffer = nullptr;
@@ -258,9 +295,12 @@ namespace Engine
 		std::vector<PointLight*> m_PointLights{};
 		std::vector<DirectionalLight*> m_DirectionalLights{};
 
+
+
 		std::vector<Line> m_DebugLines{};
 		std::vector<DebugBox> m_DebugBoxes{};
 		std::vector<DebugSphere> m_DebugSpheres{};
+		std::vector<DebugCapsule> m_DebugCapsules{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
 

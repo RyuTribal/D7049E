@@ -29,6 +29,10 @@ namespace Engine
 		void SetFullScreen(bool fullscreen, FullscreenType type) override;
 		void SetMaximized(bool maximized) override;
 
+		bool IsKeyPressed(uint32_t key) override;
+		void SetKeyState(uint32_t key, bool state) override;
+		void ClearKeyStates() override;
+
 	private:
 		virtual void Init(const WindowProps &props);
 		virtual void Shutdown();

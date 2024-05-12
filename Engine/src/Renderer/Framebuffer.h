@@ -8,7 +8,10 @@ namespace Engine {
 
 		// Color
 		RGBA8,
+		RG16F,
 		RGBA16F,
+		RG32F,
+		RGBA32F,
 		RED_INTEGER,
 
 		// Depth/stencil
@@ -49,6 +52,7 @@ namespace Engine {
 		FramebufferAttachmentSpecification Attachments;
 		uint32_t Samples = 1;
 		bool SwapChainTarget = false;
+		int ArraySize = 1;
 	};
 	
 	class Framebuffer
@@ -73,6 +77,8 @@ namespace Engine {
 
 		uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const { HVE_CORE_ASSERT(index < m_ColorAttachments.size()); return m_ColorAttachments[index]; }
 		uint32_t GetDepthAttachmentID() const { return m_DepthAttachment; }
+
+		void SetTexture(uint32_t index = 0, uint32_t texture_id = 0, uint32_t mip_level = 0);
 
 		void CopyFramebufferContent(Ref<Framebuffer> other_buffer, FramebufferSamplingFormat sampling);
 

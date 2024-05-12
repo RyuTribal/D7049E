@@ -33,7 +33,7 @@ namespace Engine {
 		std::filesystem::path asset_path = full_dir_path / "Assets";
 		std::filesystem::create_directory(asset_path);
 
-		std::vector<std::string> sub_dirs = { "Meshes", "Scenes", "Scripts", "Meshes/Primitives"};
+		std::vector<std::string> sub_dirs = { "Meshes", "Scenes", "Scripts", "Meshes/Primitives", "Textures"};
 
 		for (auto& dir : sub_dirs)
 		{
@@ -47,25 +47,36 @@ namespace Engine {
 		settings.RootPath = full_dir_path;
 		settings.AssetPath = std::filesystem::path("Assets");
 		settings.ScriptAssemblyPath = std::filesystem::path("Binaries/" + name + ".dll");
-		auto default_scene = Scene::CreateScene("Main_Scene");
-		SceneSerializer::Serializer(asset_path / "Scenes", default_scene.get());
-		settings.StartingScene = default_scene->Handle;
 
 		auto new_project = CreateRef<Project>(settings);
 		Project::SetActive(new_project);
 		auto asset_manager = new_project->GetDesignAssetManager();
+
+		auto default_scene = Scene::CreateScene("Main_Scene");
+		std::filesystem::path root_path = ROOT_PATH;
+		root_path = root_path.parent_path();
+		std::filesystem::path default_skybox_path = root_path / "Editor/Resources/Images/default_skybox.hdr";
+		std::filesystem::path skybox_dest = asset_path / "Textures/default_skybox.hdr";
+		std::filesystem::copy_file(default_skybox_path, skybox_dest, std::filesystem::copy_options::skip_existing);
+		auto skybox_handle = Project::GetActiveDesignAssetManager()->ImportAsset(skybox_dest);
+		SkyboxSettings skybox{};
+		skybox.Texture = AssetManager::GetAsset<TextureCube>(skybox_handle);
+		default_scene->SetSkybox(skybox);
+
+
+		SceneSerializer::Serializer(asset_path / "Scenes", default_scene.get());
+		settings.StartingScene = default_scene->Handle;
+
 		std::filesystem::path scene_file_path = asset_path / std::filesystem::path("Scenes") / std::filesystem::path("Main_Scene.hvescn");
 		asset_manager->RegisterAsset(default_scene->Handle, scene_file_path);
 		CreateScriptProject();
 
-		std::filesystem::path root_path = ROOT_PATH;
-		root_path = root_path.parent_path();
-		root_path = root_path / "Editor/Resources/Primitives";
+		std::filesystem::path primitives_source = root_path / "Editor/Resources/Primitives";
 		std::filesystem::path primitives_destination = asset_path / "Meshes/Primitives";
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(root_path))
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(primitives_source))
 		{
 			const auto& primitive_source = entry.path();
-			const auto& file = std::filesystem::relative(primitive_source, root_path);
+			const auto& file = std::filesystem::relative(primitive_source, primitives_source);
 			const auto& primitive_destination = primitives_destination / file;
 			if (std::filesystem::is_regular_file(primitive_source))
 			{

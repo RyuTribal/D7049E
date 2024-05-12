@@ -291,7 +291,7 @@ namespace Engine {
 	static void SphereCollider_AddLinearAngularImpulse(uint64_t entity_id, glm::vec3* linear_impulse, glm::vec3* angular_impulse)
 	{
 		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		auto sphere_collider = entity->GetComponent<CharacterControllerComponent>();
+		auto sphere_collider = entity->GetComponent<SphereColliderComponent>();
 		if (sphere_collider)
 		{
 			PhysicsEngine::Get()->GetCurrentScene()->AddLinearAndAngularImpulse(entity_id, *linear_impulse, *angular_impulse);

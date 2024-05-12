@@ -135,6 +135,15 @@ namespace Helios
 		}
 	}
 
+	// TODO: Sounds_PlaySoundAtIndex currently uses GlobalSoundsComponent
+	public class LocalSoundsComponent : Component
+	{
+		public void PlaySoundAtIndex(int index)
+		{
+			InternalCalls.Sounds_PlaySoundAtIndex(Entity.ID, index);
+		}
+	}
+
 
 	public class SphereColliderComponent : Component
 	{

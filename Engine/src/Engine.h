@@ -46,5 +46,6 @@
 //---------------- Sound ----------------
 #include "Sound/SoundEngine.h"
 #include "Sound/GlobalSource.h"
+#include "Sound/LocalSource.h"
 
 // -----------------------------------------

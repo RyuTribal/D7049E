@@ -347,6 +347,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<BoxColliderComponent>("Box Collider");
 			DisplayAddComponentEntry<SphereColliderComponent>("Sphere Collider");
 			DisplayAddComponentEntry<GlobalSoundsComponent>("Global Sounds");
+			DisplayAddComponentEntry<LocalSoundsComponent>("Local Sounds");
 			ImGui::EndPopup();
 		}
 
@@ -736,7 +737,102 @@ namespace EditorPanels {
 					component->Sounds.push_back(CreateRef<GlobalSource>(audioSource->Handle));
 				}
 			}
+
+			ImGui::EndDragDropTarget();
+
 		 }
+
+
+		DrawComponent<LocalSoundsComponent>("Local Sounds Library", entity, [](auto& component, auto entity)
+		{
+			auto& sounds_vector = component->Sounds;
+
+			for (size_t i = 0; i < sounds_vector.size(); ++i)
+			{
+				auto sound = sounds_vector[i];
+
+				// Construct unique identifiers
+				std::stringstream idStream;
+				idStream << i;
+				std::string idStr = idStream.str();
+
+				char buffer[256];
+				memset(buffer, 0, sizeof(buffer));
+				strncpy_s(buffer, sizeof(buffer), sound->GetTitle().c_str(), sizeof(buffer));
+
+				if (ImGui::InputText(("##SoundName" + idStr).c_str(), buffer, sizeof(buffer)))
+				{
+					sound->SetTitle(std::string(buffer));
+				}
+
+				ImGui::Text("Path: ");
+				ImGui::SameLine();
+				ImGui::TextWrapped(AssetManager::GetMetadata(sound->GetSoundAsset()).FilePath.string().c_str());
+
+				bool looping = sound->IsLooping();
+				if (ImGui::Checkbox(("Looping##" + idStr).c_str(), &looping))
+				{
+					sound->SetLooping(looping);
+				}
+
+				float volume[1] = { sound->GetVolume() };
+				ImGui::Text("Sound volume:");
+				if (ImGui::SliderFloat(("##sound_volume" + idStr).c_str(), volume, 0.0f, 10.0f))
+				{
+					sound->SetVolume(volume[0]);
+				}
+
+				float rolloff[1] = { sound->GetRolloff() };
+				ImGui::Text("Sound rolloff factor:");
+				if (ImGui::SliderFloat(("##sound_rolloff" + idStr).c_str(), rolloff, 0.0f, 2.0f))
+				{
+					sound->SetRolloff(rolloff[0]);
+				}
+
+				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				{
+					auto scene = GetScene();
+					glm::vec3 speakerPosition = scene->GetRegistry()->Get<TransformComponent>(entity->GetID())->world_transform.translation;
+					sound->PlaySound(speakerPosition, true);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button(("Remove##" + idStr).c_str()))
+				{
+					sounds_vector.erase(sounds_vector.begin() + i);
+					--i;
+				}
+			}
+
+			DrawDropBox("Add sound file here");
+		});
+
+		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
+		{
+			// Check for internal drag-and-drop payloads
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const auto payload_path = *(const std::filesystem::path*)payload->Data;
+				if (DesignAssetManager::GetAssetTypeFromFileExtension(payload_path.extension()) == AssetType::Audio)
+				{
+					auto entity = m_Scene->GetEntity(m_SelectionContext);
+					const auto payload_path = *(const std::filesystem::path*)payload->Data;
+					Project::GetActiveDesignAssetManager()->ImportAsset(payload_path);
+					auto handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(payload_path);
+					auto audioSource = AssetManager::GetAsset<AudioAsset>(handle);
+
+					LocalSoundsComponent* component;
+					if (!entity->HasComponent<LocalSoundsComponent>())
+					{
+						entity->AddComponent<LocalSoundsComponent>(LocalSoundsComponent());
+
+					}
+					component = entity->GetComponent<LocalSoundsComponent>();
+					component->Sounds.push_back(CreateRef<LocalSource>(audioSource->Handle));
+				}
+			}
+
+			ImGui::EndDragDropTarget();
+		}
 		
 
 		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)

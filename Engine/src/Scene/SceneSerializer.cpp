@@ -230,6 +230,18 @@ namespace Engine{
 			out << YAML::EndMap;
 		}
 
+		if (entity->HasComponent<CharacterControllerComponent>())
+		{
+			auto collider = entity->GetComponent<CharacterControllerComponent>();
+			out << YAML::Key << "CharacterController";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Radius" << YAML::Value << collider->Radius;
+			out << YAML::Key << "Offset" << YAML::Value << collider->Offset;
+			out << YAML::Key << "HalfHeight" << YAML::Value << collider->HalfHeight;
+			out << YAML::Key << "Mass" << YAML::Value << collider->Mass;
+			out << YAML::EndMap;
+		}
+
 		if (entity->HasComponent<GlobalSoundsComponent>())
 		{
 			auto& sounds_vector = entity->GetComponent<GlobalSoundsComponent>()->Sounds;
@@ -362,6 +374,16 @@ namespace Engine{
 			collider.Offset = entity_node["SphereCollider"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
 			collider.MotionType = FromStringToMotionType(entity_node["SphereCollider"]["MotionType"].as<std::string>());
 			scene->GetEntity(entity)->AddComponent<SphereColliderComponent>(collider);
+		}
+
+		if (entity_node["CharacterController"])
+		{
+			CharacterControllerComponent collider{};
+			collider.Radius = entity_node["CharacterController"]["Radius"].as<float>();
+			collider.HalfHeight = entity_node["CharacterController"]["HalfHeight"].as<float>();
+			collider.Offset = entity_node["CharacterController"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
+			collider.Mass = entity_node["CharacterController"]["Mass"].as<float>();
+			scene->GetEntity(entity)->AddComponent<CharacterControllerComponent>(collider);
 		}
 
 		if (entity_node["GlobalSounds"])

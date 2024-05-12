@@ -328,6 +328,11 @@ namespace Engine
 		m_DebugSpheres.push_back(sphere);
 	}
 
+	void Renderer::SubmitDebugCapsule(DebugCapsule capsule)
+	{
+		m_DebugCapsules.push_back(capsule);
+	}
+
 	void Renderer::BeginFrame(Camera* camera)
     {
 		HVE_PROFILE_FUNC();
@@ -637,10 +642,13 @@ namespace Engine
 
 		m_RendererAPI.SetDepthWriting(false);
 		DrawSkybox();
-		DrawDebugObjects();
 		m_RendererAPI.SetDepthWriting(true);
 
 		ShadeAllObjects();
+
+		m_RendererAPI.SetDepthWriting(false);
+		DrawDebugObjects();
+		m_RendererAPI.SetDepthWriting(true);
 
 		m_HDRFramebuffer->Unbind();
 
@@ -656,6 +664,7 @@ namespace Engine
 		m_DebugLines.clear();
 		m_DebugBoxes.clear();
 		m_DebugSpheres.clear();
+		m_DebugCapsules.clear();
     }
 
 
@@ -809,6 +818,75 @@ namespace Engine
 				{
 					m_DebugLines.push_back(Line{ vertices[i * (longitudeDivisions + 1) + j], vertices[i * (longitudeDivisions + 1) + j + 1], sphere.Color, glm::mat4(1.0f) });
 					m_DebugLines.push_back(Line{ vertices[i * (longitudeDivisions + 1) + j], vertices[(i + 1) * (longitudeDivisions + 1) + j], sphere.Color, glm::mat4(1.0f) });
+				}
+			}
+		}
+
+		for (auto& capsule : m_DebugCapsules)
+		{
+			std::vector<glm::vec3> vertices;
+
+
+			// Top cap
+			for (int i = 0; i <= latitudeDivisions / 2; ++i)
+			{
+				float lat = glm::pi<float>() * i / latitudeDivisions;
+
+				for (int j = 0; j <= longitudeDivisions; ++j)
+				{
+					float lon = 2.0f * glm::pi<float>() * j / longitudeDivisions;
+
+					float x = capsule.Radius * sin(lat) * cos(lon);
+					float y = capsule.Radius * cos(lat) + capsule.HalfHeight;
+					float z = capsule.Radius * sin(lat) * sin(lon);
+
+					glm::vec3 pos = glm::vec3(capsule.Transform * glm::vec4(x, y, z, 1.0f));
+					vertices.push_back(pos);
+				}
+			}
+
+			// Bottom cap
+			for (int i = latitudeDivisions / 2; i <= latitudeDivisions; ++i)
+			{
+				float lat = glm::pi<float>() * i / latitudeDivisions;
+
+				for (int j = 0; j <= longitudeDivisions; ++j)
+				{
+					float lon = 2.0f * glm::pi<float>() * j / longitudeDivisions;
+
+					float x = capsule.Radius * sin(lat) * cos(lon);
+					float y = capsule.Radius * cos(lat) - capsule.HalfHeight;
+					float z = capsule.Radius * sin(lat) * sin(lon);
+
+					glm::vec3 pos = glm::vec3(capsule.Transform * glm::vec4(x, y, z, 1.0f));
+					vertices.push_back(pos);
+				}
+			}
+
+			float x = 0;
+			float y = -capsule.HalfHeight;
+			float z = 0;
+			vertices.push_back(capsule.Transform* glm::vec4(x, y, z, 1.0f));
+
+			for (int i = 0; i < latitudeDivisions; ++i)
+			{
+				for (int j = 0; j < longitudeDivisions; ++j)
+				{
+					int index1 = i * (longitudeDivisions + 1) + j;
+					int index2 = index1 + 1;
+					int index3 = index1 + (longitudeDivisions + 1);
+					int index4 = index3 + 1;
+
+					if (i != latitudeDivisions - 1)
+					{
+						m_DebugLines.push_back(Line{ vertices[index1], vertices[index2], capsule.Color, glm::mat4(1.0f) });
+						m_DebugLines.push_back(Line{ vertices[index1], vertices[index3], capsule.Color, glm::mat4(1.0f) });
+					}
+
+					if (i != 0)
+					{
+						m_DebugLines.push_back(Line{ vertices[index2], vertices[index4], capsule.Color, glm::mat4(1.0f) });
+					}
 				}
 			}
 		}

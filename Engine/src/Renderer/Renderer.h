@@ -129,6 +129,14 @@ namespace Engine
 		glm::vec4 Color;
 	};
 
+	struct DebugCapsule
+	{
+		float Radius;
+		float HalfHeight;
+		glm::mat4 Transform;
+		glm::vec4 Color;
+	};
+
 	struct DirectionalLightInfo
 	{
 		glm::vec3 padding = { 1.f, 1.f, 1.f }; // I honestly haven't come up with an answer as to why the data corrupts if I don't have this padding. Something to do with allignment
@@ -186,6 +194,7 @@ namespace Engine
 		void SubmitDebugLine(Line line);
 		void SubmitDebugBox(DebugBox box);
 		void SubmitDebugSphere(DebugSphere sphere);
+		void SubmitDebugCapsule(DebugCapsule capsule);
 
 		void BeginFrame(Camera* camera);
 		void DrawIndexed(Ref<Mesh> mesh, bool use_material);
@@ -291,6 +300,7 @@ namespace Engine
 		std::vector<Line> m_DebugLines{};
 		std::vector<DebugBox> m_DebugBoxes{};
 		std::vector<DebugSphere> m_DebugSpheres{};
+		std::vector<DebugCapsule> m_DebugCapsules{};
 		
 		Ref<VertexArray> m_QuadVertexArray = nullptr;
 

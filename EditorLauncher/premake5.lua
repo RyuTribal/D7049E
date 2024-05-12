@@ -31,6 +31,7 @@ project "EditorLauncher"
     {
         "Engine",
         "Glad",
+        "JoltPhysics",
         "%{Library.Tracy}",
         "%{wks.location}/Engine/vendor/nativefiledialog-extended/lib/nfd.lib",
         
@@ -40,7 +41,10 @@ project "EditorLauncher"
     {
         "ROOT_PATH=\"" .. rootPath .. "/" .. "%{prj.name}\"",
         'EDITOR_EXECUTABLE_PATH="'.. rootPath ..'/bin/' .. outputdir .. '/Editor/Editor.exe"',
-        'EDITOR_WORKING_DIRECTORY="'.. rootPath ..'/Editor/"'
+        'EDITOR_WORKING_DIRECTORY="'.. rootPath ..'/Editor/"',
+        "JPH_USE_LZCNT",
+        "JPH_USE_TZCNT",
+        "JPH_USE_FMADD"
     }
 
     postbuildcommands
@@ -72,12 +76,22 @@ project "EditorLauncher"
         }
 
     filter "configurations:Debug"
-        defines "DEBUG"
+        defines {
+            "DEBUG",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            -- "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Debug"
         symbols "on"
 
     filter "configurations:Release"
-        defines "RELEASE"
+        defines {
+            "RELEASE",
+            "JPH_DEBUG_RENDERER",
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED",
+            "JPH_EXTERNAL_PROFILE"
+        }
         runtime "Release"
         optimize "on"
 

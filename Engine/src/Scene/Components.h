@@ -175,11 +175,24 @@ namespace Engine {
 	};
 
 	/// Physics stuff
-
 	struct ColliderMaterial
 	{
 		float Friction = 1.f;
 		float Restituion = 1.f;
+
+	};
+	struct CharacterControllerComponent
+	{
+		float Mass = 70.f;
+		float HalfHeight = 0.5f;
+		float Radius = 0.5f;
+		glm::vec3 Offset = glm::vec3(0, 0, 0);
+
+		CharacterControllerComponent() = default;
+		CharacterControllerComponent(const CharacterControllerComponent&) = default;
+		CharacterControllerComponent(float halfHeight, float radius) : HalfHeight(halfHeight), Radius(radius) {}
+		CharacterControllerComponent(float mass, float halfHeight, float radius, glm::vec3 offset)
+			: Mass(mass), HalfHeight(halfHeight), Radius(radius), Offset(offset){}
 	};
 
 	struct BoxColliderComponent
@@ -220,6 +233,6 @@ namespace Engine {
 		TransformComponent, MeshComponent, CameraComponent,
 		PointLightComponent, DirectionalLightComponent,
 		GlobalSoundsComponent, ScriptComponent,
-		SphereColliderComponent, BoxColliderComponent>;
+		SphereColliderComponent, BoxColliderComponent, CharacterControllerComponent >;
 
 }

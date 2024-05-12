@@ -344,6 +344,7 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<MeshComponent>("Mesh");
 			DisplayAddComponentEntry<PointLightComponent>("Point Light");
 			DisplayAddComponentEntry<DirectionalLightComponent>("Directional Light");
+			DisplayAddComponentEntry<CharacterControllerComponent>("Character Controller");
 			DisplayAddComponentEntry<BoxColliderComponent>("Box Collider");
 			DisplayAddComponentEntry<SphereColliderComponent>("Sphere Collider");
 			DisplayAddComponentEntry<GlobalSoundsComponent>("Global Sounds");
@@ -614,6 +615,40 @@ namespace EditorPanels {
 				light.SetDirection(curr_direction);
 			}
 			ImGui::Columns(1);
+
+		});
+
+		DrawComponent<CharacterControllerComponent>("Character Controller", entity, [](auto& component, auto entity) {
+			float float_max = FLT_MAX/2.f;
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Mass");
+			ImGui::NextColumn();
+			float mass = component->Mass;
+			ImGui::DragFloat("##character_controller_mass", &mass, 1.0f, 0.0f, float_max);
+			component->Mass = mass;
+			ImGui::Columns(1);
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Halfheight");
+			ImGui::NextColumn();
+			float halfheight = component->HalfHeight;
+			ImGui::DragFloat("##character_controller_halfheight", &halfheight, 1.0f, 0.0f, float_max);
+			component->HalfHeight = halfheight;
+			ImGui::Columns(1);
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Radius");
+			ImGui::NextColumn();
+			float radius = component->Radius;
+			ImGui::DragFloat("##character_controller_radius", &radius, 1.0f, 0.0f, float_max);
+			component->Radius = radius;
+			ImGui::Columns(1);
+
+			DrawVec3Control("Offset", component->Offset);
 
 		});
 

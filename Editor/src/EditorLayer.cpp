@@ -58,6 +58,19 @@ namespace Editor {
 					debug_sphere.Radius = collider->Radius;
 					Renderer::Get()->SubmitDebugSphere(debug_sphere);
 				}
+
+				if (entity->HasComponent<CharacterControllerComponent>())
+				{
+					auto collider = entity->GetComponent<CharacterControllerComponent>();
+					DebugCapsule debug_capsule{};
+					auto transform = entity->GetComponent<TransformComponent>()->world_transform;
+					transform.translation += collider->Offset;
+					debug_capsule.Transform = transform.mat4();
+					debug_capsule.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					debug_capsule.Radius = collider->Radius;
+					debug_capsule.HalfHeight = collider->HalfHeight;
+					Renderer::Get()->SubmitDebugCapsule(debug_capsule);
+				}
 			}
 		}
 		

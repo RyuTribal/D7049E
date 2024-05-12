@@ -39,6 +39,12 @@ namespace Engine {
 		
 	};
 
+	enum CullOption
+	{
+		BACK,
+		FRONT
+	};
+
 	enum DepthFunction
 	{
 		LEqual,
@@ -56,12 +62,16 @@ namespace Engine {
 	class RendererAPI {
 	public:
 		void Init();
+
+		uint32_t GetCurrentShaderProgram();
+
 		void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
 		void SetClearColor(const glm::vec4& color);
 		void ClearAll();
 		void ClearDepth();
 		void ClearColor();
+		void SetCull(CullOption option);
 
 		void SetDepthFunction(DepthFunction func);
 
@@ -75,8 +85,7 @@ namespace Engine {
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);
 
 		void ActivateTextureUnit(TextureUnits unit);
-		void BindTexture(uint32_t texture_id);
-		void UnBindTexture(uint32_t texture_id);
+		void BindTexture(uint32_t texture_id, uint32_t slot = 0);
 		void UnBindBuffer();
 		void SetDepthWriting(bool write);
 

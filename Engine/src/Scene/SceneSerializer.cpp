@@ -183,6 +183,7 @@ namespace Engine{
 			out << YAML::Key << "Position" << YAML::Value << light.GetPosition();
 			out << YAML::Key << "Intensity" << YAML::Value << light.GetIntensity();
 			out << YAML::Key << "AttenuationFactors" << YAML::Value << glm::vec3(light.GetConstantAttenuation(), light.GetLinearAttenuation(), light.GetQuadraticAttenuation());
+			out << YAML::Key << "IsCastingShadows" << YAML::Value << light.IsCastingShadows();
 			out << YAML::EndMap;
 		}
 
@@ -194,6 +195,7 @@ namespace Engine{
 			out << YAML::Key << "Color" << YAML::Value << light.GetColor();
 			out << YAML::Key << "Direction" << YAML::Value << light.GetDirection();
 			out << YAML::Key << "Intensity" << YAML::Value << light.GetIntensity();
+			out << YAML::Key << "IsCastingShadows" << YAML::Value << light.IsCastingShadows();
 			out << YAML::EndMap;
 		}
 
@@ -311,6 +313,11 @@ namespace Engine{
 			light.light.SetConstantAttenuation(attenuation_factors.x);
 			light.light.SetLinearAttenuation(attenuation_factors.y);
 			light.light.SetQuadraticAttenuation(attenuation_factors.z);
+			if (entity_node["PointLight"]["IsCastingShadows"])
+			{
+				light.light.CastShadows(entity_node["PointLight"]["IsCastingShadows"].as<bool>());
+			}
+
 			scene->GetEntity(entity)->AddComponent<PointLightComponent>(light);
 		}
 
@@ -320,9 +327,14 @@ namespace Engine{
 			light.light = DirectionalLight();
 			glm::vec3 color = entity_node["DirectionalLight"]["Color"].as<glm::vec3>(glm::vec3(0.0f));
 			light.light.SetColor(color);
-			glm::quat direction = entity_node["DirectionalLight"]["Direction"].as<glm::quat>(glm::quat(1.0f, 0.f, 0.f, 0.f));
+			glm::vec3 direction = entity_node["DirectionalLight"]["Direction"].as<glm::vec3>(glm::vec3(0.f));
 			light.light.SetDirection(direction);
 			light.light.SetIntensity(entity_node["DirectionalLight"]["Intensity"].as<float>());
+			if (entity_node["DirectionalLight"]["IsCastingShadows"])
+			{
+				light.light.CastShadows(entity_node["DirectionalLight"]["IsCastingShadows"].as<bool>());
+			}
+
 			scene->GetEntity(entity)->AddComponent<DirectionalLightComponent>(light);
 		}
 

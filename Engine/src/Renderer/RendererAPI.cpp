@@ -99,6 +99,24 @@ namespace Engine {
 				case GL_LESS:		return Less;
 			}
 		}
+
+		static GLuint HeliosToNativeCullOption(CullOption option)
+		{
+			switch (option)
+			{
+				case FRONT:			return GL_FRONT;
+				case BACK:			return GL_BACK;
+			}
+		}
+
+		static CullOption NativeToHeliosCullOption(GLuint func)
+		{
+			switch (func)
+			{
+				case GL_FRONT:		return FRONT;
+				case GL_BACK:		return BACK;
+			}
+		}
 	}
 
 	void MessageCallback(
@@ -139,6 +157,14 @@ namespace Engine {
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_LINE_SMOOTH);
+		glDepthMask(GL_TRUE);
+	}
+
+	uint32_t RendererAPI::GetCurrentShaderProgram()
+	{
+		GLint prog = 0;
+		glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+		return prog;
 	}
 
 	void RendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
@@ -164,6 +190,11 @@ namespace Engine {
 	void RendererAPI::ClearColor()
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
+	void RendererAPI::SetCull(CullOption option)
+	{
+		glCullFace(Util::HeliosToNativeCullOption(option));
 	}
 
 	void RendererAPI::SetDepthFunction(DepthFunction func)
@@ -366,20 +397,15 @@ namespace Engine {
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}
 
+	// Deprecated
 	void RendererAPI::ActivateTextureUnit(TextureUnits unit)
 	{
 		glActiveTexture(Util::HeliosToNativeTextureUnit(unit));
 	}
 
-	void RendererAPI::BindTexture(uint32_t texture_id)
+	void RendererAPI::BindTexture(uint32_t texture_id, uint32_t slot)
 	{
-		glBindTexture(GL_TEXTURE_2D, texture_id);
-	}
-
-
-	void RendererAPI::UnBindTexture(uint32_t texture_id)
-	{
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTextureUnit(slot, texture_id);
 	}
 
 	void RendererAPI::UnBindBuffer()

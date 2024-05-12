@@ -52,6 +52,7 @@ namespace Engine {
 		FramebufferAttachmentSpecification Attachments;
 		uint32_t Samples = 1;
 		bool SwapChainTarget = false;
+		int ArraySize = 1;
 	};
 	
 	class Framebuffer

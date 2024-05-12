@@ -11,6 +11,8 @@ uniform mat4 u_CameraView;
 uniform mat4 u_CameraProjection;
 uniform vec3 u_CameraPos;
 uniform mat4 u_Transform;
+uniform mat4 u_SunView;
+uniform mat4 u_SunProjection;
 
 out vec3 worldSpacePosition;
 out vec4 vertex_color;
@@ -19,11 +21,14 @@ out mat3 TBN;
 out vec2 texCoords;
 out vec4 objectColor;
 out vec3 cameraPosition;
-out flat int v_EntityID;
+out vec4 fragLightSpacePosition;
+
 
 void main() {
     gl_Position = u_CameraProjection * u_CameraView * u_Transform * vec4(a_coords, 1.0);
     worldSpacePosition = vec3(u_Transform * vec4(a_coords, 1.0));
+
+    fragLightSpacePosition = u_SunProjection * u_SunView * vec4(worldSpacePosition, 1.0);
 
     vec3 N = normalize(mat3(u_Transform) * a_normals);
     vec3 T = normalize(mat3(u_Transform) * a_tangent);

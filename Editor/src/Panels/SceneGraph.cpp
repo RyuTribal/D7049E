@@ -485,13 +485,13 @@ namespace EditorPanels {
 				ImGui::EndCombo();
 			}
 			ImGui::Columns(1);
-			float perspectiveVerticalFov = glm::degrees(camera.GetFOVY());
+			float perspectiveVerticalFov = camera.GetFOVY();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Vertical FOV");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##fov", &perspectiveVerticalFov))
-				camera.SetFovy(glm::radians(perspectiveVerticalFov));
+				camera.SetFovy(perspectiveVerticalFov);
 
 			ImGui::Columns(1);
 			float perspectiveNear = camera.GetNear();
@@ -527,6 +527,18 @@ namespace EditorPanels {
 		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
+
+			bool casting_shadows = light.IsCastingShadows();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Cast Shadows");
+			ImGui::NextColumn();
+			if (ImGui::Checkbox("##dir_light_shadow", &casting_shadows))
+			{
+				light.CastShadows(casting_shadows);
+			}
+			ImGui::Columns(1);
+
 			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
@@ -559,6 +571,18 @@ namespace EditorPanels {
 		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
+
+			bool casting_shadows = light.IsCastingShadows();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Cast Shadows");
+			ImGui::NextColumn();
+			if (ImGui::Checkbox("##dir_light_shadow", &casting_shadows))
+			{
+				light.CastShadows(casting_shadows);
+			}
+			ImGui::Columns(1);
+
 			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
@@ -584,11 +608,9 @@ namespace EditorPanels {
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Direction");
 			ImGui::NextColumn();
-			glm::quat curr_direction = light.GetDirection();
-			quat qRot = quat(curr_direction.w, curr_direction.x, curr_direction.y, curr_direction.z);
-			if (ImGui::gizmo3D("##gizmo_light_dir", qRot, 100, imguiGizmo::modeDirection))
+			glm::vec3 curr_direction = light.GetDirection();
+			if (ImGui::gizmo3D("##gizmo_light_dir", curr_direction, 100, imguiGizmo::modeDirection))
 			{
-				curr_direction = glm::quat(qRot.w, qRot.x, qRot.y, qRot.z);
 				light.SetDirection(curr_direction);
 			}
 			ImGui::Columns(1);
@@ -717,8 +739,6 @@ namespace EditorPanels {
 			DrawDropBox("Add sound file here");
 		});
 
-		
-
 		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
 		{
 			// Check for internal drag-and-drop payloads
@@ -743,6 +763,7 @@ namespace EditorPanels {
 					component->Sounds.push_back(CreateRef<GlobalSource>(audioSource->Handle));
 				}
 			}
+			ImGui::EndDragDropTarget();
 		 }
 		
 

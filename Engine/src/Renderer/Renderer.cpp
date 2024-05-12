@@ -19,6 +19,65 @@ namespace Engine
 
     Renderer* Renderer::s_Instance = nullptr;
 
+	namespace Utils {
+		glm::mat4 GetLightSpaceMatrix(const float nearPlane, const float farPlane, const glm::vec3& lightDir)
+		{
+			auto camera = Renderer::Get()->GetCamera();
+			auto settings = Renderer::Get()->GetSettings();
+			const auto corners = camera->GetFrustumCornersWorldSpace();
+
+			glm::vec3 min(INFINITY, INFINITY, INFINITY);
+			glm::vec3 max(-INFINITY, -INFINITY, -INFINITY);
+			for (const auto& v : corners)
+			{
+				glm::vec3 v3 = glm::vec3(v);
+				min = glm::min(min, v3);
+				max = glm::max(max, v3);
+			}
+			glm::vec3 center = (min + max) / 2.f;
+
+			const auto lightView = glm::lookAt(center + lightDir, center, glm::vec3(0.0f, 1.0f, 0.0f));
+
+			float minX = std::numeric_limits<float>::max();
+			float maxX = std::numeric_limits<float>::lowest();
+			float minY = std::numeric_limits<float>::max();
+			float maxY = std::numeric_limits<float>::lowest();
+			float minZ = std::numeric_limits<float>::max();
+			float maxZ = std::numeric_limits<float>::lowest();
+			for (const auto& v : corners)
+			{
+				const auto trf = lightView * v;
+				minX = std::min(minX, trf.x);
+				maxX = std::max(maxX, trf.x);
+				minY = std::min(minY, trf.y);
+				maxY = std::max(maxY, trf.y);
+				minZ = std::min(minZ, trf.z);
+				maxZ = std::max(maxZ, trf.z);
+			}
+
+			constexpr float zMult = 100.0f;
+			if (minZ < 0)
+			{
+				minZ *= zMult;
+			}
+			else
+			{
+				minZ /= zMult;
+			}
+			if (maxZ < 0)
+			{
+				maxZ /= zMult;
+			}
+			else
+			{
+				maxZ *= zMult;
+			}
+
+			const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+			return lightProjection * lightView;
+		}
+	}
+
     Renderer::Renderer()
     {
 		m_RendererAPI.Init();
@@ -59,7 +118,7 @@ namespace Engine
 		depthSpec.Width = current_window_width;
 		depthSpec.Height = current_window_height;
 		depthSpec.Attachments = { FramebufferTextureFormat::DEPTH24STENCIL8 };
-		m_DepthFramebuffer = Engine::Framebuffer::Create(depthSpec);
+		m_DepthFramebuffer = Framebuffer::Create(depthSpec);
 
 		FramebufferSpecification intermidiateSpec = {};
 		intermidiateSpec.Width = current_window_width;
@@ -77,11 +136,14 @@ namespace Engine
 				FramebufferTextureFormat::RGBA16F,
 				FramebufferTextureFormat::DEPTH24STENCIL8
 		};
-		m_SceneFramebuffer = Engine::Framebuffer::Create(sceneSpec);
+		m_SceneFramebuffer = Framebuffer::Create(sceneSpec);
+
+		RecreateDirLightShadowBuffer();
 
 		RecreateBuffers();
 
 		m_ShaderLibrary.Load("default_static_pbr", "Resources/Shaders/default_static_shader");
+		m_ShaderLibrary.Load("dir_light_shadows", "Resources/Shaders/dir_light_shadows");
 		m_ShaderLibrary.Load("forward_plus_depth_pre_pass", "Resources/Shaders/depth_pre_pass");
 		m_ShaderLibrary.Load("forward_plus_light_culling", "Resources/Shaders/light_culling_shader");
 		m_ShaderLibrary.Load("hdr_shader", "Resources/Shaders/hdr_shader");
@@ -94,6 +156,7 @@ namespace Engine
 
 		ResizeBuffers();
 
+		m_LightMatricesBuffer = UniformBuffer::Create(sizeof(glm::mat4x4) * 16, 0);
 
 		CreateSkybox(m_Settings.Skybox);
 
@@ -304,17 +367,119 @@ namespace Engine
 	void Renderer::DepthPrePass()
 	{
 		HVE_PROFILE_FUNC();
-		m_RendererAPI.ClearDepth();
 		m_DepthFramebuffer->Bind();
+		m_RendererAPI.ClearDepth();
 		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("forward_plus_depth_pre_pass");
 		shader->Set("u_CameraView", m_CurrentCamera->GetView());
 		shader->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
 		shader->Activate();
+		m_RendererAPI.SetViewport(0, 0, current_window_width, current_window_height);
 		for (Ref<Mesh> mesh : m_Meshes) {
 			DrawIndexed(mesh, false);
 		}
 
 		m_DepthFramebuffer->Unbind();
+
+
+		// Shadow maps
+
+		m_SunShadowBuffer->Bind();
+		m_RendererAPI.ClearDepth();
+
+		if (m_DirectionalLights.size() < 1 || !m_DirectionalLights[0]->IsCastingShadows())
+		{
+			return;
+		}
+
+		if (m_Settings.ShadowSettings.LastCameraFarPlane != m_CurrentCamera->GetFar())
+		{
+			m_Settings.ShadowSettings.LastCameraFarPlane = m_CurrentCamera->GetFar();
+			RecreateDirLightShadowBuffer();
+		}
+
+		glm::vec3 center = glm::vec3(0, 0, 0);
+		for (const auto& v : m_CurrentCamera->GetFrustumCornersWorldSpace())
+		{
+			center += glm::vec3(v);
+		}
+		center /= m_CurrentCamera->GetFrustumCornersWorldSpace().size();
+
+		m_Settings.ShadowSettings.DirLightView = glm::lookAt(
+										(-1.f)*center + m_DirectionalLights[0]->GetDirection(),
+										center,
+										glm::vec3(0.0f, 1.0f, 0.0f));
+
+		float minX = std::numeric_limits<float>::max();
+		float maxX = std::numeric_limits<float>::lowest();
+		float minY = std::numeric_limits<float>::max();
+		float maxY = std::numeric_limits<float>::lowest();
+		float minZ = std::numeric_limits<float>::max();
+		float maxZ = std::numeric_limits<float>::lowest();
+		for (const auto& v : m_CurrentCamera->GetFrustumCornersWorldSpace())
+		{
+			const auto trf = m_Settings.ShadowSettings.DirLightView * v;
+			minX = std::min(minX, trf.x);
+			maxX = std::max(maxX, trf.x);
+			minY = std::min(minY, trf.y);
+			maxY = std::max(maxY, trf.y);
+			minZ = std::min(minZ, trf.z);
+			maxZ = std::max(maxZ, trf.z);
+		}
+
+
+		constexpr float zMult = 100.0f;
+		if (minZ < 0)
+		{
+			minZ *= zMult;
+		}
+		else
+		{
+			minZ /= zMult;
+		}
+		if (maxZ < 0)
+		{
+			maxZ /= zMult;
+		}
+		else
+		{
+			maxZ *= zMult;
+		}
+
+		m_Settings.ShadowSettings.DirLightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+
+		std::vector<glm::mat4> lightMatrices;
+		glm::vec3 lightDir = -glm::normalize(m_DirectionalLights[0]->GetDirection());
+		for (size_t i = 0; i < m_Settings.ShadowSettings.ShadowCascadeLevels.size() + 1; ++i)
+		{
+			if (i == 0)
+			{
+				lightMatrices.push_back(Utils::GetLightSpaceMatrix(m_CurrentCamera->GetNear(), m_Settings.ShadowSettings.ShadowCascadeLevels[i], lightDir));
+			}
+			else if (i < m_Settings.ShadowSettings.ShadowCascadeLevels.size())
+			{
+				lightMatrices.push_back(Utils::GetLightSpaceMatrix(m_Settings.ShadowSettings.ShadowCascadeLevels[i - 1], m_Settings.ShadowSettings.ShadowCascadeLevels[i], lightDir));
+			}
+			else
+			{
+				lightMatrices.push_back(Utils::GetLightSpaceMatrix(m_Settings.ShadowSettings.ShadowCascadeLevels[i - 1], m_CurrentCamera->GetFar(), lightDir));
+			}
+		}
+
+		for (size_t i = 0; i < m_Settings.ShadowSettings.ShadowCascadeLevels.size(); ++i)
+		{
+			m_LightMatricesBuffer->SetData(&lightMatrices[i], sizeof(glm::mat4x4), i * sizeof(glm::mat4x4));
+		}
+
+		auto dir_shader = m_ShaderLibrary.Get("dir_light_shadows");
+		dir_shader->Activate();
+		m_RendererAPI.SetViewport(0, 0, m_Settings.ShadowSettings.Resolution, m_Settings.ShadowSettings.Resolution);
+		m_RendererAPI.SetCull(CullOption::FRONT);
+		for (Ref<Mesh> mesh : m_Meshes)
+		{
+			DrawIndexed(mesh, false);
+		}
+		m_RendererAPI.SetCull(CullOption::BACK);
+		m_SunShadowBuffer->Unbind();
 	}
 
 	void Renderer::CullLights()
@@ -328,20 +493,14 @@ namespace Engine
 		shader->Activate();
 
 		uint32_t depthTextureID = m_DepthFramebuffer->GetDepthAttachmentID();
-
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE4);
-		m_RendererAPI.BindTexture(depthTextureID);
-
-
+		m_RendererAPI.BindTexture(depthTextureID, 4);
 		m_RendererAPI.DispatchCompute(m_WorkGroupsX, m_WorkGroupsY, 1);
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE4);
-
-		m_RendererAPI.UnBindTexture(depthTextureID);
 	}
 
 	void Renderer::ShadeAllObjects()
 	{
 		HVE_PROFILE_FUNC();
+		m_RendererAPI.SetViewport(0, 0, current_window_width, current_window_height);
 		for (size_t i = 0; i < m_Meshes.size(); i++) {
 			DrawIndexed(m_Meshes[i], true);
 		}
@@ -365,7 +524,6 @@ namespace Engine
 
 		Ref<ShaderProgram> shader = m_ShaderLibrary.Get("hdr_shader");
 		shader->Activate();
-		m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE0);
 		m_RendererAPI.BindTexture(color_attachment);
 		shader->Set("exposure", exposure);
 		shader->Activate();
@@ -394,6 +552,19 @@ namespace Engine
 		}
 	}
 
+	void Renderer::RecreateDirLightShadowBuffer()
+	{
+		FramebufferSpecification sunSpec = {};
+		sunSpec.Width = m_Settings.ShadowSettings.Resolution;
+		sunSpec.Height = m_Settings.ShadowSettings.Resolution;
+		sunSpec.ArraySize = m_Settings.ShadowSettings.ShadowCascadeLevels.size() + 1;
+		sunSpec.Attachments = {
+				FramebufferTextureFormat::DEPTH24STENCIL8
+		};
+
+		m_SunShadowBuffer = Framebuffer::Create(sunSpec);
+	}
+
 	void Renderer::DrawIndexed(Ref<Mesh> mesh, bool use_material)
 	{
 		HVE_PROFILE_FUNC();
@@ -404,13 +575,20 @@ namespace Engine
 			{
 				m_Settings.Skybox.IrradianceTexture->Bind(10);
 				m_Settings.Skybox.PrefilterMap->Bind(11);
-				m_RendererAPI.ActivateTextureUnit(TextureUnits::TEXTURE12);
-				m_RendererAPI.BindTexture(m_BRDFBuffer->GetColorAttachmentRendererID());
+				m_RendererAPI.BindTexture(m_BRDFBuffer->GetColorAttachmentRendererID(), 12);
+				m_RendererAPI.BindTexture(m_SunShadowBuffer->GetDepthAttachmentID(), 13);
+				material->Set("u_CascadeCount", (int)m_Settings.ShadowSettings.ShadowCascadeLevels.size());
+				for (size_t i = 0; i < m_Settings.ShadowSettings.ShadowCascadeLevels.size(); ++i)
+				{
+					material->Set("u_CascadePlaneDistances[" + std::to_string(i) + "]", m_Settings.ShadowSettings.ShadowCascadeLevels[i]);
+				}
+				material->Set("u_CameraFarPlane", m_CurrentCamera->GetFar());
+				material->Set("u_SunView", m_Settings.ShadowSettings.DirLightView);
+				material->Set("u_SunProjection", m_Settings.ShadowSettings.DirLightProjection);
 				material->Set("u_EnvironmentBrightness", m_Settings.Skybox.Brightness);
-				material->Set("u_CameraPos", GetCamera()->CalculatePosition());
-				material->Set("u_CameraView", GetCamera()->GetView());
-				material->Set("u_CameraProjection", Renderer::Get()->GetCamera()->GetProjection());
-				material->Set("u_Transform", mesh->GetTransform() * mesh->GetMeshSource()->GetSubmeshes()[i].WorldTransform);
+				material->Set("u_CameraPos", m_CurrentCamera->CalculatePosition());
+				material->Set("u_CameraView", m_CurrentCamera->GetView());
+				material->Set("u_CameraProjection", m_CurrentCamera->GetProjection());
 				material->Set("u_NumDirectionalLights", (int)m_DirectionalLights.size());
 				if (!material->GetUniformValue<int>("u_UseNormalMap"))
 				{
@@ -418,6 +596,11 @@ namespace Engine
 				}
 				material->ApplyMaterial();
 			}
+
+			auto current_shader = m_ShaderLibrary.GetByShaderID(m_RendererAPI.GetCurrentShaderProgram());
+			current_shader->Set("u_Transform", mesh->GetTransform() * mesh->GetMeshSource()->GetSubmeshes()[i].WorldTransform);
+			current_shader->Activate();
+
 			m_RendererAPI.DrawIndexed(mesh->GetMeshSource()->GetSubmeshes()[i].VertexArray);
 			m_Stats.draw_calls++;
 		}
@@ -457,12 +640,9 @@ namespace Engine
 		DrawDebugObjects();
 		m_RendererAPI.SetDepthWriting(true);
 
-
 		ShadeAllObjects();
 
 		m_HDRFramebuffer->Unbind();
-
-		m_RendererAPI.ClearAll();
 
 		ShadeHDR();
 	}
@@ -540,7 +720,7 @@ namespace Engine
 		for (size_t i = 0; i < m_DirectionalLights.size(); ++i)
 		{
 			dirLightsData[i].color = glm::vec4(m_DirectionalLights[i]->GetColor(), 1.f);
-			dirLightsData[i].direction = glm::vec4(m_DirectionalLights[i]->DirectionToVec3(), 1.f);
+			dirLightsData[i].direction = glm::vec4(m_DirectionalLights[i]->GetDirection(), 1.f);
 			dirLightsData[i].intensity = m_DirectionalLights[i]->GetIntensity();
 		}
 		m_DirLightsSSBO->SetData(dirLightsData.data(), dirLightsData.size() * sizeof(DirectionalLightInfo));

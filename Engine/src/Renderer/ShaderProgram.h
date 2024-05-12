@@ -44,6 +44,7 @@ namespace Engine {
 		void Load(std::string_view name, const std::string& path);
 
 		const Ref<ShaderProgram>& Get(const std::string& name) const;
+		const Ref<ShaderProgram>& GetByShaderID(uint32_t id) const;
 		size_t GetSize() const { return m_Shaders.size(); }
 
 		std::unordered_map<std::string, Ref<ShaderProgram>>& GetShaders() { return m_Shaders; }

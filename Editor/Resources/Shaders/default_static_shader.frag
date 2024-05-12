@@ -6,6 +6,7 @@ in vec3 normal;
 in vec2 texCoords;
 in vec3 cameraPosition;
 in mat3 TBN;
+in vec4 fragLightSpacePosition;
 
 struct PointLightInfo {
     float constantAttenuation;
@@ -42,7 +43,18 @@ layout(binding = 10) uniform samplerCube u_IrradianceMap;
 layout(binding = 11) uniform samplerCube u_PrefilterMap;
 layout(binding = 12) uniform sampler2D u_BrdfLUT;
 
+layout(binding = 13) uniform sampler2DArray u_ShadowMap;
+
+layout (std140) uniform u_LightSpaceMatrices
+{
+    mat4 lightSpaceMatrices[16];
+};
+uniform float u_CascadePlaneDistances[16];
+uniform int u_CascadeCount;
+
 uniform float u_EnvironmentBrightness;
+uniform float u_CameraFarPlane;
+uniform mat4 u_CameraView;
 
 
 struct Material
@@ -86,6 +98,8 @@ float GeometrySchlickGGX(float NdotV, float roughness);
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness);
 vec3 fresnelSchlick(float cosTheta, vec3 F0);
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness);
+
+float ShadowCalculation(float bias, vec3 N);
 
 vec3 sRGBToLinear(vec3 sRGB) {
     return vec3(
@@ -137,16 +151,19 @@ void main() {
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metalness;	  
     vec3 irradiance = texture(u_IrradianceMap, N).rgb;
-    vec3 diffuse      = irradiance * albedo * u_EnvironmentBrightness;
+
+    float shadow_bias = max(0.05 * (1.0 - dot(N, directionalLightsBuffer.data[0].direction.rgb)), 0.005);  
+    float shadow = ShadowCalculation(shadow_bias, N);
+    vec3 diffuse = irradiance * albedo * u_EnvironmentBrightness * (1.0 - shadow);
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(u_PrefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;    
     vec2 brdf  = texture(u_BrdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-
     vec3 ambient = (kD * diffuse + specular) * ao;
 
     vec3 color = ambient + Lo + emission;
+    color = color;
 
     fragColor = vec4(color, 1.0);
 }
@@ -248,4 +265,66 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     float ggx1  = GeometrySchlickGGX(NdotL, roughness);
 	
     return ggx1 * ggx2;
+}
+
+// Shadows
+
+float ShadowCalculation(float bias, vec3 N)
+{
+    vec4 fragPosViewSpace = u_CameraView * vec4(worldSpacePosition, 1.0);
+    float depthValue = abs(fragPosViewSpace.z);
+
+    int layer = -1;
+    for (int i = 0; i < u_CascadeCount; ++i)
+    {
+        if (depthValue < u_CascadePlaneDistances[i])
+        {
+            layer = i;
+            break;
+        }
+    }
+    if (layer == -1)
+    {
+        layer = u_CascadeCount;
+    }
+
+    vec4 fragPosLightSpace = lightSpaceMatrices[layer] * vec4(worldSpacePosition, 1.0);
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+
+    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+    if (currentDepth > 1.0)
+    {
+        return 0.0;
+    }
+    // calculate bias (based on depth map resolution and slope)
+    const float biasModifier = 0.5f;
+    if (layer == u_CascadeCount)
+    {
+        bias *= 1 / (u_CameraFarPlane * biasModifier);
+    }
+    else
+    {
+        bias *= 1 / (u_CascadePlaneDistances[layer] * biasModifier);
+    }
+
+    // PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / vec2(textureSize(u_ShadowMap, 0));
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(u_ShadowMap, vec3(projCoords.xy + vec2(x, y) * texelSize, layer)).r;
+            shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+        
+    return shadow;
 }

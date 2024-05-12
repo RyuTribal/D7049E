@@ -81,10 +81,24 @@ namespace Engine
 		Ref<Framebuffer> BRDFBuffer;
 	};
 
+	struct ShadowSettings
+	{
+		int Resolution = 4096;
+		glm::mat4 DirLightProjection;
+
+
+		float LastCameraFarPlane = 500.f;
+		std::vector<float> ShadowCascadeLevels{ LastCameraFarPlane / 50.0f, LastCameraFarPlane / 25.0f, LastCameraFarPlane / 10.0f, LastCameraFarPlane / 2.0f };
+
+		// Temp
+		glm::mat4 DirLightView;
+	};
+
 	struct RendererSettings
 	{
 		AntiAliasingSettings AntiAliasing{};
 		SkyboxSettings Skybox{};
+		ShadowSettings ShadowSettings{};
 	};
 
 
@@ -226,6 +240,7 @@ namespace Engine
 		void ShadeAllObjects();
 		void ShadeHDR();
 		void DrawSkybox();
+		void RecreateDirLightShadowBuffer();
 
 		void CreateSkybox(SkyboxSettings& settings);
 
@@ -252,6 +267,10 @@ namespace Engine
 		Ref<ShaderStorageBuffer> m_LightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_DirLightsSSBO = nullptr;
 		Ref<ShaderStorageBuffer> m_VisibleLightsSSBO = nullptr;
+
+		Ref<UniformBuffer> m_LightMatricesBuffer = nullptr;
+
+		Ref<Framebuffer> m_SunShadowBuffer = nullptr;
 		Ref<Framebuffer> m_BRDFBuffer = nullptr;
 		Ref<Framebuffer> m_HDRFramebuffer = nullptr;
 		Ref<Framebuffer> m_Intermidiatebuffer = nullptr;

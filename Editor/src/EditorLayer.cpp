@@ -299,7 +299,7 @@ namespace Editor {
 		ImGui::End();
 
 		ImGui::Begin("Project Settings");
-		EditorPanels::ProjectSettings::Render();
+		EditorPanels::ProjectSettings::Render(m_Camera->GetCamera());
 		ImGui::End();
 
 		ImGui::Begin("Scene Settings");

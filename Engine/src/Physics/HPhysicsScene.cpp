@@ -143,8 +143,7 @@ namespace Engine {
 				characterComponent->HalfHeight,
 				characterComponent->Radius,
 				position,
-				characterComponent->Offset,
-				characterComponent->UserData
+				characterComponent->Offset
 			));
 		}
 		return res;
@@ -250,7 +249,7 @@ namespace Engine {
 		return HBodyID(entity_id, sphere_body->GetID());
 	}
 
-	HBodyID HPhysicsScene::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset, std::uint64_t userData)
+	HBodyID HPhysicsScene::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset)
 	{
 		Scope<JPH::CharacterSettings> character_settings = CreateScope<JPH::CharacterSettings>();
 		//character_settings->mMass = mass;
@@ -269,7 +268,7 @@ namespace Engine {
 			character_settings.get(),
 			HPhysicsScene::makeRVec3(position),
 			JPH::Quat::sIdentity(),
-			userData,
+			entity_id,
 			this->m_physics_system.get()
 		);
 		

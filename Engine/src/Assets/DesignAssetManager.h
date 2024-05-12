@@ -17,7 +17,7 @@ namespace Engine {
 		static AssetType GetAssetTypeFromFileExtension(const std::filesystem::path& extension);
 		static const std::string GetFileExtensionFromAssetType(const AssetType type);
 
-		void ImportAsset(const std::filesystem::path& file_path);
+		AssetHandle ImportAsset(const std::filesystem::path& file_path);
 		template<typename TAsset, typename... TArgs>
 		AssetHandle CreateMemoryOnlyAsset(TArgs&&... args)
 		{

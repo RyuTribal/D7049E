@@ -3,10 +3,12 @@
 #include <Engine.h>
 
 namespace Engine {
-	std::string FilePicker::OpenFileExplorer(std::vector<std::vector<std::string>>& filter, bool pick_folder = false)
+	std::pair<bool, std::string> FilePicker::OpenFileExplorer(std::vector<std::vector<std::string>>& filter, bool pick_folder = false)
 	{
 		std::string path_result = "";
 		NFD_Init();
+
+		bool selected = false;
 
 		nfdchar_t* outPath;
 		const int filter_size = (int)filter.size();
@@ -30,6 +32,7 @@ namespace Engine {
 		{
 			path_result = outPath;
 			NFD_FreePath(outPath);
+			selected = true;
 		}
 		else if (result == NFD_CANCEL)
 		{
@@ -43,10 +46,10 @@ namespace Engine {
 
 		NFD_Quit();
 		delete[] filterItem;
-		return path_result;
+		return { selected, path_result };
 	}
 
-	std::string FilePicker::OpenFileExplorer(bool pick_folder = false)
+	std::pair<bool, std::string> FilePicker::OpenFileExplorer(bool pick_folder = false)
 	{
 		std::vector<std::vector<std::string>> filter{};
 		return OpenFileExplorer(filter, pick_folder);

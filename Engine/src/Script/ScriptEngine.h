@@ -73,6 +73,7 @@ namespace Engine {
 		static void ReloadAssembly(const std::filesystem::path& app_assembly_path);
 
 		static bool ShouldReload();
+		static void MarkForReload();
 
 		static void OnCreateEntityClass(Entity* entity);
 
@@ -97,6 +98,8 @@ namespace Engine {
 			}
 		}
 
+
+		
 
 		template<typename... TArgs>
 		static void CallMethod(UUID entity_id, const std::string& methodName, TArgs&&... args)

@@ -1,0 +1,25 @@
+AssetRegistry:
+  - Handle: 9399366225547529480
+    FilePath: Assets\Scenes\Main_Scene.hvescn
+    Type: Scene
+  - Handle: 12178105439062981235
+    FilePath: Assets\Meshes\Primitives\Cylinder.fbx
+    Type: MeshSource
+  - Handle: 8373387339801049483
+    FilePath: Assets\Meshes\Primitives\Cone.fbx
+    Type: MeshSource
+  - Handle: 2792375910441021471
+    FilePath: Assets\Meshes\Primitives\Cube.fbx
+    Type: MeshSource
+  - Handle: 16352973183468804330
+    FilePath: Assets\Sounds\delphi_loop.ogg
+    Type: Audio
+  - Handle: 6780194786338401178
+    FilePath: Assets\Meshes\Primitives\Pyramid.fbx
+    Type: MeshSource
+  - Handle: 6432032947443732002
+    FilePath: Assets\Textures\default_skybox.hdr
+    Type: CubeMap
+  - Handle: 5925530805202965140
+    FilePath: Assets\Meshes\Primitives\Sphere.fbx
+    Type: MeshSource

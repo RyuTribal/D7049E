@@ -12,6 +12,8 @@ namespace Engine
 {
 	static bool s_GLFWInitialized = false;
 
+	static std::unordered_map<uint32_t, bool> s_KeyStates;
+
 	static void GLFWErrorCallback(int error, const char* description)
 	{
 		HVE_CORE_ERROR_TAG("WindowsWindow", "GLFW Error ({0}): {1}", error, description);
@@ -30,6 +32,11 @@ namespace Engine
 	WindowsWindow::~WindowsWindow()
 	{
 		Shutdown();
+	}
+
+	void WindowsWindow::SetTitle(std::string& new_title)
+	{
+		glfwSetWindowTitle(m_Window, new_title.c_str());
 	}
 
 	void WindowsWindow::SetFullScreen(bool fullscreen, FullscreenType type)
@@ -76,6 +83,21 @@ namespace Engine
 		}
 	}
 
+	bool WindowsWindow::IsKeyPressed(uint32_t key)
+	{
+		return s_KeyStates[key];
+	}
+
+	void WindowsWindow::SetKeyState(uint32_t key, bool state)
+	{
+		s_KeyStates[key] = state;
+	}
+
+	void WindowsWindow::ClearKeyStates()
+	{
+		s_KeyStates.clear();
+	}
+
 	void WindowsWindow::Init(const WindowProps& props)
 	{
 		m_Data.Title = props.Title;
@@ -112,11 +134,11 @@ namespace Engine
 		glfwSetWindowSizeCallback(m_Window, OnSizeChange);
 		glfwSetWindowMaximizeCallback(m_Window, WindowsWindow::OnMaximize);
 		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
-			{
-				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-				WindowCloseEvent event;
-				data.EventCallback(event);
-			});
+		{
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+			WindowCloseEvent event;
+			data.EventCallback(event);
+		});
 
 		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
 			{
@@ -125,18 +147,21 @@ namespace Engine
 				{
 				case GLFW_PRESS:
 				{
+					s_KeyStates[key] = true;
 					KeyPressedEvent event(key, 0);
 					data.EventCallback(event);
 					break;
 				}
 				case GLFW_RELEASE:
 				{
+					s_KeyStates[key] = false;
 					KeyReleasedEvent event(key);
 					data.EventCallback(event);
 					break;
 				}
 				case GLFW_REPEAT:
 				{
+					s_KeyStates[key] = true;
 					KeyPressedEvent event(key, 1);
 					data.EventCallback(event);
 					break;
@@ -158,18 +183,18 @@ namespace Engine
 
 				switch (action)
 				{
-				case GLFW_PRESS:
-				{
-					MouseButtonPressedEvent event(button);
-					data.EventCallback(event);
-					break;
-				}
-				case GLFW_RELEASE:
-				{
-					MouseButtonReleasedEvent event(button);
-					data.EventCallback(event);
-					break;
-				}
+					case GLFW_PRESS:
+					{
+						MouseButtonPressedEvent event(button);
+						data.EventCallback(event);
+						break;
+					}
+					case GLFW_RELEASE:
+					{
+						MouseButtonReleasedEvent event(button);
+						data.EventCallback(event);
+						break;
+					}
 				}
 			});
 

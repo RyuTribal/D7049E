@@ -128,7 +128,7 @@ namespace Engine {
 		std::vector<HBodyID> CreateBody(Entity* entity);
 		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
 		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
-		HBodyID CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset, std::uint64_t userData);
+		HBodyID CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset);
 		void InsertObjectByID(UUID entity_id, bool activate);
 		void SetPosition(UUID entity_id, glm::vec3 position, bool activate);
 		void SetLinearVelocity(UUID entity_id, glm::vec3& velocity);
@@ -171,6 +171,8 @@ namespace Engine {
 		glm::vec3 GetLinearVelocity(UUID entity_id);
 		glm::vec3 GetAngularVelocity(UUID entity_id);
 
+
+		Ref<JPH::PhysicsSystem> GetSystem() { return m_physics_system; }
 
 	private:
 

@@ -7,6 +7,7 @@
 #include "Assets/AssetManager.h"
 #include "Core/Application.h"
 #include "Physics/PhysicsEngine.h"
+#include "Sound/SoundEngine.h"
 
 namespace Engine {
 
@@ -188,7 +189,8 @@ namespace Engine {
 		CopyComponent<CameraComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<PointLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<DirectionalLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
-		CopyComponent<SoundComponent>(original_scene->m_Registry, new_scene->m_Registry);
+		CopyComponent<GlobalSoundsComponent>(original_scene->m_Registry, new_scene->m_Registry);
+		CopyComponent<LocalSoundsComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<ScriptComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<CharacterControllerComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<BoxColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);
@@ -319,6 +321,12 @@ namespace Engine {
 		return nullptr;
 	}
 
+	void Scene::SetSkybox(SkyboxSettings& skybox)
+	{
+		m_Skybox = skybox;
+		Renderer::Get()->SetSkybox(m_Skybox);
+	}
+
 	void Scene::UpdateScene()
 	{
 		SetCurrentCamera(Renderer::Get()->GetCamera());
@@ -347,6 +355,8 @@ namespace Engine {
 		{
 			SyncPhysicsTransforms();
 		}
+
+		SoundEngine::SetListenerPosition(GetCurrentCamera()->CalculatePosition());
 
 		DrawSystem();
 	}

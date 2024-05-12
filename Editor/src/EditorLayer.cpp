@@ -3,15 +3,13 @@
 #include "Panels/SceneGraph.h"
 #include "Panels/ContentBrowser.h"
 #include "Panels/ProjectSettings.h"
+#include "Panels/SceneSettings.h"
 #include <imgui/imgui_internal.h>
 
 namespace Editor {
 	void EditorLayer::OnAttach()
 	{
-		HVE_ASSERT(m_Project->GetSettings().StartingScene != 0, "Starting scene is invalid!");
-		OpenScene(m_Project->GetSettings().StartingScene);
-		EditorPanels::SceneGraph::SetScene(m_CurrentScene);
-		EditorPanels::ProjectSettings::Init();
+		m_Camera = Engine::CreateRef<EditorCamera>(m_CurrentScene);
 	}
 
 	void EditorLayer::OnUpdate(float delta_time)
@@ -59,6 +57,19 @@ namespace Editor {
 					debug_sphere.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
 					debug_sphere.Radius = collider->Radius;
 					Renderer::Get()->SubmitDebugSphere(debug_sphere);
+				}
+
+				if (entity->HasComponent<CharacterControllerComponent>())
+				{
+					auto collider = entity->GetComponent<CharacterControllerComponent>();
+					DebugCapsule debug_capsule{};
+					auto transform = entity->GetComponent<TransformComponent>()->world_transform;
+					transform.translation += collider->Offset;
+					debug_capsule.Transform = transform.mat4();
+					debug_capsule.Color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+					debug_capsule.Radius = collider->Radius;
+					debug_capsule.HalfHeight = collider->HalfHeight;
+					Renderer::Get()->SubmitDebugCapsule(debug_capsule);
 				}
 			}
 		}
@@ -149,24 +160,25 @@ namespace Editor {
 			{
 				if (ImGui::MenuItem("New Project...", "Ctrl+P"))
 				{
-
+					ImGui::OpenPopup("Create Project");
+					m_CurrentMenuAction = MenuAction::NewProject;
 				}
 				if (ImGui::MenuItem("Open Project...", "Ctrl+O"))
 				{
-
+					BeginOpenProject();
 				}
 
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
+				if (ImGui::MenuItem("Save Project", "Ctrl+S"))
 				{
-
+					SaveProject();
 				}
 
-				if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
-				{
-					SaveScene();
-				}
+				// ImGui::Separator();
+
+				//if (ImGui::MenuItem("New Scene", "Ctrl+N"))
+				//{
+				//	//ImGui::OpenPopup("Create Scene");
+				//}
 
 				//if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
 				//{
@@ -202,6 +214,64 @@ namespace Editor {
 			ImGui::EndMenuBar();
 		}
 
+		if (m_CurrentMenuAction == MenuAction::NewProject) ImGui::OpenPopup("Create Project");
+
+
+		if (ImGui::BeginPopupModal("Create Project"))
+		{
+			ImGui::SetNextWindowSize({ 600, 338 });
+			ImGui::Columns(2, "CreateColumns", false);
+			ImGui::SetColumnWidth(0, 200);
+			ImGui::Text("Project Name");
+			ImGui::Text("Project Directory");
+			ImGui::NextColumn();
+
+			ImGui::InputText("##Name", m_NewProjectNameBuffer, sizeof(m_NewProjectNameBuffer));
+			ImGui::InputText("##Dir", m_NewProjectPathBuffer, sizeof(m_NewProjectPathBuffer));
+			ImGui::SameLine();
+			if (ImGui::Button("..."))
+			{
+				auto [success, path] = Engine::FilePicker::OpenFileExplorer(true);
+				if (success)
+				{
+					strncpy(m_NewProjectPathBuffer, path.c_str(), sizeof(m_NewProjectPathBuffer));
+					m_NewProjectPathBuffer[sizeof(m_NewProjectPathBuffer) - 1] = '\0';
+				}
+			}
+
+			ImGui::Columns(1);
+
+			static bool successfully_created = false;
+			static bool attempted_to_create = false;
+
+			if (ImGui::Button("Create"))
+			{
+				auto [success, project_file_path] = Engine::ProjectSerializer::CreateNewProject(m_NewProjectPathBuffer, m_NewProjectNameBuffer);
+				successfully_created = success;
+				attempted_to_create = true;
+				if (success)
+				{
+					OpenNewProject(project_file_path.string());
+					ImGui::CloseCurrentPopup();
+					successfully_created = false;
+					attempted_to_create = false;
+				}
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+			{
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (!successfully_created && attempted_to_create)
+			{
+				ImGui::Text("Error: Project creation failed. Please check the logs!");
+			}
+
+			ImGui::EndPopup();
+		}
+
 
 		EditorPanels::SceneGraph::Render(m_CurrentScene);
 
@@ -211,7 +281,9 @@ namespace Editor {
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
 		EditorPanels::Viewport::Render(m_Camera->GetCamera().get());
+
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
@@ -226,6 +298,7 @@ namespace Editor {
 			ImGui::EndDragDropTarget();
 		}
 		ImGui::End();
+
 		ImGui::PopStyleVar(1);
 
 		ImGui::Begin("Stats");
@@ -239,16 +312,18 @@ namespace Editor {
 		ImGui::End();
 
 		ImGui::Begin("Project Settings");
-		EditorPanels::ProjectSettings::Render();
+		EditorPanels::ProjectSettings::Render(m_Camera->GetCamera());
 		ImGui::End();
 
 		ImGui::Begin("Scene Settings");
-
+		EditorPanels::SceneSettings::Render(m_CurrentScene);
 		ImGui::End();
 
 		UIToolBar();
 
 		ImGui::End();
+
+		m_CurrentMenuAction = MenuAction::None;
 
 	}
 
@@ -340,10 +415,11 @@ namespace Editor {
 		}
 		else if (control)
 		{
-			if (event.GetKeyCode() == KEY_S)
+			switch (event.GetKeyCode())
 			{
-				Project::SaveActive();
-				SaveScene();
+				case KEY_S: SaveProject();									break;
+				case KEY_O: BeginOpenProject();								break;
+				case KEY_P: m_CurrentMenuAction = MenuAction::NewProject;	break;
 			}
 		}
 		else {
@@ -501,8 +577,46 @@ namespace Editor {
 		mesh_comp.mesh = mesh;
 		m_CurrentScene->GetEntity(handle)->AddComponent<MeshComponent>(mesh_comp);
 	}
-	void EditorLayer::SaveScene()
+
+	void EditorLayer::OpenNewProject(const std::string& project_path)
 	{
+		m_Project = Project::Load(project_path);
+		HVE_ASSERT(m_Project->GetSettings().StartingScene != 0, "Starting scene is invalid!");
+		OpenScene(m_Project->GetSettings().StartingScene);
+
+		memset(m_NewProjectNameBuffer, 0, sizeof(m_NewProjectNameBuffer));
+		memset(m_NewProjectPathBuffer, 0, sizeof(m_NewProjectPathBuffer));
+
+		EditorPanels::SceneGraph::SetScene(m_CurrentScene);
+		EditorPanels::ProjectSettings::Init();
+
+		Project::ReloadScripts();
+
+		HVE_WARN(Project::GetActive()->GetSettings().RootPath.string());
+
+		std::string new_title = std::filesystem::path(project_path).stem().string() + " - Editor";
+		Application::Get().GetWindow().SetTitle(new_title);
+
+		EditorPanels::ContentBrowser::Recreate();
+	}
+
+	void EditorLayer::BeginOpenProject()
+	{
+		std::string file_ending = "hveproject";
+		std::vector<std::vector<std::string>> filter = { {"Helios project files", file_ending} };
+		auto [success, path] = Engine::FilePicker::OpenFileExplorer(filter, false);
+		if (success)
+		{
+			strncpy(m_NewProjectPathBuffer, path.c_str(), sizeof(m_NewProjectPathBuffer));
+			m_NewProjectPathBuffer[sizeof(m_NewProjectPathBuffer) - 1] = '\0';
+			OpenNewProject(std::string(m_NewProjectPathBuffer));
+		}
+		Input::ClearKeyStates(); // Needed because if you open it through the shortcuts, since it locks the thread, the keystate for control will stay as pressed and not as released
+	}
+
+	void EditorLayer::SaveProject()
+	{
+		Project::SaveActive();
 		std::filesystem::path scene_file_path = m_Project->GetSettings().AssetPath / std::filesystem::path("Scenes");
 		if (AssetManager::GetMetadata(m_EditorScene->Handle))
 		{
@@ -510,11 +624,15 @@ namespace Editor {
 		}
 		m_EditorScene->SaveScene(Project::GetFullFilePath(scene_file_path));
 	}
+
 	void EditorLayer::OpenScene(AssetHandle handle)
 	{
 		auto scene = AssetManager::GetAsset<Scene>(handle);
-		m_Camera = Engine::CreateRef<EditorCamera>(scene);
 		m_CurrentScene = scene;
 		m_EditorScene = scene;
+		if (m_Camera)
+		{
+			m_Camera->UpdateContext(scene);
+		}
 	}
 }

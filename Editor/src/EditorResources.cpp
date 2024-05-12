@@ -9,7 +9,7 @@ namespace Editor {
 	void EditorResources::Init()
 	{
 		const std::vector<std::pair<std::string, std::string>> iconFiles = {
-		{".gltf", "GLTF.png"}, {".fbx", "FBX.png"}, {".FBX", "FBX.png"},
+		{".gltf", "GLTF.png"}, {".fbx", "FBX.png"}, {".FBX", "FBX.png"}, {".glb", "GLTF.png"},
 		{".jpg", "JPG.png"} , {".jpeg", "JPG.png"}, {".png", "PNG.png"}, {".hdr", "HDR.png"},
 		{".wav", "WAV.png"} , {".ogg", "OGG.png"}, {".mp3", "MP3.png"},
 		{".cs", "CSHARP.png"},
@@ -20,7 +20,7 @@ namespace Editor {
 
 		for (const auto& [ext, file] : iconFiles)
 		{
-			FileIcons[ext] = TextureImporter::ImportWithPath("Resources/Icons/" + file);
+			FileIcons[ext] = TextureImporter::Import2DWithPath("Resources/Icons/" + file);
 		}
 	}
 }

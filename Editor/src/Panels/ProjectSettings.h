@@ -1,6 +1,5 @@
 #pragma once
-#include <cstdint>
-
+#include <Engine.h>
 
 namespace EditorPanels {
 
@@ -8,7 +7,7 @@ namespace EditorPanels {
 	{
 	public:
 		static void Init();
-		static void Render();
+		static void Render(Engine::Ref<Engine::Camera> editor_camera);
 		static void Shutdown();
 		
 	};

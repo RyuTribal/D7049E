@@ -85,15 +85,19 @@ namespace Engine {
 			m_Type == CameraType::ORTHOGRAPHIC ? SetOrthographic() : SetPerspective();
 		}
 	}
+	std::vector<glm::vec4>& Camera::GetFrustumCornersWorldSpace()
+	{
+		return m_FurstumCorners;
+	}
 	void Camera::RecalculateViewMatrix()
 	{
-
 		m_Position = CalculatePosition();
 
 		glm::quat orientation = GetOrientation();
 
 		m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
 		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+		SetFrustumCornersWorldSpace();
 	}
 	void Camera::SetOrthographic()
 	{
@@ -106,6 +110,30 @@ namespace Engine {
 	void Camera::SetPerspective()
 	{
 		m_ProjectionMatrix = glm::perspective(m_PerspectiveFOVY, m_AspectRatio, m_Near, m_Far);
+		SetFrustumCornersWorldSpace();
+	}
+
+	void Camera::SetFrustumCornersWorldSpace()
+	{
+		const auto inv = glm::inverse(m_ProjectionMatrix * m_ViewMatrix);
+
+		m_FurstumCorners.clear();
+		for (unsigned int x = 0; x < 2; ++x)
+		{
+			for (unsigned int y = 0; y < 2; ++y)
+			{
+				for (unsigned int z = 0; z < 2; ++z)
+				{
+					const glm::vec4 pt =
+						inv * glm::vec4(
+							2.0f * x - 1.0f,
+							2.0f * y - 1.0f,
+							2.0f * z - 1.0f,
+							1.0f);
+					m_FurstumCorners.push_back(pt / pt.w);
+				}
+			}
+		}
 	}
 
 	void Camera::RotateAroundFocalPoint(const glm::vec2& delta, float rotation_speed, bool inverse_controls)

@@ -4,6 +4,8 @@
   <img src="assets/logo.png" alt="Logo" width="600" height="400">
 </p>
 
+[![Documentation Status](https://readthedocs.org/projects/d7049e/badge/?version=latest)](https://d7049e.readthedocs.io/en/latest/?badge=latest)
+
 <a href="https://trello.com/b/3jKnPwDf/d7049e-projekt">Project board</a>
 
 <!-- TABLE OF CONTENTS -->

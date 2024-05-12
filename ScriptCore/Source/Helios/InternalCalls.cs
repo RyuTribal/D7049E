@@ -57,6 +57,12 @@ namespace Helios
 
 
 
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Sounds_PlaySoundAtIndexGlobal(ulong entity_id, int index);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Sounds_PlaySoundAtIndexLocal(ulong entity_id, int index);
+
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void BoxCollider_GetLinearVelocity(ulong entity_id, out Vector3 velocity);

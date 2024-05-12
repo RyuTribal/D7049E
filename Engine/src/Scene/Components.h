@@ -6,9 +6,10 @@
 #include "Renderer/Mesh.h"
 #include "Lights/PointLight.h"
 #include "Lights/DirectionalLight.h"
-#include "Sound/Sound.h"
 #include <Script/ScriptEngine.h>
 #include <Physics/Auxiliary/HEMotionType.h>
+#include <Sound/GlobalSource.h>
+#include <Sound/LocalSource.h>
 
 namespace Engine {
 
@@ -54,6 +55,25 @@ namespace Engine {
 				* Rotation
 				* glm::scale(glm::mat4(1.0f), scale);
 		}
+
+		glm::quat RotationVecToQuat()
+		{
+
+			float theta = glm::length(rotation);
+
+			if (theta == 0)
+			{
+				return glm::quat(1, 0, 0, 0);
+			}
+
+			glm::vec3 u = rotation / theta;
+
+			float halfTheta = theta / 2.0f;
+			float q_w = std::cos(halfTheta);
+			glm::vec3 q_xyz = u * std::sin(halfTheta);
+
+			return glm::quat(q_w, q_xyz.x, q_xyz.y, q_xyz.z);
+		}
 	};
 
 	struct WorldTransformComponent  {
@@ -71,6 +91,25 @@ namespace Engine {
 			return glm::translate(glm::mat4(1.0f), translation)
 				* Rotation
 				* glm::scale(glm::mat4(1.0f), scale);
+		}
+
+		glm::quat RotationVecToQuat()
+		{
+
+			float theta = glm::length(rotation);
+
+			if (theta == 0)
+			{
+				return glm::quat(1, 0, 0, 0);
+			}
+
+			glm::vec3 u = rotation / theta;
+
+			float halfTheta = theta / 2.0f;
+			float q_w = std::cos(halfTheta);
+			glm::vec3 q_xyz = u * std::sin(halfTheta);
+
+			return glm::quat(q_w, q_xyz.x, q_xyz.y, q_xyz.z);
 		}
 	};
 
@@ -118,13 +157,20 @@ namespace Engine {
 		DirectionalLightComponent(DirectionalLight new_light) : light(new_light) {}
 	};
 
-	struct SoundComponent 
+	struct GlobalSoundsComponent 
 	{
-		Ref<Sound> sound;
+		std::vector<Ref<GlobalSource>> Sounds;
 
-		SoundComponent() { sound = CreateRef<Sound>(); };
-		SoundComponent(const SoundComponent&) = default;
-		SoundComponent(Ref<Sound> new_sound) : sound(new_sound) {}
+		GlobalSoundsComponent() = default;
+		GlobalSoundsComponent(const GlobalSoundsComponent&) = default;
+	};
+
+	struct LocalSoundsComponent
+	{
+		std::vector<Ref<LocalSource>> Sounds;
+
+		LocalSoundsComponent() = default;
+		LocalSoundsComponent(const LocalSoundsComponent&) = default;
 	};
 
 	struct ScriptComponent 
@@ -138,20 +184,24 @@ namespace Engine {
 	};
 
 	/// Physics stuff
+	struct ColliderMaterial
+	{
+		float Friction = 1.f;
+		float Restituion = 1.f;
 
+	};
 	struct CharacterControllerComponent
 	{
 		float Mass = 70.f;
-		float HalfHeight = 0.7f;
-		float Radius = 0.35f;
+		float HalfHeight = 0.5f;
+		float Radius = 0.5f;
 		glm::vec3 Offset = glm::vec3(0, 0, 0);
-		std::uint64_t UserData = 0;
 
 		CharacterControllerComponent() = default;
 		CharacterControllerComponent(const CharacterControllerComponent&) = default;
 		CharacterControllerComponent(float halfHeight, float radius) : HalfHeight(halfHeight), Radius(radius) {}
-		CharacterControllerComponent(float mass, float halfHeight, float radius, glm::vec3 offset, std::uint64_t userData)
-			: Mass(mass), HalfHeight(halfHeight), Radius(radius), Offset(offset), UserData(userData) {}
+		CharacterControllerComponent(float mass, float halfHeight, float radius, glm::vec3 offset)
+			: Mass(mass), HalfHeight(halfHeight), Radius(radius), Offset(offset){}
 	};
 
 	struct BoxColliderComponent
@@ -159,6 +209,8 @@ namespace Engine {
 		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
 		HEMotionType MotionType = HEMotionType::Static;
+		ColliderMaterial Material{};
+
 
 
 		BoxColliderComponent() = default;
@@ -172,6 +224,7 @@ namespace Engine {
 		float Radius = 0.5f;
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
 		HEMotionType MotionType = HEMotionType::Static;
+		ColliderMaterial Material{};
 
 		SphereColliderComponent() = default;
 		SphereColliderComponent(const SphereColliderComponent&) = default;
@@ -188,7 +241,7 @@ namespace Engine {
 		ComponentGroup< IDComponent, ParentIDComponent, TagComponent,
 		TransformComponent, MeshComponent, CameraComponent,
 		PointLightComponent, DirectionalLightComponent,
-		SoundComponent, ScriptComponent, CharacterControllerComponent,
-		SphereColliderComponent, BoxColliderComponent>;
+		GlobalSoundsComponent, LocalSoundsComponent, ScriptComponent,
+		SphereColliderComponent, BoxColliderComponent, CharacterControllerComponent >;
 
 }

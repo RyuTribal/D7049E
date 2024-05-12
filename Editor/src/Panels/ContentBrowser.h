@@ -35,6 +35,12 @@ namespace EditorPanels {
 				s_Instance = new ContentBrowser();
 			}
 		}
+
+		static void Recreate()
+		{
+			s_Instance = new ContentBrowser();
+		}
+
 		static void Render(Ref<Scene> scene)
 		{
 			Create();

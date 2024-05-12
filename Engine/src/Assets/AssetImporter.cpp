@@ -3,6 +3,7 @@
 #include "AssetImporter.h"
 #include "TextureImporter.h"
 #include "ModelImporter.h"
+#include "AudioImporter.h"
 #include "Scene/Scene.h"
 
 namespace Engine {
@@ -12,11 +13,12 @@ namespace Engine {
 	{
 		// Project asset is excluded because the asset manager depends on it so we have the project loader managed by the project file itself (since no more than one project will ever be loaded in a project...)
 		{AssetType::Scene, Scene::LoadScene},
-		{AssetType::Texture, TextureImporter::Import},
+		{AssetType::Texture, TextureImporter::Import2D},
+		{AssetType::CubeMap, TextureImporter::ImportCube},
 		{AssetType::MeshSource, ModelImporter::ImportSource},
+		{AssetType::Audio, AudioImporter::Import},
 		//{AssetType::Mesh, ModelImporter::Import},
-		/*{AssetType::Material, },
-		{AssetType::Audio, },*/
+		/*{AssetType::Material, },*/
 	};
 
 	Ref<Asset> AssetImporter::Import(AssetHandle handle, const AssetMetadata& metadata)

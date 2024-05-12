@@ -1,6 +1,7 @@
 #include "SceneGraph.h"
 #include <imgui/imgui_internal.h>
 #include <imgui/imGuIZMOquat.h>
+#include <Sound/AudioAsset.h>
 
 using namespace Engine;
 
@@ -346,7 +347,8 @@ namespace EditorPanels {
 			DisplayAddComponentEntry<CharacterControllerComponent>("Character Controller");
 			DisplayAddComponentEntry<BoxColliderComponent>("Box Collider");
 			DisplayAddComponentEntry<SphereColliderComponent>("Sphere Collider");
-			DisplayAddComponentEntry<SoundComponent>("Sound");
+			DisplayAddComponentEntry<GlobalSoundsComponent>("Global Sounds");
+			DisplayAddComponentEntry<LocalSoundsComponent>("Local Sounds");
 			ImGui::EndPopup();
 		}
 
@@ -485,13 +487,13 @@ namespace EditorPanels {
 				ImGui::EndCombo();
 			}
 			ImGui::Columns(1);
-			float perspectiveVerticalFov = glm::degrees(camera.GetFOVY());
+			float perspectiveVerticalFov = camera.GetFOVY();
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Vertical FOV");
 			ImGui::NextColumn();
 			if (ImGui::DragFloat("##fov", &perspectiveVerticalFov))
-				camera.SetFovy(glm::radians(perspectiveVerticalFov));
+				camera.SetFovy(perspectiveVerticalFov);
 
 			ImGui::Columns(1);
 			float perspectiveNear = camera.GetNear();
@@ -527,6 +529,18 @@ namespace EditorPanels {
 		DrawComponent<PointLightComponent>("Point Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
+
+			bool casting_shadows = light.IsCastingShadows();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Cast Shadows");
+			ImGui::NextColumn();
+			if (ImGui::Checkbox("##dir_light_shadow", &casting_shadows))
+			{
+				light.CastShadows(casting_shadows);
+			}
+			ImGui::Columns(1);
+
 			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
@@ -541,7 +555,7 @@ namespace EditorPanels {
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
-			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f);
+			ImGui::DragFloat("##point_light_intensity", &intensity, 0.1f, 0.0f, 100.f);
 			light.SetIntensity(intensity);
 			ImGui::Columns(1);
 
@@ -550,7 +564,7 @@ namespace EditorPanels {
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Attenuations (constant, linear, quadratic)");
 			ImGui::NextColumn();
-			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f);
+			ImGui::DragFloat3("##point_light_attenuation", attenuations, 0.1f, 0.0f, 100.f);
 			light.SetConstantAttenuation(attenuations[0]);
 			light.SetLinearAttenuation(attenuations[1]);
 			light.SetQuadraticAttenuation(attenuations[2]);
@@ -559,6 +573,18 @@ namespace EditorPanels {
 		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, auto entity)
 		{
 			auto& light = component->light;
+
+			bool casting_shadows = light.IsCastingShadows();
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Cast Shadows");
+			ImGui::NextColumn();
+			if (ImGui::Checkbox("##dir_light_shadow", &casting_shadows))
+			{
+				light.CastShadows(casting_shadows);
+			}
+			ImGui::Columns(1);
+
 			float color[3] = { light.GetColor().r,  light.GetColor().g, light.GetColor().b };
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
@@ -574,19 +600,22 @@ namespace EditorPanels {
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Intensity");
 			ImGui::NextColumn();
-			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f))
+			if (ImGui::DragFloat("##dir_light_intensity", &intensity, 0.1f, 0.0f, 100.f))
 			{
 				light.SetIntensity(intensity);
 			}
 			ImGui::Columns(1);
 
-			glm::quat curr_direction = light.GetDirection();
-			quat qRot = quat(curr_direction.w, curr_direction.x, curr_direction.y, curr_direction.z);
-			if (ImGui::gizmo3D("##gizmo_light_dir", qRot, 100, imguiGizmo::modeDirection))
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Direction");
+			ImGui::NextColumn();
+			glm::vec3 curr_direction = light.GetDirection();
+			if (ImGui::gizmo3D("##gizmo_light_dir", curr_direction, 100, imguiGizmo::modeDirection))
 			{
-				curr_direction = glm::quat(qRot.w, qRot.x, qRot.y, qRot.z);
 				light.SetDirection(curr_direction);
 			}
+			ImGui::Columns(1);
 
 		});
 
@@ -598,7 +627,7 @@ namespace EditorPanels {
 			ImGui::Text("Mass");
 			ImGui::NextColumn();
 			float mass = component->Mass;
-			ImGui::DragFloat("##character_controller_mass", &mass, 0.0f, float_max);
+			ImGui::DragFloat("##character_controller_mass", &mass, 1.0f, 0.0f, float_max);
 			component->Mass = mass;
 			ImGui::Columns(1);
 
@@ -607,7 +636,7 @@ namespace EditorPanels {
 			ImGui::Text("Halfheight");
 			ImGui::NextColumn();
 			float halfheight = component->HalfHeight;
-			ImGui::DragFloat("##character_controller_halfheight", &halfheight, 0.0f, float_max);
+			ImGui::DragFloat("##character_controller_halfheight", &halfheight, 1.0f, 0.0f, float_max);
 			component->HalfHeight = halfheight;
 			ImGui::Columns(1);
 
@@ -616,7 +645,7 @@ namespace EditorPanels {
 			ImGui::Text("Radius");
 			ImGui::NextColumn();
 			float radius = component->Radius;
-			ImGui::DragFloat("##character_controller_radius", &radius, 0.0f, float_max);
+			ImGui::DragFloat("##character_controller_radius", &radius, 1.0f, 0.0f, float_max);
 			component->Radius = radius;
 			ImGui::Columns(1);
 
@@ -690,32 +719,180 @@ namespace EditorPanels {
 
 		});
 
-		DrawComponent<SoundComponent>("Sound", entity, [](auto& component, auto entity)
+		DrawComponent<GlobalSoundsComponent>("Global Sounds Library", entity, [](auto& component, auto entity)
 		{
 
-			auto& sound = component->sound;
-			float volume[1] = { sound->GetGlobalVolume() };
-			ImGui::Text("Global volume:");
-			ImGui::SliderFloat("##global_volume", volume, 0.0f, 10.0f);
-			sound->SetGlobalVolume(volume[0]);
 
+			auto& sounds_vector = component->Sounds;
 
-			/*ImGui::Text("Sound:");
-			const char * soundfile = sound->GetSoundFilename();
-			char* soundfile2 = (char*)soundfile;
-			//bool looping = sound->GetSoundLoopingStatus(sound->GetSoundFilename());
-			ImGui::InputText("Filepath", soundfile2, IM_ARRAYSIZE(soundfile2));
-			//ImGui::Checkbox("Looping", &looping);
-			sound->AddGlobalSound(soundfile2);
-			/*if (ImGui::Button("Add Sound"))
+			for (size_t i = 0; i < sounds_vector.size(); ++i)
 			{
-				sound->AddGlobalSound(soundfile, looping);
-			}*/
-			if (ImGui::Button("Play"))
-			{
-				sound->PlayGlobalSound(sound->GetSoundFilename());
+				auto sound = sounds_vector[i];
+
+				// Construct unique identifiers
+				std::stringstream idStream;
+				idStream << i;
+				std::string idStr = idStream.str();
+
+				char buffer[256];
+				memset(buffer, 0, sizeof(buffer));
+				strncpy_s(buffer, sizeof(buffer), sound->GetTitle().c_str(), sizeof(buffer));
+
+				if (ImGui::InputText(("##SoundName" + idStr).c_str(), buffer, sizeof(buffer)))
+				{
+					sound->SetTitle(std::string(buffer));
+				}
+
+				ImGui::Text("Path: ");
+				ImGui::SameLine();
+				ImGui::TextWrapped(AssetManager::GetMetadata(sound->GetSoundAsset()).FilePath.string().c_str());
+
+				bool looping = sound->IsLooping();
+				if (ImGui::Checkbox(("Looping##" + idStr).c_str(), &looping))
+				{
+					sound->SetLooping(looping);
+				}
+
+				float volume[1] = { sound->GetVolume() };
+				ImGui::Text("Sound volume:");
+				if (ImGui::SliderFloat(("##sound_volume" + idStr).c_str(), volume, 0.0f, 10.0f))
+				{
+					sound->SetVolume(volume[0]);
+				}
+
+				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				{
+					sound->PlaySound(true);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button(("Remove##" + idStr).c_str()))
+				{
+					sounds_vector.erase(sounds_vector.begin() + i);
+					--i;
+				}
 			}
+
+			DrawDropBox("Add sound file here");
 		});
+
+		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
+		{
+			// Check for internal drag-and-drop payloads
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const auto payload_path = *(const std::filesystem::path*)payload->Data;
+				if (DesignAssetManager::GetAssetTypeFromFileExtension(payload_path.extension()) == AssetType::Audio)
+				{
+					auto entity = m_Scene->GetEntity(m_SelectionContext);
+					const auto payload_path = *(const std::filesystem::path*)payload->Data;
+					Project::GetActiveDesignAssetManager()->ImportAsset(payload_path);
+					auto handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(payload_path);
+					auto audioSource = AssetManager::GetAsset<AudioAsset>(handle);
+
+					GlobalSoundsComponent* component;
+					if (!entity->HasComponent<GlobalSoundsComponent>())
+					{
+						entity->AddComponent<GlobalSoundsComponent>(GlobalSoundsComponent());
+						
+					}
+					component = entity->GetComponent<GlobalSoundsComponent>();
+					component->Sounds.push_back(CreateRef<GlobalSource>(audioSource->Handle));
+				}
+			}
+			ImGui::EndDragDropTarget();
+		 }
+
+
+		DrawComponent<LocalSoundsComponent>("Local Sounds Library", entity, [](auto& component, auto entity)
+		{
+			auto& sounds_vector = component->Sounds;
+
+			for (size_t i = 0; i < sounds_vector.size(); ++i)
+			{
+				auto sound = sounds_vector[i];
+
+				// Construct unique identifiers
+				std::stringstream idStream;
+				idStream << i;
+				std::string idStr = idStream.str();
+
+				char buffer[256];
+				memset(buffer, 0, sizeof(buffer));
+				strncpy_s(buffer, sizeof(buffer), sound->GetTitle().c_str(), sizeof(buffer));
+
+				if (ImGui::InputText(("##SoundName" + idStr).c_str(), buffer, sizeof(buffer)))
+				{
+					sound->SetTitle(std::string(buffer));
+				}
+
+				ImGui::Text("Path: ");
+				ImGui::SameLine();
+				ImGui::TextWrapped(AssetManager::GetMetadata(sound->GetSoundAsset()).FilePath.string().c_str());
+
+				bool looping = sound->IsLooping();
+				if (ImGui::Checkbox(("Looping##" + idStr).c_str(), &looping))
+				{
+					sound->SetLooping(looping);
+				}
+
+				float volume[1] = { sound->GetVolume() };
+				ImGui::Text("Sound volume:");
+				if (ImGui::SliderFloat(("##sound_volume" + idStr).c_str(), volume, 0.0f, 10.0f))
+				{
+					sound->SetVolume(volume[0]);
+				}
+
+				float rolloff[1] = { sound->GetRolloff() };
+				ImGui::Text("Sound rolloff factor:");
+				if (ImGui::SliderFloat(("##sound_rolloff" + idStr).c_str(), rolloff, 0.0f, 1.0f))
+				{
+					sound->SetRolloff(rolloff[0]);
+				}
+
+				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				{
+					auto scene = GetScene();
+					glm::vec3 speakerPosition = scene->GetRegistry()->Get<TransformComponent>(entity->GetID())->world_transform.translation;
+					sound->PlaySound(speakerPosition, true);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button(("Remove##" + idStr).c_str()))
+				{
+					sounds_vector.erase(sounds_vector.begin() + i);
+					--i;
+				}
+			}
+
+			DrawDropBox("Add sound file here");
+		});
+
+		if (ImGui::BeginDragDropTarget() && m_SelectionContext != 0)
+		{
+			// Check for internal drag-and-drop payloads
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const auto payload_path = *(const std::filesystem::path*)payload->Data;
+				if (DesignAssetManager::GetAssetTypeFromFileExtension(payload_path.extension()) == AssetType::Audio)
+				{
+					auto entity = m_Scene->GetEntity(m_SelectionContext);
+					const auto payload_path = *(const std::filesystem::path*)payload->Data;
+					Project::GetActiveDesignAssetManager()->ImportAsset(payload_path);
+					auto handle = Project::GetActiveDesignAssetManager()->GetHandleByPath(payload_path);
+					auto audioSource = AssetManager::GetAsset<AudioAsset>(handle);
+
+					LocalSoundsComponent* component;
+					if (!entity->HasComponent<LocalSoundsComponent>())
+					{
+						entity->AddComponent<LocalSoundsComponent>(LocalSoundsComponent());
+
+					}
+					component = entity->GetComponent<LocalSoundsComponent>();
+					component->Sounds.push_back(CreateRef<LocalSource>(audioSource->Handle));
+				}
+			}
+
+			ImGui::EndDragDropTarget();
+		}
 		
 
 		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, auto entity)

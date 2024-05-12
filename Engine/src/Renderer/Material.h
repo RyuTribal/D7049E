@@ -47,6 +47,9 @@ namespace Engine {
 		Roughness = 2,
 		Metalness = 3,
 		Albedo = 5,
+		AO = 6,
+		Emissive = 7,
+		SpecularColor = 8,
 	};
 
 	enum class MaterialUniforms

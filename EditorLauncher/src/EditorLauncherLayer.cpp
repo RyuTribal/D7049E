@@ -72,9 +72,12 @@ namespace EditorLauncher {
 			ImGui::SameLine();
 			if (ImGui::Button("..."))
 			{
-				std::string path = Engine::FilePicker::OpenFileExplorer(true);
-				strncpy(path_buffer, path.c_str(), sizeof(path_buffer));
-				path_buffer[sizeof(path_buffer) - 1] = '\0';
+				auto [success, path] = Engine::FilePicker::OpenFileExplorer(true);
+				if (success)
+				{
+					strncpy(path_buffer, path.c_str(), sizeof(path_buffer));
+					path_buffer[sizeof(path_buffer) - 1] = '\0';
+				}
 			}
 
 			ImGui::Columns(1);
@@ -108,11 +111,14 @@ namespace EditorLauncher {
 
 		if (ImGui::Button("Open Project", ImVec2(-1, 0)))
 		{
-			std::string file_ending = ".hveproject";
-			file_ending.erase(file_ending.begin()); // Have to remove the . for it to work
+			std::string file_ending = "hveproject";
 			std::vector<std::vector<std::string>> filter = { {"Helios project files", file_ending} };
-			std::filesystem::path path = std::filesystem::path(Engine::FilePicker::OpenFileExplorer(filter, false));
-			OpenProject(path);
+			auto [success, path] = Engine::FilePicker::OpenFileExplorer(filter, false);
+			if (success)
+			{
+				std::filesystem::path project_path = std::filesystem::path(path);
+				OpenProject(project_path);
+			}
 		}
 		ImGui::EndChild();
 

@@ -24,20 +24,12 @@ namespace Engine {
 		this->m_CurrentScene->AddNewContact(data1, data2);
 
 		if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
-			std::cout << "On Contact Added" << std::endl;
-		HVE_CORE_TRACE("A contact was added");
+			HVE_CORE_TRACE("A contact was added");
 	}
 
 	void HContactListener::OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings)
 	{
-		std::uint64_t data1 = (std::uint64_t)inBody1.GetUserData();
-		std::uint64_t data2 = (std::uint64_t)inBody2.GetUserData();
-
-		this->m_CurrentScene->AddPersistContact(data1, data2);
-
-		if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
-			std::cout << "On Contact Persisted" << std::endl;
-		HVE_CORE_TRACE("A contact was persisted");
+		// Todo later
 	}
 
 	void HContactListener::OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair)
@@ -45,12 +37,18 @@ namespace Engine {
 		JPH::BodyID id1 = inSubShapePair.GetBody1ID();
 		JPH::BodyID id2 = inSubShapePair.GetBody2ID();
 
-		std::uint64_t data1 = m_CurrentScene->GetUserData(id1);
-		std::uint64_t data2 = m_CurrentScene->GetUserData(id2);
+		JPH::Body* body1 = m_BodyLockInterface->TryGetBody(id1);
+		JPH::Body* body2 = m_BodyLockInterface->TryGetBody(id2);
+
+		if (body1 == nullptr || body2 == nullptr)
+		{
+			return;
+		}
+
+		UUID data1 = body1->GetUserData();
+		UUID data2 = body2->GetUserData();
 
 		this->m_CurrentScene->AddRemoveContact(data1, data2);
-
-		std::cout << "On Contact Removed" << std::endl;
 		HVE_CORE_TRACE("A contact was removed");
 	}
 

@@ -44,6 +44,8 @@
 #include "Project/Project.h"
 
 //---------------- Sound ----------------
-#include "Sound/Sound.h"
+#include "Sound/SoundEngine.h"
+#include "Sound/GlobalSource.h"
+#include "Sound/LocalSource.h"
 
 // -----------------------------------------

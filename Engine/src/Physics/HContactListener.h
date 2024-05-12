@@ -11,7 +11,9 @@ namespace Engine {
 	{
 	public:
 
-		HContactListener(HPhysicsScene* physicsScene) : m_CurrentScene(physicsScene) {}
+		HContactListener(HPhysicsScene* physicsScene) : m_CurrentScene(physicsScene) {
+			m_BodyLockInterface = (JPH::BodyLockInterfaceNoLock*)&physicsScene->GetSystem()->GetBodyInterfaceNoLock();
+		}
 
 		virtual JPH::ValidateResult	OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override;
 
@@ -24,6 +26,7 @@ namespace Engine {
 		void SetCurrentScene(HPhysicsScene* current_scene);
 
 	private:
+		const JPH::BodyLockInterfaceNoLock* m_BodyLockInterface = nullptr;
 		HPhysicsScene* m_CurrentScene;
 	};
 

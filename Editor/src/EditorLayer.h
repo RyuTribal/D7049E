@@ -16,6 +16,12 @@ namespace Editor {
 		Edit = 0, Play = 1
 	};
 
+	enum class MenuAction
+	{
+		None,
+		NewProject,
+	};
+
 	struct SelectionData
 	{
 		EntityHandle entity;
@@ -25,7 +31,7 @@ namespace Editor {
 	class EditorLayer : public Layer {
 	public:
 		EditorLayer(std::string projectPath) : Layer("Editor"), m_ProjectPath(projectPath) {
-			m_Project = Project::Load(m_ProjectPath);
+			OpenNewProject(projectPath);
 			EditorResources::Init();
 		}
 		~EditorLayer() = default;
@@ -47,11 +53,14 @@ namespace Editor {
 
 
 	private:
-		void SaveScene();
+		void SaveProject();
 		void OpenScene(AssetHandle handle);
 		void UIToolBar();
 		void OnScenePlay();
 		void OnSceneStop();
+		void OpenNewProject(const std::string& project_path);
+
+		void BeginOpenProject();
 
 		std::pair<glm::vec3, glm::vec3> CastRay(float mx, float my);
 
@@ -65,7 +74,16 @@ namespace Editor {
 		Ref<Framebuffer> m_SceneBuffer;
 		Ref<Project> m_Project;
 
+		char m_NewSceneNameBuffer[256];
+
+		char m_NewProjectNameBuffer[256];
+		char m_NewProjectPathBuffer[1024];
+
+		bool m_IsSwitchingProject = false;
+
 		std::vector<Line> m_DebugLines;
 		SceneState m_SceneState = SceneState::Edit;
+
+		MenuAction m_CurrentMenuAction = MenuAction::None;
 	};
 }

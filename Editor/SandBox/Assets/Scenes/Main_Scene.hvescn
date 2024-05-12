@@ -1,0 +1,8 @@
+Scene:
+  Handle: 9399366225547529480
+  Name: Main_Scene
+  Skybox:
+    Texture: 6432032947443732002
+    Brightness: 1
+Entities:
+  []

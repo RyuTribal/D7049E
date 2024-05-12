@@ -18,8 +18,8 @@ namespace Engine {
 
 	void HContactListener::OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings)
 	{
-		std::uint64_t data1 = (std::uint64_t) inBody1.GetUserData();
-		std::uint64_t data2 = (std::uint64_t) inBody2.GetUserData();
+		std::uint64_t data1 = (std::uint64_t)inBody1.GetUserData();
+		std::uint64_t data2 = (std::uint64_t)inBody2.GetUserData();
 
 		this->m_CurrentScene->AddNewContact(data1, data2);
 
@@ -30,8 +30,8 @@ namespace Engine {
 
 	void HContactListener::OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings)
 	{
-		std::uint64_t data1 = (std::uint64_t) inBody1.GetUserData();
-		std::uint64_t data2 = (std::uint64_t) inBody2.GetUserData();
+		std::uint64_t data1 = (std::uint64_t)inBody1.GetUserData();
+		std::uint64_t data2 = (std::uint64_t)inBody2.GetUserData();
 
 		this->m_CurrentScene->AddPersistContact(data1, data2);
 

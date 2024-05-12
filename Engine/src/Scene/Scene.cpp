@@ -7,6 +7,7 @@
 #include "Assets/AssetManager.h"
 #include "Core/Application.h"
 #include "Physics/PhysicsEngine.h"
+#include "Sound/SoundEngine.h"
 
 namespace Engine {
 
@@ -189,6 +190,7 @@ namespace Engine {
 		CopyComponent<PointLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<DirectionalLightComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<GlobalSoundsComponent>(original_scene->m_Registry, new_scene->m_Registry);
+		CopyComponent<LocalSoundsComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<ScriptComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<CharacterControllerComponent>(original_scene->m_Registry, new_scene->m_Registry);
 		CopyComponent<BoxColliderComponent>(original_scene->m_Registry, new_scene->m_Registry);
@@ -353,6 +355,8 @@ namespace Engine {
 		{
 			SyncPhysicsTransforms();
 		}
+
+		SoundEngine::SetListenerPosition(GetCurrentCamera()->CalculatePosition());
 
 		DrawSystem();
 	}

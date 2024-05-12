@@ -261,6 +261,27 @@ namespace Engine{
 
 			out << YAML::EndSeq;
 		}
+
+		if (entity->HasComponent<LocalSoundsComponent>())
+		{
+			auto& sounds_vector = entity->GetComponent<LocalSoundsComponent>()->Sounds;
+
+			out << YAML::Key << "LocalSounds";
+			out << YAML::BeginSeq;
+
+			for (const auto& sound : sounds_vector)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Title" << YAML::Value << sound->GetTitle();
+				out << YAML::Key << "Handle" << YAML::Value << sound->GetSoundAsset();
+				out << YAML::Key << "Looping" << YAML::Value << sound->IsLooping();
+				out << YAML::Key << "Volume" << YAML::Value << sound->GetVolume();
+				out << YAML::Key << "Rolloff" << YAML::Value << sound->GetRolloff();
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
 	}
 	void SceneSerializer::DeserializeEntity(YAML::Node entity_node, Ref<Scene> scene, UUID* parent_entity_id)
 	{
@@ -412,6 +433,36 @@ namespace Engine{
 			GlobalSoundsComponent new_comp{};
 			new_comp.Sounds = sounds_vector;
 			scene->GetEntity(entity)->AddComponent<GlobalSoundsComponent>(new_comp);
+		}
+
+		if (entity_node["LocalSounds"])
+		{
+			std::vector<Ref<LocalSource>> sounds_vector;
+
+			YAML::Node soundsNode = entity_node["LocalSounds"];
+
+			for (const auto& soundNode : soundsNode)
+			{
+				std::string title = soundNode["Title"].as<std::string>();
+				AssetHandle handle = soundNode["Handle"].as<AssetHandle>(0);
+				bool looping = soundNode["Looping"].as<bool>();
+				float volume = soundNode["Volume"].as<float>();
+				float rolloff = soundNode["Rolloff"].as<float>();
+
+				// Create and configure a new sound
+				auto newSound = CreateRef<LocalSource>(handle);
+
+				newSound->SetTitle(title);
+				newSound->SetLooping(looping);
+				newSound->SetVolume(volume);
+				newSound->SetRolloff(rolloff);
+
+				sounds_vector.push_back(newSound);
+			}
+
+			LocalSoundsComponent new_comp{};
+			new_comp.Sounds = sounds_vector;
+			scene->GetEntity(entity)->AddComponent<LocalSoundsComponent>(new_comp);
 		}
 
 

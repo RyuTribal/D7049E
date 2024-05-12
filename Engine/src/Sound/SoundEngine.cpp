@@ -17,6 +17,7 @@ namespace Engine {
 		s_Instance = new SoundInstanceData();
 		SoLoudInstance = new SoLoud::Soloud();
 		SoLoudInstance->init();
+		SoLoudInstance->set3dListenerPosition(0.0, 0.0, 0.0);
 	}
 	void SoundEngine::Update()
 	{
@@ -35,6 +36,12 @@ namespace Engine {
 	{
 		if (!s_Instance || !SoLoudInstance) return 0;
 		return SoLoudInstance->play(file);
+	}
+
+	SoLoud::handle Engine::SoundEngine::Play3D(SoLoud::Wav& file, SoLoud::handle handle, glm::vec3 speakerPosition)
+	{
+		if (!s_Instance || !SoLoudInstance) return 0;
+		return SoLoudInstance->play3d(file, speakerPosition.x, speakerPosition.y, speakerPosition.z);
 	}
 
 	void SoundEngine::Stop(SoLoud::handle handle)
@@ -64,5 +71,17 @@ namespace Engine {
 		{
 			SoLoudInstance->setVolume(handle, volume);
 		}
+	}
+	void SoundEngine::SetAttenuation(SoLoud::handle handle, float rolloffFactor, unsigned int attenuationModel)
+	{
+		if (s_Instance && SoLoudInstance)
+		{
+			SoLoudInstance->set3dSourceAttenuation(handle, attenuationModel, rolloffFactor);
+		}
+	}
+	void SoundEngine::SetListenerPosition(glm::vec3 listenerPosition)
+	{
+		SoLoudInstance->set3dListenerPosition(listenerPosition.x, listenerPosition.y, listenerPosition.z);
+		Update();
 	}
 }

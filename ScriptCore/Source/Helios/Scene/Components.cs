@@ -131,7 +131,16 @@ namespace Helios
 	{
 		public void PlaySoundAtIndex(int index)
 		{
-			InternalCalls.Sounds_PlaySoundAtIndex(Entity.ID, index);
+			InternalCalls.Sounds_PlaySoundAtIndexGlobal(Entity.ID, index);
+		}
+	}
+
+	public class LocalSoundsComponent : Component
+	{
+		//
+		public void PlaySoundAtIndex(int index)
+		{
+			InternalCalls.Sounds_PlaySoundAtIndexLocal(Entity.ID, index);
 		}
 	}
 

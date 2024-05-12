@@ -9,6 +9,7 @@
 #include <Script/ScriptEngine.h>
 #include <Physics/Auxiliary/HEMotionType.h>
 #include <Sound/GlobalSource.h>
+#include <Sound/LocalSource.h>
 
 namespace Engine {
 
@@ -164,6 +165,14 @@ namespace Engine {
 		GlobalSoundsComponent(const GlobalSoundsComponent&) = default;
 	};
 
+	struct LocalSoundsComponent
+	{
+		std::vector<Ref<LocalSource>> Sounds;
+
+		LocalSoundsComponent() = default;
+		LocalSoundsComponent(const LocalSoundsComponent&) = default;
+	};
+
 	struct ScriptComponent 
 	{
 		Ref<ScriptClass> script = nullptr;
@@ -232,7 +241,7 @@ namespace Engine {
 		ComponentGroup< IDComponent, ParentIDComponent, TagComponent,
 		TransformComponent, MeshComponent, CameraComponent,
 		PointLightComponent, DirectionalLightComponent,
-		GlobalSoundsComponent, ScriptComponent,
+		GlobalSoundsComponent, LocalSoundsComponent, ScriptComponent,
 		SphereColliderComponent, BoxColliderComponent, CharacterControllerComponent >;
 
 }

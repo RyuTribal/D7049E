@@ -656,7 +656,7 @@ namespace EditorPanels {
 			ImGui::Text("Friction");
 			ImGui::NextColumn();
 			float friction = component->Friction;
-			ImGui::DragFloat("##character_controller_friction", &friction, 0.01f, -1.0f, 1.0f);
+			ImGui::DragFloat("##character_controller_friction", &friction, 0.01f, 0.0f, 1.0f);
 			component->Friction = friction;
 			ImGui::Columns(1);
 
@@ -665,7 +665,7 @@ namespace EditorPanels {
 			ImGui::Text("Restitution");
 			ImGui::NextColumn();
 			float restitution = component->Restitution;
-			ImGui::DragFloat("##character_controller_restitution", &restitution, 0.01f, -1.0f, 1.0f);
+			ImGui::DragFloat("##character_controller_restitution", &restitution, 0.01f, 0.0f, 1.0f);
 			component->Restitution = restitution;
 			ImGui::Columns(1);
 
@@ -714,7 +714,7 @@ namespace EditorPanels {
 			ImGui::Text("Friction");
 			ImGui::NextColumn();
 			float friction = component->Friction;
-			ImGui::DragFloat("##Physics_Box_Collider_friction", &friction, 0.01f, -1.0f, 1.0f);
+			ImGui::DragFloat("##Physics_Box_Collider_friction", &friction, 0.01f, 0.0f, 1.0f);
 			component->Friction = friction;
 			ImGui::Columns(1);
 
@@ -723,7 +723,7 @@ namespace EditorPanels {
 			ImGui::Text("Restitution");
 			ImGui::NextColumn();
 			float restitution = component->Restitution;
-			ImGui::DragFloat("##Physics_Box_Collider_restitution", &restitution, 0.01f, -1.0f, 1.0f);
+			ImGui::DragFloat("##Physics_Box_Collider_restitution", &restitution, 0.01f, 0.0f, 1.0f);
 			component->Restitution = restitution;
 			ImGui::Columns(1);
 
@@ -746,7 +746,8 @@ namespace EditorPanels {
 			ImGui::Text("Radius");
 			ImGui::NextColumn();
 			float radius = component->Radius;
-			ImGui::SliderFloat("##Physics_Sphere_Colliderr_radius", &radius, 0.0f, 100.0f);
+			//aImGui::SliderFloat("##Physics_Sphere_Colliderr_radius", &radius, 0.0f, 100.0f);
+			ImGui::DragFloat("##Physics_Sphere_Colliderr_radius", &radius, 1.f, 0.0f, FLT_MAX);
 			component->Radius = radius;
 			ImGui::Columns(1);
 
@@ -779,7 +780,7 @@ namespace EditorPanels {
 			ImGui::Text("Friction");
 			ImGui::NextColumn();
 			float friction = component->Friction;
-			ImGui::DragFloat("##Physics_Sphere_Collider_friction", &friction, 0.01f, -1.0f, 1.0f);
+			ImGui::DragFloat("##Physics_Sphere_Collider_friction", &friction, 0.01f, 0.0f, 1.0f);
 			component->Friction = friction;
 			ImGui::Columns(1);
 
@@ -788,7 +789,7 @@ namespace EditorPanels {
 			ImGui::Text("Restitution");
 			ImGui::NextColumn();
 			float restitution = component->Restitution;
-			ImGui::DragFloat("##Physics_Sphere_Collider_restitution", &restitution, 0.01f, -1.0f, 1.0f);
+			ImGui::DragFloat("##Physics_Sphere_Collider_restitution", &restitution, 0.01f, 0.0f, 1.0f);
 			component->Restitution = restitution;
 			ImGui::Columns(1);
 

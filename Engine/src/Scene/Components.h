@@ -58,21 +58,7 @@ namespace Engine {
 
 		glm::quat RotationVecToQuat()
 		{
-
-			float theta = glm::length(rotation);
-
-			if (theta == 0)
-			{
-				return glm::quat(1, 0, 0, 0);
-			}
-
-			glm::vec3 u = rotation / theta;
-
-			float halfTheta = theta / 2.0f;
-			float q_w = std::cos(halfTheta);
-			glm::vec3 q_xyz = u * std::sin(halfTheta);
-
-			return glm::quat(q_w, q_xyz.x, q_xyz.y, q_xyz.z);
+			return glm::quat(rotation);
 		}
 	};
 
@@ -95,21 +81,7 @@ namespace Engine {
 
 		glm::quat RotationVecToQuat()
 		{
-
-			float theta = glm::length(rotation);
-
-			if (theta == 0)
-			{
-				return glm::quat(1, 0, 0, 0);
-			}
-
-			glm::vec3 u = rotation / theta;
-
-			float halfTheta = theta / 2.0f;
-			float q_w = std::cos(halfTheta);
-			glm::vec3 q_xyz = u * std::sin(halfTheta);
-
-			return glm::quat(q_w, q_xyz.x, q_xyz.y, q_xyz.z);
+			return glm::quat(rotation);
 		}
 	};
 
@@ -229,7 +201,7 @@ namespace Engine {
 	struct SphereColliderComponent
 	{
 		float Mass = 70.f;
-		float Radius = 0.5f;
+		float Radius = 1.f;
 		float Friction = 0.5f;
 		float Restitution = 0.5f;
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };

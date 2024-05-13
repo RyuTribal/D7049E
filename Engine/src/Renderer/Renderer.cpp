@@ -768,11 +768,17 @@ namespace Engine
 		for (auto& box : m_DebugBoxes)
 		{
 			glm::vec3 vertices[] = {
-			glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, -1.0f, -1.0f),
-			glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(1.0f, 1.0f, -1.0f),
-			glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(1.0f, -1.0f, 1.0f),
-			glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f)
+				glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, -1.0f, -1.0f),
+				glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(1.0f, 1.0f, -1.0f),
+				glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(1.0f, -1.0f, 1.0f),
+				glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f)
 			};
+
+			glm::mat4 scaled_transform = glm::scale(box.Transform, box.Size);
+			for (auto& vertex : vertices)
+			{
+				vertex = scaled_transform * glm::vec4(vertex, 1.f);
+			}
 
 			int edges[][2] = {
 				{0, 1}, {1, 3}, {3, 2}, {2, 0},
@@ -780,11 +786,9 @@ namespace Engine
 				{0, 4}, {1, 5}, {2, 6}, {3, 7}
 			};
 
-			glm::mat4 transform = glm::scale(box.Transform, box.Size);
-
 			for (auto& edge : edges)
 			{
-				m_DebugLines.push_back(Line{ vertices[edge[0]], vertices[edge[1]], box.Color, transform });
+				m_DebugLines.push_back(Line{ vertices[edge[0]], vertices[edge[1]], box.Color, glm::mat4(1.0f) });
 			}
 		}
 

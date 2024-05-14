@@ -178,7 +178,7 @@ namespace EditorPanels {
 			});*/
 
 			DrawOption("Multiplier", []() {
-				if (ImGui::SliderInt("##AAMultiplier", (int*)&s_InstanceData->AASettings.Multiplier, 2, 16))
+				if (ImGui::DragInt("##AAMultiplier", (int*)&s_InstanceData->AASettings.Multiplier, 2.f, 2, 8))
 				{
 					s_InstanceData->HasChanged = true;
 				}

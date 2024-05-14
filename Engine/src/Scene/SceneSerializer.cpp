@@ -142,13 +142,6 @@ namespace Engine{
 			out << YAML::Key << "Rotation" << YAML::Value << transform->local_transform.rotation;
 			out << YAML::Key << "Scale" << YAML::Value << transform->local_transform.scale;
 			out << YAML::EndMap;
-
-			out << YAML::Key << "WorldTransformComponent";
-			out << YAML::BeginMap;
-			out << YAML::Key << "Position" << YAML::Value << transform->world_transform.translation;
-			out << YAML::Key << "Rotation" << YAML::Value << transform->world_transform.rotation;
-			out << YAML::Key << "Scale" << YAML::Value << transform->world_transform.scale;
-			out << YAML::EndMap;
 		}
 
 		if (entity->HasComponent<ScriptComponent>())
@@ -300,13 +293,6 @@ namespace Engine{
 			entity_transform.local_transform.translation = entity_node["LocalTransformComponent"]["Position"].as<glm::vec3>(glm::vec3(0.0f));
 			entity_transform.local_transform.rotation = entity_node["LocalTransformComponent"]["Rotation"].as<glm::vec3>(glm::vec3(0.0f));
 			entity_transform.local_transform.scale = entity_node["LocalTransformComponent"]["Scale"].as<glm::vec3>(glm::vec3(0.0f));
-		}
-
-		if (entity_node["WorldTransformComponent"])
-		{
-			entity_transform.local_transform.translation = entity_node["WorldTransformComponent"]["Position"].as<glm::vec3>(glm::vec3(0.0f));
-			entity_transform.local_transform.rotation = entity_node["WorldTransformComponent"]["Rotation"].as<glm::vec3>(glm::vec3(0.0f));
-			entity_transform.local_transform.scale = entity_node["WorldTransformComponent"]["Scale"].as<glm::vec3>(glm::vec3(0.0f));
 		}
 
 		scene->GetEntity(entity)->AddComponent<TransformComponent>(entity_transform);

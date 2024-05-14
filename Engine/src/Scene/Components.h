@@ -181,7 +181,7 @@ namespace Engine {
 	struct BoxColliderComponent
 	{
 		float Mass = 70.f;
-		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
+		glm::vec3 HalfSize = { 1.f, 1.f, 1.f };
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
 		float Friction = 0.5f;
 		float Restitution = 0.5f;

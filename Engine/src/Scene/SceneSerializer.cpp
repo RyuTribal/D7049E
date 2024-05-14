@@ -143,12 +143,12 @@ namespace Engine{
 			out << YAML::Key << "Scale" << YAML::Value << transform->local_transform.scale;
 			out << YAML::EndMap;
 
-			out << YAML::Key << "WorldTransformComponent";
+			/*out << YAML::Key << "WorldTransformComponent";
 			out << YAML::BeginMap;
 			out << YAML::Key << "Position" << YAML::Value << transform->world_transform.translation;
 			out << YAML::Key << "Rotation" << YAML::Value << transform->world_transform.rotation;
 			out << YAML::Key << "Scale" << YAML::Value << transform->world_transform.scale;
-			out << YAML::EndMap;
+			out << YAML::EndMap;*/
 		}
 
 		if (entity->HasComponent<ScriptComponent>())
@@ -215,6 +215,9 @@ namespace Engine{
 			out << YAML::BeginMap;
 			out << YAML::Key << "HalfSize" << YAML::Value << collider->HalfSize;
 			out << YAML::Key << "Offset" << YAML::Value << collider->Offset;
+			out << YAML::Key << "Friction" << YAML::Value << collider->Friction;
+			out << YAML::Key << "Restitution" << YAML::Value << collider->Restitution;
+			out << YAML::Key << "Mass" << YAML::Value << collider->Mass;
 			out << YAML::Key << "MotionType" << YAML::Value << FromMotionTypeToString(collider->MotionType);
 			out << YAML::EndMap;
 		}
@@ -226,6 +229,9 @@ namespace Engine{
 			out << YAML::BeginMap;
 			out << YAML::Key << "Radius" << YAML::Value << collider->Radius;
 			out << YAML::Key << "Offset" << YAML::Value << collider->Offset;
+			out << YAML::Key << "Friction" << YAML::Value << collider->Friction;
+			out << YAML::Key << "Restitution" << YAML::Value << collider->Restitution;
+			out << YAML::Key << "Mass" << YAML::Value << collider->Mass;
 			out << YAML::Key << "MotionType" << YAML::Value << FromMotionTypeToString(collider->MotionType);
 			out << YAML::EndMap;
 		}
@@ -239,6 +245,8 @@ namespace Engine{
 			out << YAML::Key << "Offset" << YAML::Value << collider->Offset;
 			out << YAML::Key << "HalfHeight" << YAML::Value << collider->HalfHeight;
 			out << YAML::Key << "Mass" << YAML::Value << collider->Mass;
+			out << YAML::Key << "Friction" << YAML::Value << collider->Friction;
+			out << YAML::Key << "Restitution" << YAML::Value << collider->Restitution;
 			out << YAML::EndMap;
 		}
 
@@ -302,12 +310,12 @@ namespace Engine{
 			entity_transform.local_transform.scale = entity_node["LocalTransformComponent"]["Scale"].as<glm::vec3>(glm::vec3(0.0f));
 		}
 
-		if (entity_node["WorldTransformComponent"])
+		/*if (entity_node["WorldTransformComponent"])
 		{
 			entity_transform.local_transform.translation = entity_node["WorldTransformComponent"]["Position"].as<glm::vec3>(glm::vec3(0.0f));
 			entity_transform.local_transform.rotation = entity_node["WorldTransformComponent"]["Rotation"].as<glm::vec3>(glm::vec3(0.0f));
 			entity_transform.local_transform.scale = entity_node["WorldTransformComponent"]["Scale"].as<glm::vec3>(glm::vec3(0.0f));
-		}
+		}*/
 
 		scene->GetEntity(entity)->AddComponent<TransformComponent>(entity_transform);
 
@@ -385,6 +393,9 @@ namespace Engine{
 			collider.HalfSize = entity_node["BoxCollider"]["HalfSize"].as<glm::vec3>(glm::vec3(0.5f));
 			collider.Offset = entity_node["BoxCollider"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
 			collider.MotionType = FromStringToMotionType(entity_node["BoxCollider"]["MotionType"].as<std::string>());
+			collider.Friction = entity_node["BoxCollider"]["Friction"].as<float>();
+			collider.Restitution = entity_node["BoxCollider"]["Restitution"].as<float>();
+			collider.Mass = entity_node["BoxCollider"]["Mass"].as<float>();
 			scene->GetEntity(entity)->AddComponent<BoxColliderComponent>(collider);
 		}
 
@@ -393,6 +404,9 @@ namespace Engine{
 			SphereColliderComponent collider{};
 			collider.Radius = entity_node["SphereCollider"]["Radius"].as<float>();
 			collider.Offset = entity_node["SphereCollider"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
+			collider.Friction = entity_node["SphereCollider"]["Friction"].as<float>();
+			collider.Restitution = entity_node["SphereCollider"]["Restitution"].as<float>();
+			collider.Mass = entity_node["SphereCollider"]["Mass"].as<float>();
 			collider.MotionType = FromStringToMotionType(entity_node["SphereCollider"]["MotionType"].as<std::string>());
 			scene->GetEntity(entity)->AddComponent<SphereColliderComponent>(collider);
 		}
@@ -404,6 +418,8 @@ namespace Engine{
 			collider.HalfHeight = entity_node["CharacterController"]["HalfHeight"].as<float>();
 			collider.Offset = entity_node["CharacterController"]["Offset"].as<glm::vec3>(glm::vec3(0.0f));
 			collider.Mass = entity_node["CharacterController"]["Mass"].as<float>();
+			collider.Friction = entity_node["CharacterController"]["Friction"].as<float>();
+			collider.Restitution = entity_node["CharacterController"]["Restitution"].as<float>();
 			scene->GetEntity(entity)->AddComponent<CharacterControllerComponent>(collider);
 		}
 

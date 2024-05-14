@@ -40,9 +40,12 @@ namespace Engine {
 		TextureSpecification spec;
 		spec.Width = width;
 		spec.Height = height;
-		
+
 		switch (channels)
 		{
+			case 1:
+				spec.Format = ImageFormat::R8;
+				break;
 			case 3:
 				spec.Format = type == AssetType::CubeMap ? ImageFormat::RGB32F : ImageFormat::RGB8;
 				break;
@@ -95,6 +98,9 @@ namespace Engine {
 
 		switch (channels)
 		{
+			case 1:
+				spec.Format = ImageFormat::R8;
+				break;
 			case 3:
 				spec.Format = type == AssetType::CubeMap ? ImageFormat::RGB32F : ImageFormat::RGB8;
 				break;

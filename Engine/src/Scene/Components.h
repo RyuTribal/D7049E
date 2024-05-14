@@ -58,21 +58,7 @@ namespace Engine {
 
 		glm::quat RotationVecToQuat()
 		{
-
-			float theta = glm::length(rotation);
-
-			if (theta == 0)
-			{
-				return glm::quat(1, 0, 0, 0);
-			}
-
-			glm::vec3 u = rotation / theta;
-
-			float halfTheta = theta / 2.0f;
-			float q_w = std::cos(halfTheta);
-			glm::vec3 q_xyz = u * std::sin(halfTheta);
-
-			return glm::quat(q_w, q_xyz.x, q_xyz.y, q_xyz.z);
+			return glm::quat(rotation);
 		}
 	};
 
@@ -95,21 +81,7 @@ namespace Engine {
 
 		glm::quat RotationVecToQuat()
 		{
-
-			float theta = glm::length(rotation);
-
-			if (theta == 0)
-			{
-				return glm::quat(1, 0, 0, 0);
-			}
-
-			glm::vec3 u = rotation / theta;
-
-			float halfTheta = theta / 2.0f;
-			float q_w = std::cos(halfTheta);
-			glm::vec3 q_xyz = u * std::sin(halfTheta);
-
-			return glm::quat(q_w, q_xyz.x, q_xyz.y, q_xyz.z);
+			return glm::quat(rotation);
 		}
 	};
 
@@ -195,6 +167,8 @@ namespace Engine {
 		float Mass = 70.f;
 		float HalfHeight = 0.5f;
 		float Radius = 0.5f;
+		float Friction = 0.5f;
+		float Restitution = 0.5f;
 		glm::vec3 Offset = glm::vec3(0, 0, 0);
 
 		CharacterControllerComponent() = default;
@@ -206,9 +180,12 @@ namespace Engine {
 
 	struct BoxColliderComponent
 	{
-		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
+		float Mass = 70.f;
+		glm::vec3 HalfSize = { 1.f, 1.f, 1.f };
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
-		HEMotionType MotionType = HEMotionType::Static;
+		float Friction = 0.5f;
+		float Restitution = 0.5f;
+		HEMotionType MotionType = HEMotionType::Dynamic;
 		ColliderMaterial Material{};
 
 
@@ -217,19 +194,26 @@ namespace Engine {
 		BoxColliderComponent(const BoxColliderComponent&) = default;
 		BoxColliderComponent(glm::vec3 half_size) : HalfSize(half_size) {}
 		BoxColliderComponent(glm::vec3 half_size, glm::vec3 offset) : HalfSize(half_size), Offset(offset) {}
+		BoxColliderComponent(float mass, glm::vec3 half_size, glm::vec3 offset, float friction, float restitution) 
+			: Mass(mass), HalfSize(half_size), Offset(offset), Friction(friction), Restitution(restitution) {}
 	};
 
 	struct SphereColliderComponent
 	{
-		float Radius = 0.5f;
+		float Mass = 70.f;
+		float Radius = 1.f;
+		float Friction = 0.5f;
+		float Restitution = 0.5f;
 		glm::vec3 Offset = { 0.f, 0.f, 0.f };
-		HEMotionType MotionType = HEMotionType::Static;
+		HEMotionType MotionType = HEMotionType::Dynamic;
 		ColliderMaterial Material{};
 
 		SphereColliderComponent() = default;
 		SphereColliderComponent(const SphereColliderComponent&) = default;
 		SphereColliderComponent(float radius) : Radius(Radius) {}
 		SphereColliderComponent(float radius, glm::vec3 offset) : Radius(radius), Offset(offset) {}
+		SphereColliderComponent(float mass, float radius, float friction, float restitution, glm::vec3 offset)
+			: Mass(mass), Radius(radius), Friction(friction), Restitution(restitution), Offset(offset) {}
 	};
 
 	template<typename... Component>

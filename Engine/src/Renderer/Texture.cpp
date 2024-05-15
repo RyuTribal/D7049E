@@ -8,6 +8,7 @@ namespace Engine {
 		{
 			switch (format)
 			{
+			case ImageFormat::R8:		return GL_RED_INTEGER;
 			case ImageFormat::RG8:		return GL_RG;
 			case ImageFormat::RGB8:		return GL_RGB;
 			case ImageFormat::RGBA8:	return GL_RGBA;
@@ -26,6 +27,7 @@ namespace Engine {
 		{
 			switch (format)
 			{
+			case ImageFormat::R8:		return GL_RED_INTEGER;
 			case ImageFormat::RG8:		return GL_RG8;
 			case ImageFormat::RGB8:		return GL_RGB8;
 			case ImageFormat::RGBA8:	return GL_RGBA8;
@@ -40,6 +42,24 @@ namespace Engine {
 			return 0;
 		}
 
+		static uint32_t ImageFormatToChannels(ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::R8:		return 1;
+				case ImageFormat::RG8:		return 2;
+				case ImageFormat::RGB8:		return 3;
+				case ImageFormat::RGBA8:	return 4;
+				case ImageFormat::RGB16F:	return 3;
+				case ImageFormat::RGBA16F:	return 4;
+				case ImageFormat::RG32F:	return 2;
+				case ImageFormat::RGB32F:	return 3;
+				case ImageFormat::RGBA32F:	return 4;
+			}
+
+			HVE_CORE_ASSERT(false);
+			return 0;
+		}
 	}
 
 	Texture2D::Texture2D(const TextureSpecification& specification, Buffer data)
@@ -126,8 +146,9 @@ namespace Engine {
 
 	void Texture2D::SetData(Buffer data)
 	{
-		uint32_t bpp = m_DataFormat == GL_RGBA ? 4 : 3;
-		HVE_CORE_ASSERT(data.Size == m_Width * m_Height * bpp, "Data must be entire texture!");
+		//uint32_t bpp = m_DataFormat == GL_RGBA ? 4 : 3;
+		m_Channels = Utils::ImageFormatToChannels(m_Specification.Format);
+		HVE_CORE_ASSERT(data.Size == m_Width * m_Height * m_Channels, "Data must be entire texture!");
 		m_IsLoaded = true;
 
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, m_IsFloat ? GL_FLOAT : GL_UNSIGNED_BYTE, data.Data);

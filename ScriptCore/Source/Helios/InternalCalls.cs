@@ -131,5 +131,7 @@ namespace Helios
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void CharacterController_AddLinearAngularImpulse(ulong entity_id, ref Vector3 linear_impulse, ref Vector3 angular_impulse);
 
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool CharacterController_IsCharacterGrounded(ulong entity_id);
 	}
 }

@@ -77,7 +77,7 @@ namespace Engine {
 		// post simulation
 		for (auto& [entity_id, character] : m_characterMap)
 		{
-			character->PostSimulation(0.01f);		// TODO: check if this works on removed but undeleted characters
+			character->PostSimulation(0.0f);		// TODO: check if this works on removed but undeleted characters
 		}
 
 		for (auto& [id1, id2] : this->m_newContact)
@@ -417,12 +417,6 @@ namespace Engine {
 	{
 		return s_hasOptimized;
 	}
-
-	bool HPhysicsScene::IsCharacterGrounded(UUID entity_id)
-	{
-		JPH::Character* character = m_characterMap[entity_id];
-		return (JPH::CharacterBase::EGroundState::OnGround == character->GetGroundState());
-	} 
 
 	void HPhysicsScene::SetOptimized(bool optimized)
 	{

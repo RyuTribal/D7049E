@@ -225,10 +225,5 @@ namespace Helios
 		{
 			InternalCalls.CharacterController_AddLinearAngularImpulse(Entity.ID, ref linear_impulse, ref angular_impulse);
 		}
-
-		public bool IsCharacterGrounded()
-		{
-			return InternalCalls.CharacterController_IsCharacterGrounded(Entity.ID);
-		}
 	}
 }

@@ -373,16 +373,6 @@ namespace Engine {
 		}
 	}
 
-	static bool CharacterController_IsCharacterGrounded(uint64_t entity_id)
-	{
-		auto [scene, entity] = GetSceneAndEntity(entity_id);
-		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
-		if (character_controller)
-		{
-			return PhysicsEngine::Get()->GetCurrentScene()->IsCharacterGrounded(entity_id);
-		}
-	}
-
 	template <typename... Component>
 	static void RegisterComponent()
 	{
@@ -459,6 +449,6 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(CharacterController_AddImpulse);
 		HVE_ADD_INTERNAL_CALL(CharacterController_AddAngularImpulse);
 		HVE_ADD_INTERNAL_CALL(CharacterController_AddLinearAngularImpulse);
-		HVE_ADD_INTERNAL_CALL(CharacterController_IsCharacterGrounded);
+
 	}
 }

@@ -141,7 +141,6 @@ namespace Engine {
 		void AddLinearAndAngularImpulse(UUID entity_id, glm::vec3& linear, glm::vec3& angular);
 
 		bool IsOptimized();
-		bool IsCharacterGrounded(UUID entity_id);
 		void SetOptimized(bool optimized);
 		void OptimizeBroadPhase();
 		void RemoveShape(UUID entity_id);

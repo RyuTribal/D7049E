@@ -35,15 +35,19 @@ namespace Engine {
 	}
 	void GlobalSource::StopSound()
 	{
-		if (!SoundEngine::IsSoundPlaying(m_Handle))
+		if (SoundEngine::IsSoundPlaying(m_Handle))
 		{
 			SoundEngine::Stop(m_Handle);
 		}
 	}
+	bool GlobalSource::IsPlaying()
+	{
+		return SoundEngine::IsSoundPlaying(m_Handle);
+	}
 	void GlobalSource::SetVolume(float volume)
 	{
 		m_Volume = volume;
-		if (!SoundEngine::IsSoundPlaying(m_Handle))
+		if (SoundEngine::IsSoundPlaying(m_Handle))
 		{
 			SoundEngine::SetVolume(m_Handle, m_Volume);
 		}
@@ -51,7 +55,7 @@ namespace Engine {
 	void GlobalSource::SetLooping(bool looping)
 	{
 		m_Looping = looping;
-		if (!SoundEngine::IsSoundPlaying(m_Handle))
+		if (SoundEngine::IsSoundPlaying(m_Handle))
 		{
 			SoundEngine::SetLooping(m_Handle, m_Looping);
 		}

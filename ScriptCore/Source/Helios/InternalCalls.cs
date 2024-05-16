@@ -24,6 +24,10 @@ namespace Helios
 		internal extern static bool Entity_HasComponent(ulong entity_id, Type component_type);
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Entity_Destroy(ulong entity_id);
+
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void Camera_RotateAroundEntity(ulong entity_id, ref Vector2 rotation, float speed, bool inverse_controls);
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
@@ -34,6 +38,18 @@ namespace Helios
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void Camera_GetRightDirection(ulong entity_id, ref Vector3 right_direction);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_GetPosition(ulong entity_id, out Vector3 translation);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_GetRotation(ulong entity_id, out Vector3 rotation);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_SetPosition(ulong entity_id, ref Vector3 translation);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static void Camera_SetRotation(ulong entity_id, ref Vector3 rotation);
 
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
@@ -130,6 +146,18 @@ namespace Helios
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern static void CharacterController_AddLinearAngularImpulse(ulong entity_id, ref Vector3 linear_impulse, ref Vector3 angular_impulse);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool CharacterController_IsCharacterGrounded(ulong entity_id);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool CharacterController_GetRotation(ulong entity_id, ref Vector3 rotation);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool CharacterController_SetRotation(ulong entity_id, ref Vector3 rotation);
+
+		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		internal extern static bool CharacterController_Rotate(ulong entity_id, ref Vector3 rotation);
 
 	}
 }

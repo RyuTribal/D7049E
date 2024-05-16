@@ -318,6 +318,10 @@ namespace EditorPanels {
 			return;
 		}
 
+		std::string id_string = fmt::format("UUID: {}", entity->GetID());
+
+		ImGui::Text(id_string.c_str());
+
 		if (entity->HasComponent<TagComponent>())
 		{
 			auto tag = entity->GetComponent<TagComponent>();
@@ -620,14 +624,14 @@ namespace EditorPanels {
 		});
 
 		DrawComponent<CharacterControllerComponent>("Character Controller", entity, [](auto& component, auto entity) {
-			float float_max = FLT_MAX/2.f;
+			//float float_max = FLT_MAX/2.f;
 
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Mass");
 			ImGui::NextColumn();
 			float mass = component->Mass;
-			ImGui::DragFloat("##character_controller_mass", &mass, 1.0f, 0.0f, float_max);
+			ImGui::DragFloat("##character_controller_mass", &mass, 1.0f, 0.0f, FLT_MAX);
 			component->Mass = mass;
 			ImGui::Columns(1);
 
@@ -636,7 +640,7 @@ namespace EditorPanels {
 			ImGui::Text("Halfheight");
 			ImGui::NextColumn();
 			float halfheight = component->HalfHeight;
-			ImGui::DragFloat("##character_controller_halfheight", &halfheight, 1.0f, 0.0f, float_max);
+			ImGui::DragFloat("##character_controller_halfheight", &halfheight, 1.0f, 0.0f, FLT_MAX);
 			component->HalfHeight = halfheight;
 			ImGui::Columns(1);
 
@@ -645,16 +649,44 @@ namespace EditorPanels {
 			ImGui::Text("Radius");
 			ImGui::NextColumn();
 			float radius = component->Radius;
-			ImGui::DragFloat("##character_controller_radius", &radius, 1.0f, 0.0f, float_max);
+			ImGui::DragFloat("##character_controller_radius", &radius, 1.0f, 0.0f, FLT_MAX);
 			component->Radius = radius;
 			ImGui::Columns(1);
 
 			DrawVec3Control("Offset", component->Offset);
 
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Friction");
+			ImGui::NextColumn();
+			float friction = component->Friction;
+			ImGui::DragFloat("##character_controller_friction", &friction, 0.01f, 0.0f, 1.0f);
+			component->Friction = friction;
+			ImGui::Columns(1);
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Restitution");
+			ImGui::NextColumn();
+			float restitution = component->Restitution;
+			ImGui::DragFloat("##character_controller_restitution", &restitution, 0.01f, 0.0f, 1.0f);
+			component->Restitution = restitution;
+			ImGui::Columns(1);
+
 		});
 
 		DrawComponent<BoxColliderComponent>("Box Collider", entity, [](auto& component, auto entity)
 		{
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Mass");
+			ImGui::NextColumn();
+			float mass = component->Mass;
+			ImGui::DragFloat("##Physics_Box_Collider_mass", &mass, 1.0f, 0.0f, FLT_MAX);
+			component->Mass = mass;
+			ImGui::Columns(1);
+
 			DrawVec3Control("Half Size", component->HalfSize);
 			DrawVec3Control("Offset", component->Offset);
 
@@ -680,16 +712,46 @@ namespace EditorPanels {
 			}
 			ImGui::Columns(1);
 
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Friction");
+			ImGui::NextColumn();
+			float friction = component->Friction;
+			ImGui::DragFloat("##Physics_Box_Collider_friction", &friction, 0.01f, 0.0f, 1.0f);
+			component->Friction = friction;
+			ImGui::Columns(1);
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Restitution");
+			ImGui::NextColumn();
+			float restitution = component->Restitution;
+			ImGui::DragFloat("##Physics_Box_Collider_restitution", &restitution, 0.01f, 0.0f, 1.0f);
+			component->Restitution = restitution;
+			ImGui::Columns(1);
+
 		});
 
 		DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [](auto& component, auto entity)
 		{
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Mass");
+			ImGui::NextColumn();
+			float mass = component->Mass;
+			ImGui::DragFloat("##Physics_Sphere_Collider_mass", &mass, 1.0f, 0.0f, FLT_MAX);
+			component->Mass = mass;
+			ImGui::Columns(1);
+
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.f);
 			ImGui::Text("Radius");
 			ImGui::NextColumn();
 			float radius = component->Radius;
-			ImGui::SliderFloat("##sphere_collider_radius", &radius, 0.0f, 10.0f);
+			//aImGui::SliderFloat("##Physics_Sphere_Colliderr_radius", &radius, 0.0f, 100.0f);
+			ImGui::DragFloat("##Physics_Sphere_Colliderr_radius", &radius, 1.f, 0.0f, FLT_MAX);
 			component->Radius = radius;
 			ImGui::Columns(1);
 
@@ -701,7 +763,7 @@ namespace EditorPanels {
 			std::string current_item = FromMotionTypeToString(component->MotionType);
 			ImGui::Text("Motion Type");
 			ImGui::NextColumn();
-			if (ImGui::BeginCombo("##Physics_Box_Collider_type", current_item.c_str()))
+			if (ImGui::BeginCombo("##Physics_Sphere_Collider_type", current_item.c_str()))
 			{
 				for (auto& type : HEMotionTypes)
 				{
@@ -715,6 +777,24 @@ namespace EditorPanels {
 
 				ImGui::EndCombo();
 			}
+			ImGui::Columns(1);
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Friction");
+			ImGui::NextColumn();
+			float friction = component->Friction;
+			ImGui::DragFloat("##Physics_Sphere_Collider_friction", &friction, 0.01f, 0.0f, 1.0f);
+			component->Friction = friction;
+			ImGui::Columns(1);
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.f);
+			ImGui::Text("Restitution");
+			ImGui::NextColumn();
+			float restitution = component->Restitution;
+			ImGui::DragFloat("##Physics_Sphere_Collider_restitution", &restitution, 0.01f, 0.0f, 1.0f);
+			component->Restitution = restitution;
 			ImGui::Columns(1);
 
 		});
@@ -760,9 +840,19 @@ namespace EditorPanels {
 					sound->SetVolume(volume[0]);
 				}
 
-				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				if (sound->IsPlaying())
 				{
-					sound->PlaySound(true);
+					if (ImGui::Button(("Stop##" + idStr).c_str()))
+					{
+						sound->StopSound();
+					}
+				}
+				else
+				{
+					if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+					{
+						sound->PlaySound(true);
+					}
 				}
 				ImGui::SameLine();
 				if (ImGui::Button(("Remove##" + idStr).c_str()))
@@ -849,11 +939,20 @@ namespace EditorPanels {
 					sound->SetRolloff(rolloff[0]);
 				}
 
-				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				if (sound->IsPlaying())
 				{
-					auto scene = GetScene();
-					glm::vec3 speakerPosition = scene->GetRegistry()->Get<TransformComponent>(entity->GetID())->world_transform.translation;
-					sound->PlaySound(speakerPosition, true);
+					if (ImGui::Button(("Stop##" + idStr).c_str()))
+					{
+						sound->StopSound();
+					}
+				}
+				else
+				{
+					if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+					{
+						glm::vec3 camera_pos = GetScene()->GetCurrentCamera()->CalculatePosition();
+						sound->PlaySound(camera_pos, true);
+					}
 				}
 				ImGui::SameLine();
 				if (ImGui::Button(("Remove##" + idStr).c_str()))

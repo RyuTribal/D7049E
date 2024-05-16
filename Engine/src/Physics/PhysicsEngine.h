@@ -47,8 +47,6 @@ namespace Engine {
 		HPhysicsScene* GetCurrentScene();
 		void SwitchScene(SceneID sceneID);
 
-		static void tmpRunner();
-
 	private:
 		static PhysicsEngine* s_Instance;
 

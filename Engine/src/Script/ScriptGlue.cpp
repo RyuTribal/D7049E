@@ -51,6 +51,12 @@ namespace Engine {
 		return s_HasComponentFuncs.at(monoManagedType)(entity);
 	}
 
+	static void Entity_Destroy(uint64_t entity_id)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		scene->DestroyEntity(entity_id);
+	}
+
 
 	static void Camera_RotateAroundEntity(uint64_t entity_id, glm::vec2* rotation, float speed, bool inverse_controls)
 	{
@@ -89,6 +95,46 @@ namespace Engine {
 		if (camera_comp)
 		{
 			*right_direction = camera_comp->camera.GetRightDirection();
+		}
+	}
+
+	static void Camera_GetPosition(uint64_t entity_id, glm::vec3* position)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			*position = camera_comp->camera.GetPosition();
+		}
+	}
+
+	static void Camera_GetRotation(uint64_t entity_id, glm::vec3* rotation)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			*rotation = glm::eulerAngles(camera_comp->camera.GetOrientation());
+		}
+	}
+
+	static void Camera_SetPosition(uint64_t entity_id, glm::vec3* position)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			camera_comp->camera.SetPosition(*position);
+		}
+	}
+
+	static void Camera_SetRotation(uint64_t entity_id, glm::vec3* rotation)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto camera_comp = entity->GetComponent<CameraComponent>();
+		if (camera_comp)
+		{
+			camera_comp->camera.SetRotation(glm::vec2(*rotation));
 		}
 	}
 
@@ -145,7 +191,7 @@ namespace Engine {
 		auto sounds_library = entity->GetComponent<LocalSoundsComponent>();
 		if (sounds_library && index <= sounds_library->Sounds.size() - 1)
 		{
-			sounds_library->Sounds.at(index)->PlaySound(entity->GetComponent<TransformComponent>()->world_transform.translation, false);
+			sounds_library->Sounds.at(index)->PlaySound(scene->GetCurrentCamera()->CalculatePosition(), false);
 		}
 	}
 
@@ -373,6 +419,46 @@ namespace Engine {
 		}
 	}
 
+	static bool CharacterController_IsCharacterGrounded(uint64_t entity_id)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			return PhysicsEngine::Get()->GetCurrentScene()->IsCharacterGrounded(entity_id);
+		}
+	}
+
+	static void CharacterController_GetRotation(uint64_t entity_id, glm::vec3* rotation)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			*rotation = PhysicsEngine::Get()->GetCurrentScene()->GetRotation(entity_id);
+		}
+	}
+
+	static void CharacterController_SetRotation(uint64_t entity_id, glm::vec3* rotation)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->SetRotation(entity_id, *rotation);
+		}
+	}
+
+	static void CharacterController_Rotate(uint64_t entity_id, glm::vec3* rotation)
+	{
+		auto [scene, entity] = GetSceneAndEntity(entity_id);
+		auto character_controller = entity->GetComponent<CharacterControllerComponent>();
+		if (character_controller)
+		{
+			PhysicsEngine::Get()->GetCurrentScene()->Rotate(entity_id, *rotation);
+		}
+	}
+
 	template <typename... Component>
 	static void RegisterComponent()
 	{
@@ -410,11 +496,16 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(IsMouseButtonPressed);
 		HVE_ADD_INTERNAL_CALL(GetMousePosition);
 		HVE_ADD_INTERNAL_CALL(Entity_HasComponent);
+		HVE_ADD_INTERNAL_CALL(Entity_Destroy);
 
 		HVE_ADD_INTERNAL_CALL(Camera_RotateAroundEntity);
 		HVE_ADD_INTERNAL_CALL(Camera_Rotate);
 		HVE_ADD_INTERNAL_CALL(Camera_GetForwardDirection);
 		HVE_ADD_INTERNAL_CALL(Camera_GetRightDirection);
+		HVE_ADD_INTERNAL_CALL(Camera_GetPosition);
+		HVE_ADD_INTERNAL_CALL(Camera_GetRotation);
+		HVE_ADD_INTERNAL_CALL(Camera_SetPosition);
+		HVE_ADD_INTERNAL_CALL(Camera_SetRotation);
 
 		HVE_ADD_INTERNAL_CALL(TransformComponent_GetTranslation);
 		HVE_ADD_INTERNAL_CALL(TransformComponent_SetTranslation);
@@ -449,6 +540,10 @@ namespace Engine {
 		HVE_ADD_INTERNAL_CALL(CharacterController_AddImpulse);
 		HVE_ADD_INTERNAL_CALL(CharacterController_AddAngularImpulse);
 		HVE_ADD_INTERNAL_CALL(CharacterController_AddLinearAngularImpulse);
+		HVE_ADD_INTERNAL_CALL(CharacterController_IsCharacterGrounded);
+		HVE_ADD_INTERNAL_CALL(CharacterController_GetRotation);
+		HVE_ADD_INTERNAL_CALL(CharacterController_SetRotation);
+		HVE_ADD_INTERNAL_CALL(CharacterController_Rotate);
 
 	}
 }

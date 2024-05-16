@@ -127,6 +127,26 @@ namespace Engine {
 
 	void Scene::DestroyEntity(UUID id)
 	{
+		// Temp fix
+		auto entity = GetEntity(id);
+		if (entity->HasComponent<GlobalSoundsComponent>())
+		{
+			auto sounds = entity->GetComponent<GlobalSoundsComponent>();
+			for (auto sound : sounds->Sounds)
+			{
+				sound->StopSound();
+			}
+		}
+
+		if (entity->HasComponent<LocalSoundsComponent>())
+		{
+			auto sounds = entity->GetComponent<LocalSoundsComponent>();
+			for (auto sound : sounds->Sounds)
+			{
+				sound->StopSound();
+			}
+		}
+
 		m_RootSceneNode.RemoveChild(id, &m_RootSceneNode);
 		m_Registry.RemoveAllFromEntity(id);
 		entities.erase(id);
@@ -226,6 +246,7 @@ namespace Engine {
 	{
 		HVE_CORE_ASSERT(!Application::Get().GetProps().NoScripting, "The scene requires you to use scripting, which is currently set to false!");
 		ScriptEngine::OnRuntimeStart(this);
+		SoundEngine::StopAll();
 
 		m_SceneState = SceneRunType::Runtime;
 
@@ -286,6 +307,7 @@ namespace Engine {
 		HVE_CORE_ASSERT(!Application::Get().GetProps().NoScripting, "The scene requires you to use scripting, which is currently set to false!");
 		ScriptEngine::OnRuntimeStop();
 		PhysicsEngine::Get()->OnRuntimeStop();
+		SoundEngine::StopAll();
 		m_SceneState = SceneRunType::Edit;
 	}
 
@@ -524,27 +546,18 @@ namespace Engine {
 			for (auto& [entity_id, character_controller] : *character_controllers)
 			{
 				auto transform = GetEntity(entity_id)->GetComponent<TransformComponent>();
-				glm::mat4 collider_transform = PhysicsEngine::Get()->GetCurrentScene()->GetTransform(entity_id);
-				glm::mat4 worldTransform = collider_transform;
 
-				glm::vec3 scale;
-				glm::quat rotation;
-				glm::vec3 translation;
-				glm::vec3 skew;
-				glm::vec4 perspective;
 
-				glm::decompose(worldTransform, scale, rotation, translation, skew, perspective);
+				glm::vec3 eulerAngles = PhysicsEngine::Get()->GetCurrentScene()->GetRotation(entity_id);
 
-				glm::vec3 eulerAngles = glm::eulerAngles(rotation);
-
-				transform->world_transform.translation = translation;
-				transform->world_transform.rotation = eulerAngles;
+				transform->world_transform.translation = PhysicsEngine::Get()->GetCurrentScene()->GetPosition(entity_id);
+				transform->world_transform.rotation = PhysicsEngine::Get()->GetCurrentScene()->GetRotation(entity_id);
 
 				// Update the camera if present
 				auto camera_component = m_Registry.Get<CameraComponent>(entity_id);
 				if (camera_component)
 				{
-					camera_component->camera.SetPosition(translation);
+					camera_component->camera.SetPosition(transform->world_transform.translation);
 
 					if (camera_component->camera.IsRotationLocked())
 					{

@@ -152,9 +152,9 @@ void main() {
     kD *= 1.0 - metalness;	  
     vec3 irradiance = texture(u_IrradianceMap, N).rgb;
 
-    float shadow_bias = max(0.05 * (1.0 - dot(N, directionalLightsBuffer.data[0].direction.rgb)), 0.005);  
-    float shadow = ShadowCalculation(shadow_bias, N);
-    vec3 diffuse = irradiance * albedo * u_EnvironmentBrightness * (1.0 - shadow);
+//    float shadow_bias = max(0.05 * (1.0 - dot(N, directionalLightsBuffer.data[0].direction.rgb)), 0.005);  
+//    float shadow = ShadowCalculation(shadow_bias, N);
+    vec3 diffuse = irradiance * albedo * u_EnvironmentBrightness;
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(u_PrefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;    

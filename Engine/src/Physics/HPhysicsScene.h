@@ -126,9 +126,9 @@ namespace Engine {
 		void Update(float deltaTime);
 
 		std::vector<HBodyID> CreateBody(Entity* entity);
-		HBodyID CreateBox(UUID entity_id, glm::vec3 dimensions, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
-		HBodyID CreateSphere(UUID entity_id, float radius, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate);
-		HBodyID CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::vec3 offset);
+		HBodyID CreateBox(UUID entity_id, float mass, glm::vec3 dimensions, glm::quat rotation, glm::vec3 position, HEMotionType movability, glm::vec3& offset, bool activate, float friction, float restitution);
+		HBodyID CreateSphere(UUID entity_id, float mass, float radius, glm::vec3 position, glm::quat rotation, HEMotionType movability, glm::vec3& offset, bool activate, float friction, float restitution);
+		HBodyID CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::quat rotation, glm::vec3 offset, float friction, float restitution);
 		void InsertObjectByID(UUID entity_id, bool activate);
 		void SetPosition(UUID entity_id, glm::vec3 position, bool activate);
 		void SetLinearVelocity(UUID entity_id, glm::vec3& velocity);
@@ -139,6 +139,9 @@ namespace Engine {
 		void AddLinearImpulse(UUID entity_id, glm::vec3& impulse);
 		void AddAngularImpulse(UUID entity_id, glm::vec3& impulse);
 		void AddLinearAndAngularImpulse(UUID entity_id, glm::vec3& linear, glm::vec3& angular);
+		glm::vec3 GetRotation(UUID entity_id);
+		void SetRotation(UUID entity_id, glm::vec3& rotation);
+		void Rotate(UUID entity_id, glm::vec3& delta);
 
 		bool IsOptimized();
 		void SetOptimized(bool optimized);
@@ -148,6 +151,7 @@ namespace Engine {
 		void DestroyAllShapes();
 		void RemoveCharacter(UUID entity_id);
 		void DestroyCharacter(UUID entity_id);
+		bool IsCharacterGrounded(UUID entity_id);
 		void DestroyAllCharacters();
 		void DestroyAll();
 		bool IsActive(UUID entity_id);

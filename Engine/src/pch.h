@@ -7,6 +7,7 @@
 #endif
 #endif
 
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <utility>

@@ -77,25 +77,45 @@ namespace Engine {
 		// post simulation
 		for (auto& [entity_id, character] : m_characterMap)
 		{
-			character->PostSimulation(0.0f);		// TODO: check if this works on removed but undeleted characters
+			if (m_scene->GetEntity(entity_id)) 
+			{
+				character->PostSimulation(0.01f);        // TODO: check if this works on removed but undeleted characters
+			}
+			else {
+				DestroyCharacter(entity_id);
+			}
 		}
 
 		for (auto& [id1, id2] : this->m_newContact)
 		{
-			ScriptEngine::CallMethod<uint64_t>(id1, "newCollision", id2);
-			ScriptEngine::CallMethod<uint64_t>(id2, "newCollision", id1);
+			ScriptEngine::CallMethod<uint64_t>(id1, "OnNewCollision", id2);
+			ScriptEngine::CallMethod<uint64_t>(id2, "OnNewCollision", id1);
 		}
 
 		for (auto& [id1, id2] : this->m_persistContact)
 		{
-			ScriptEngine::CallMethod<uint64_t>(id1, "persistCollision", id2);
-			ScriptEngine::CallMethod<uint64_t>(id2, "persistCollision", id1);
+			ScriptEngine::CallMethod<uint64_t>(id1, "OnPersistCollision", id2);
+			ScriptEngine::CallMethod<uint64_t>(id2, "OnPersistCollision", id1);
 		}
 
 		for (auto& [id1, id2] : this->m_removedContact)
 		{
-			ScriptEngine::CallMethod<uint64_t>(id1, "removedCollision", id2);
-			ScriptEngine::CallMethod<uint64_t>(id2, "removedCollision", id1);
+			ScriptEngine::CallMethod<uint64_t>(id1, "OnRemovedCollision", id2);
+			ScriptEngine::CallMethod<uint64_t>(id2, "OnRemovedCollision", id1);
+		}
+
+		std::vector<UUID> entities_to_destroy;
+
+		for (auto& [entity_id, body] : m_bodyMap) {
+			if (!m_scene->GetEntity(entity_id))
+			{
+				RemoveShape(entity_id);
+				entities_to_destroy.push_back(entity_id);
+			}
+		}
+
+		for (auto entity : entities_to_destroy) {
+			DestroyShape(entity);
 		}
 	}
 
@@ -131,10 +151,11 @@ namespace Engine {
 			glm::vec3 position = entity->GetComponent<TransformComponent>()->world_transform.translation;
 			glm::quat rotation = entity->GetComponent<TransformComponent>()->world_transform.RotationVecToQuat();
 			glm::vec3 scale = entity->GetComponent<TransformComponent>()->world_transform.scale;
+			float biggest_scale = std::max(scale.z, std::max(scale.x, scale.y));
 			res.push_back(this->CreateSphere(
 				entity->GetID(),
 				sphereComponent->Mass,
-				sphereComponent->Radius * scale.r,
+				biggest_scale * sphereComponent->Radius,
 				position,
 				rotation,
 				sphereComponent->MotionType,
@@ -144,16 +165,18 @@ namespace Engine {
 				sphereComponent->Restitution
 			));
 		}
-		CharacterControllerComponent* characterComponent = entity->GetComponent <CharacterControllerComponent>(); {}
+		CharacterControllerComponent* characterComponent = entity->GetComponent <CharacterControllerComponent>();
 		if (characterComponent)
 		{
 			glm::vec3 position = entity->GetComponent<TransformComponent>()->world_transform.translation;
 			glm::quat rotation = entity->GetComponent<TransformComponent>()->world_transform.RotationVecToQuat();
+			glm::vec3 scale = entity->GetComponent<TransformComponent>()->world_transform.scale;
+			float biggest_scale = std::max(scale.z, std::max(scale.x, scale.y));
 			res.push_back(this->CreateCharacter(
 				entity->GetID(),
 				characterComponent->Mass,
-				characterComponent->HalfHeight,
-				characterComponent->Radius,
+				scale.y * characterComponent->HalfHeight,
+				biggest_scale * characterComponent->Radius,
 				position,
 				rotation,
 				characterComponent->Offset,
@@ -288,7 +311,7 @@ namespace Engine {
 
 	HBodyID HPhysicsScene::CreateCharacter(UUID entity_id, float mass, float halfHeight, float radius, glm::vec3 position, glm::quat rotation, glm::vec3 offset, float friction, float restitution)
 	{
-		HVE_ASSERT(friction >= 0.f && restitution >= 0.f && mass >= 0.f && halfHeight >= 0.f && radius >= 0.f);
+		//HVE_ASSERT(friction >= 0.f && restitution >= 0.f && mass >= 0.f && halfHeight >= 0.f && radius Destroy>= 0.f);
 
 		JPH::Quat rot = JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w);
 
@@ -413,6 +436,28 @@ namespace Engine {
 		(this->m_body_interface)->AddAngularImpulse(jolt_id, angular_imp);
 	}
 
+	glm::vec3 HPhysicsScene::GetRotation(UUID entity_id)
+	{
+		JPH::Quat jph_quat = m_characterMap[entity_id]->GetRotation();
+		JPH::Vec3 jph_euler = jph_quat.GetEulerAngles();
+		glm::vec3 rotation_vec = glm::vec3(jph_euler.GetX(), jph_euler.GetY(), jph_euler.GetZ());
+		return rotation_vec;
+	}
+
+	void HPhysicsScene::SetRotation(UUID entity_id, glm::vec3& rotation)
+	{
+		glm::quat quat_rot = glm::quat(rotation);
+		JPH::Quat jph_quat = JPH::Quat(quat_rot.x, quat_rot.y, quat_rot.z, quat_rot.w);
+		m_characterMap[entity_id]->SetRotation(jph_quat);
+	}
+
+	void HPhysicsScene::Rotate(UUID entity_id, glm::vec3& delta)
+	{
+		glm::vec3 curr_rot = GetRotation(entity_id);
+		curr_rot += delta;
+		SetRotation(entity_id, curr_rot);
+	}
+
 	bool HPhysicsScene::IsOptimized()
 	{
 		return s_hasOptimized;
@@ -438,6 +483,7 @@ namespace Engine {
 	{
 		JPH::BodyID jolt_id = HBodyID::GetBodyID(entity_id);
 
+		(this->m_body_interface)->DeactivateBody(jolt_id);
 		(this->m_body_interface)->DestroyBody(jolt_id);
 		HBodyID::RemoveEntry(entity_id);
 		m_bodyMap.erase(entity_id);
@@ -471,6 +517,12 @@ namespace Engine {
 		delete m_characterMap[entity_id];
 		m_characterMap.erase(entity_id);
 		HBodyID::RemoveEntry(entity_id);
+	}
+
+	bool HPhysicsScene::IsCharacterGrounded(UUID entity_id)
+	{
+		JPH::Character* character = m_characterMap[entity_id];
+		return (JPH::CharacterBase::EGroundState::OnGround == character->GetGroundState());
 	}
 
 	void HPhysicsScene::DestroyAllCharacters()

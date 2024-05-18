@@ -16,6 +16,7 @@ namespace Engine {
 		void SetSound(AssetHandle handle);
 		void PlaySound(bool preview);
 		void StopSound();
+		bool IsPlaying();
 
 		bool IsLooping() { return m_Looping; }
 		float GetVolume() { return m_Volume; }

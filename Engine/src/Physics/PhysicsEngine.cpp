@@ -103,6 +103,8 @@ namespace Engine {
 	{
 		s_current_scene->SetOptimized(false);
 		s_current_scene->DestroyAll();
+		delete s_current_scene;
+		s_current_scene = nullptr;
 	}
 
 	SceneID PhysicsEngine::CreateScene(Scene* scene, float allocationSize = 10.0f)

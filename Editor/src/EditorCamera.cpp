@@ -85,9 +85,7 @@ namespace Editor {
 	}
 	void EditorCamera::ApplyFriction(float delta_time)
 	{
-		float frictionEffect = 1.0f - (m_AirFriction * delta_time);
-
-		m_Velocity *= frictionEffect;
+		m_Velocity *= delta_time;
 
 		if (glm::length(m_Velocity) < 0.01f) {
 			m_Velocity = glm::vec3(0.0f);

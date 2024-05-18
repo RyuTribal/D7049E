@@ -16,6 +16,7 @@ namespace Engine {
 		static SoLoud::handle Play(SoLoud::Wav& file, SoLoud::handle handle);
 		static SoLoud::handle Play3D(SoLoud::Wav& file, SoLoud::handle handle, glm::vec3 speakerPosition);
 		static void Stop(SoLoud::handle handle);
+		static void StopAll();
 
 		static bool IsSoundPlaying(SoLoud::handle handle);
 

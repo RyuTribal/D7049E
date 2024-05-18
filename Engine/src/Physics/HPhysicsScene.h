@@ -139,6 +139,9 @@ namespace Engine {
 		void AddLinearImpulse(UUID entity_id, glm::vec3& impulse);
 		void AddAngularImpulse(UUID entity_id, glm::vec3& impulse);
 		void AddLinearAndAngularImpulse(UUID entity_id, glm::vec3& linear, glm::vec3& angular);
+		glm::vec3 GetRotation(UUID entity_id);
+		void SetRotation(UUID entity_id, glm::vec3& rotation);
+		void Rotate(UUID entity_id, glm::vec3& delta);
 
 		bool IsOptimized();
 		void SetOptimized(bool optimized);
@@ -148,6 +151,7 @@ namespace Engine {
 		void DestroyAllShapes();
 		void RemoveCharacter(UUID entity_id);
 		void DestroyCharacter(UUID entity_id);
+		bool IsCharacterGrounded(UUID entity_id);
 		void DestroyAllCharacters();
 		void DestroyAll();
 		bool IsActive(UUID entity_id);

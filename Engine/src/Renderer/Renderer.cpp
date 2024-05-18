@@ -581,12 +581,12 @@ namespace Engine
 				m_Settings.Skybox.IrradianceTexture->Bind(10);
 				m_Settings.Skybox.PrefilterMap->Bind(11);
 				m_RendererAPI.BindTexture(m_BRDFBuffer->GetColorAttachmentRendererID(), 12);
-				m_RendererAPI.BindTexture(m_SunShadowBuffer->GetDepthAttachmentID(), 13);
+				/*m_RendererAPI.BindTexture(m_SunShadowBuffer->GetDepthAttachmentID(), 13);
 				material->Set("u_CascadeCount", (int)m_Settings.ShadowSettings.ShadowCascadeLevels.size());
 				for (size_t i = 0; i < m_Settings.ShadowSettings.ShadowCascadeLevels.size(); ++i)
 				{
 					material->Set("u_CascadePlaneDistances[" + std::to_string(i) + "]", m_Settings.ShadowSettings.ShadowCascadeLevels[i]);
-				}
+				}*/
 				material->Set("u_CameraFarPlane", m_CurrentCamera->GetFar());
 				material->Set("u_SunView", m_Settings.ShadowSettings.DirLightView);
 				material->Set("u_SunProjection", m_Settings.ShadowSettings.DirLightProjection);

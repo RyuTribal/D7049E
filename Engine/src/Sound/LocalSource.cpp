@@ -36,15 +36,19 @@ namespace Engine {
 	}
 	void LocalSource::StopSound()
 	{
-		if (!SoundEngine::IsSoundPlaying(m_Handle))
+		if (SoundEngine::IsSoundPlaying(m_Handle))
 		{
 			SoundEngine::Stop(m_Handle);
 		}
 	}
+	bool LocalSource::IsPlaying()
+	{
+		return SoundEngine::IsSoundPlaying(m_Handle);
+	}
 	void LocalSource::SetVolume(float volume)
 	{
 		m_Volume = volume;
-		if (!SoundEngine::IsSoundPlaying(m_Handle))
+		if (SoundEngine::IsSoundPlaying(m_Handle))
 		{
 			SoundEngine::SetVolume(m_Handle, m_Volume);
 		}
@@ -52,7 +56,7 @@ namespace Engine {
 	void LocalSource::SetRolloff(float rolloff)
 	{
 		m_Rolloff = rolloff;
-		if (!SoundEngine::IsSoundPlaying(m_Handle))
+		if (SoundEngine::IsSoundPlaying(m_Handle))
 		{
 			SoundEngine::SetAttenuation(m_Handle, m_Rolloff);
 		}
@@ -60,7 +64,7 @@ namespace Engine {
 	void LocalSource::SetLooping(bool looping)
 	{
 		m_Looping = looping;
-		if (!SoundEngine::IsSoundPlaying(m_Handle))
+		if (SoundEngine::IsSoundPlaying(m_Handle))
 		{
 			SoundEngine::SetLooping(m_Handle, m_Looping);
 		}

@@ -318,6 +318,10 @@ namespace EditorPanels {
 			return;
 		}
 
+		std::string id_string = fmt::format("UUID: {}", entity->GetID());
+
+		ImGui::Text(id_string.c_str());
+
 		if (entity->HasComponent<TagComponent>())
 		{
 			auto tag = entity->GetComponent<TagComponent>();
@@ -836,9 +840,19 @@ namespace EditorPanels {
 					sound->SetVolume(volume[0]);
 				}
 
-				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				if (sound->IsPlaying())
 				{
-					sound->PlaySound(true);
+					if (ImGui::Button(("Stop##" + idStr).c_str()))
+					{
+						sound->StopSound();
+					}
+				}
+				else
+				{
+					if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+					{
+						sound->PlaySound(true);
+					}
 				}
 				ImGui::SameLine();
 				if (ImGui::Button(("Remove##" + idStr).c_str()))
@@ -925,11 +939,20 @@ namespace EditorPanels {
 					sound->SetRolloff(rolloff[0]);
 				}
 
-				if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+				if (sound->IsPlaying())
 				{
-					auto scene = GetScene();
-					glm::vec3 speakerPosition = scene->GetRegistry()->Get<TransformComponent>(entity->GetID())->world_transform.translation;
-					sound->PlaySound(speakerPosition, true);
+					if (ImGui::Button(("Stop##" + idStr).c_str()))
+					{
+						sound->StopSound();
+					}
+				}
+				else
+				{
+					if (ImGui::Button(("Play Preview##" + idStr).c_str()))
+					{
+						glm::vec3 camera_pos = GetScene()->GetCurrentCamera()->CalculatePosition();
+						sound->PlaySound(camera_pos, true);
+					}
 				}
 				ImGui::SameLine();
 				if (ImGui::Button(("Remove##" + idStr).c_str()))

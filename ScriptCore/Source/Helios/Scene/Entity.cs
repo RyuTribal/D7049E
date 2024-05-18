@@ -19,7 +19,15 @@ namespace Helios
 		public readonly ulong ID;
 
 
+		public void SelfDestruct()
+		{
+			InternalCalls.Entity_Destroy(ID);
+		}
 
+		public void DestroyEntity(ulong id)
+		{
+			InternalCalls.Entity_Destroy(id);
+		}
 
 		public bool IsKeyPressed(KeyCode key_code)
 		{

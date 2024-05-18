@@ -23,8 +23,6 @@ namespace Engine {
 
 		this->m_CurrentScene->AddNewContact(data1, data2);
 
-		std::cout << "Contact added" << std::endl;
-
 		if (typeid(inBody1.GetShape()) == typeid(JPH::CapsuleShape))
 			HVE_CORE_TRACE("A contact was added");
 	}

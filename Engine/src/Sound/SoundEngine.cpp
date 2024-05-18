@@ -52,6 +52,14 @@ namespace Engine {
 		}
 	}
 
+	void SoundEngine::StopAll()
+	{
+		if (s_Instance && SoLoudInstance)
+		{
+			SoLoudInstance->stopAll();
+		}
+	}
+
 	bool SoundEngine::IsSoundPlaying(SoLoud::handle handle)
 	{
 		return SoLoudInstance->isValidVoiceHandle(handle);
